@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Plus, Edit, Trash2, Printer, Calendar, GraduationCap } from 'lucide-react';
+import { BookOpen, Plus, Edit, Trash2, Printer, Calendar, GraduationCap, Sparkles } from 'lucide-react';
 import api from '../utils/api';
 
 function Pendidikan({ user }) {
@@ -54,7 +54,6 @@ function Pendidikan({ user }) {
   const fetchNilaiData = async () => {
     setLoading(true);
     try {
-      // Dapatkan data nilai
       const url = user.role === 'ADMIN' 
         ? `/akademik/santri/${selectedSantriId}`
         : '/akademik/my';
@@ -64,7 +63,6 @@ function Pendidikan({ user }) {
       });
       setNilaiList(response);
 
-      // Cari nama santri terpilih untuk cetak rapor
       if (user.role === 'ADMIN' && santriList.length > 0) {
         const found = santriList.find(s => s.id === parseInt(selectedSantriId));
         setCurrentSantriDetails(found || null);
@@ -142,7 +140,6 @@ function Pendidikan({ user }) {
     window.print();
   };
 
-  // Hitung Nilai Rata-rata & Huruf
   const getAverage = (uts, uas) => ((uts + uas) / 2).toFixed(1);
 
   const getHuruf = (score) => {
@@ -167,17 +164,47 @@ function Pendidikan({ user }) {
 
   return (
     <div className="space-y-6">
-      {/* TOOLBAR UTAMA (no-print) */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* HEADER SECTION WITH TITLE & ACTION BUTTON (+ TAMBAH NILAI) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
+        <div>
+          <h1 className="text-xl font-bold font-serif text-[#0B4A3F] flex items-center space-x-2">
+            <GraduationCap className="text-[#D4AF37]" size={22} />
+            <span>Modul Akademik & Pendidikan</span>
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">Kelola penilaian evaluasi belajar dan pencetakan rapor santri.</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {user.role === 'ADMIN' && (
+            <button
+              onClick={handleOpenAdd}
+              className="bg-[#0B4A3F] hover:bg-[#083831] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-[#0B4A3F]/10 flex items-center space-x-1.5 transition transform active:scale-95 duration-200"
+            >
+              <Plus size={16} className="text-[#E8C766]" />
+              <span>+ Tambah Nilai</span>
+            </button>
+          )}
+          <button
+            onClick={handlePrint}
+            className="bg-[#083831] hover:bg-[#052b25] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center space-x-1.5 transition"
+          >
+            <Printer size={16} className="text-[#E8C766]" />
+            <span>Cetak Rapor</span>
+          </button>
+        </div>
+      </div>
+
+      {/* FILTER TOOLBAR (no-print) */}
+      <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 flex flex-wrap items-center justify-between gap-4 no-print">
+        <div className="flex flex-wrap items-center gap-4">
           {/* Dropdown Pilihan Santri (Admin Only) */}
           {user.role === 'ADMIN' && (
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pilih Santri</label>
+              <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Pilih Santri</label>
               <select
                 value={selectedSantriId}
                 onChange={(e) => setSelectedSantriId(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
               >
                 {santriList.map(s => (
                   <option key={s.id} value={s.id}>{s.nama} ({s.kelas})</option>
@@ -188,11 +215,11 @@ function Pendidikan({ user }) {
 
           {/* Tahun Ajaran */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tahun Ajaran</label>
+            <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Tahun Ajaran</label>
             <select
               value={tahunAjaran}
               onChange={(e) => setTahunAjaran(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
             >
               <option value="2025/2026">2025/2026</option>
               <option value="2026/2027">2026/2027</option>
@@ -201,61 +228,46 @@ function Pendidikan({ user }) {
 
           {/* Semester */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Semester</label>
+            <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Semester</label>
             <select
               value={semester}
               onChange={(e) => setSemester(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
             >
-              <option value="GANJIL">GANJIL (Ganjil)</option>
-              <option value="GENAP">GENAP (Genap)</option>
+              <option value="GANJIL">GANJIL</option>
+              <option value="GENAP">GENAP</option>
             </select>
           </div>
         </div>
 
-        <div className="flex gap-2">
-          {user.role === 'ADMIN' && (
-            <button
-              onClick={handleOpenAdd}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-emerald-600/10 flex items-center space-x-1.5 transition"
-            >
-              <Plus size={16} />
-              <span>Input Nilai Baru</span>
-            </button>
-          )}
-          <button
-            onClick={handlePrint}
-            className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center space-x-1.5 transition"
-          >
-            <Printer size={16} />
-            <span>Cetak Rapor</span>
-          </button>
+        <div className="text-xs text-slate-500 font-medium">
+          Santri: <strong className="text-[#0B4A3F]">{currentSantriDetails?.nama || '-'}</strong> ({currentSantriDetails?.kelas || '-'})
         </div>
       </div>
 
-      {/* VIEW DI DASHBOARD / WEBSITE (no-print) */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 no-print">
-        <h2 className="text-base font-bold text-slate-800 font-serif mb-4 flex items-center space-x-2">
-          <BookOpen className="text-emerald-600" size={20} />
-          <span>Hasil Studi Akademik - {currentSantriDetails?.nama}</span>
+      {/* VIEW AKADEMIK TABLE (no-print) */}
+      <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 no-print">
+        <h2 className="text-base font-bold text-[#0B4A3F] font-serif mb-5 pb-2 border-b border-slate-100 flex items-center space-x-2">
+          <BookOpen className="text-[#D4AF37]" size={20} />
+          <span>Hasil Evaluasi Studi Santri — {currentSantriDetails?.nama}</span>
         </h2>
 
         {loading ? (
           <div className="flex justify-center py-10">
-            <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-8 h-8 border-3 border-[#0B4A3F] border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+            <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider">
-                  <th className="py-3 px-4">Mata Pelajaran</th>
-                  <th className="py-3 px-4 text-center">Nilai UTS</th>
-                  <th className="py-3 px-4 text-center">Nilai UAS</th>
-                  <th className="py-3 px-4 text-center">Rata-Rata</th>
-                  <th className="py-3 px-4 text-center">Nilai Huruf</th>
-                  <th className="py-3 px-4">Predikat / Keterangan</th>
-                  {user.role === 'ADMIN' && <th className="py-3 px-4 text-center">Aksi</th>}
+                <tr className="bg-[#DCFCE7]/60 text-[#0B4A3F] font-extrabold uppercase tracking-wider border-b border-emerald-200/80">
+                  <th className="py-3 px-4 rounded-tl-xl">MATA PELAJARAN PESANTREN</th>
+                  <th className="py-3 px-4 text-center">NILAI UTS</th>
+                  <th className="py-3 px-4 text-center">NILAI UAS</th>
+                  <th className="py-3 px-4 text-center">RATA-RATA</th>
+                  <th className="py-3 px-4 text-center">HURUF</th>
+                  <th className="py-3 px-4">PREDIKAT / KETERANGAN</th>
+                  {user.role === 'ADMIN' && <th className="py-3 px-4 text-center rounded-tr-xl">AKSI</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -264,34 +276,36 @@ function Pendidikan({ user }) {
                     const avg = getAverage(n.nilaiUts, n.nilaiUas);
                     const huruf = getHuruf(avg);
                     return (
-                      <tr key={n.id} className="hover:bg-slate-50/50 transition">
-                        <td className="py-3 px-4 font-semibold text-slate-800">{n.mataPelajaran}</td>
-                        <td className="py-3 px-4 text-center font-medium">{n.nilaiUts}</td>
-                        <td className="py-3 px-4 text-center font-medium">{n.nilaiUas}</td>
-                        <td className="py-3 px-4 text-center font-bold text-emerald-800">{avg}</td>
-                        <td className="py-3 px-4 text-center">
-                          <span className={`inline-block w-6 py-0.5 rounded font-bold text-center ${
-                            huruf === 'A' ? 'bg-emerald-100 text-emerald-800' :
-                            huruf === 'B' ? 'bg-sky-100 text-sky-800' :
-                            huruf === 'C' ? 'bg-amber-100 text-amber-800' :
-                            'bg-rose-100 text-rose-800'
+                      <tr key={n.id} className="hover:bg-slate-100/60 transition duration-150">
+                        <td className="py-3.5 px-4 font-bold text-slate-800">{n.mataPelajaran}</td>
+                        <td className="py-3.5 px-4 text-center font-medium text-slate-700">{n.nilaiUts}</td>
+                        <td className="py-3.5 px-4 text-center font-medium text-slate-700">{n.nilaiUas}</td>
+                        <td className="py-3.5 px-4 text-center font-extrabold text-[#0B4A3F]">{avg}</td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`inline-block w-7 py-0.5 rounded-full font-bold text-center text-[11px] ${
+                            huruf === 'A' ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/30' :
+                            huruf === 'B' ? 'bg-sky-100 text-sky-800 border border-sky-200' :
+                            huruf === 'C' ? 'bg-[#FEF3C7] text-[#D97706] border border-[#D97706]/30' :
+                            'bg-[#FEE2E2] text-[#DC2626] border border-[#DC2626]/30'
                           }`}>
                             {huruf}
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-slate-600 font-medium">{getKeterangan(huruf)}</td>
+                        <td className="py-3.5 px-4 text-slate-600 font-medium">{getKeterangan(huruf)}</td>
                         {user.role === 'ADMIN' && (
-                          <td className="py-3 px-4 text-center">
-                            <div className="flex justify-center space-x-1.5">
+                          <td className="py-3.5 px-4 text-center">
+                            <div className="flex justify-center space-x-1">
                               <button
                                 onClick={() => handleOpenEdit(n)}
-                                className="p-1 text-emerald-600 hover:bg-emerald-50 rounded transition"
+                                title="Edit Nilai"
+                                className="p-1.5 text-[#16A34A] hover:bg-[#DCFCE7] rounded-full transition"
                               >
                                 <Edit size={14} />
                               </button>
                               <button
                                 onClick={() => handleDeleteNilai(n.id)}
-                                className="p-1 text-rose-600 hover:bg-rose-50 rounded transition"
+                                title="Hapus Nilai"
+                                className="p-1.5 text-[#DC2626] hover:bg-[#FEE2E2] rounded-full transition"
                               >
                                 <Trash2 size={14} />
                               </button>
@@ -319,9 +333,9 @@ function Pendidikan({ user }) {
         {/* KOP Surat Pesantren */}
         <div className="text-center border-b-4 border-double border-slate-900 pb-4 mb-6">
           <h1 className="text-xl font-bold uppercase tracking-wider">YAYASAN MIFTAHUL HUDA AS-SYADZILI</h1>
-          <h2 className="text-2xl font-extrabold uppercase font-serif text-emerald-950 mt-1">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
+          <h2 className="text-2xl font-extrabold uppercase font-serif text-[#0B4A3F] mt-1">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
           <p className="text-[10px] text-slate-500 font-sans mt-1">
-            Jl. Raya Pesantren No. 1, Sumberpasir, Pakis, Malang • Telp: (0341) 789012 • Web: miftahulhuda-assyadzili.or.id
+            Sekertariat : Kp. Babakan Nanggerang RT 02 RW 01 Desa Sukajadi Kec. Tarogong Kaler Kabupaten Garut Kode Pos 44151 Tlp. 083826250636
           </p>
         </div>
 
@@ -414,7 +428,7 @@ function Pendidikan({ user }) {
             )}
             <tr className="bg-slate-100 font-bold">
               <td colSpan="4" className="border border-slate-900 py-2 px-3 text-right">Nilai Rata-Rata Akumulasi</td>
-              <td className="border border-slate-900 py-2 px-3 text-center text-emerald-800 text-sm">{rataRataRapor}</td>
+              <td className="border border-slate-900 py-2 px-3 text-center text-[#0B4A3F] text-sm">{rataRataRapor}</td>
               <td colSpan="2" className="border border-slate-900 py-2 px-3 text-left uppercase text-[10px]">
                 {rataRataRapor !== '-' ? `Predikat: ${getKeterangan(getHuruf(rataRataRapor))}` : ''}
               </td>
@@ -450,28 +464,27 @@ function Pendidikan({ user }) {
 
       {/* MODAL INPUT / EDIT NILAI (no-print) */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 no-print">
-          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden border border-slate-100">
-            <div className="p-5 bg-emerald-950 text-white font-serif font-bold text-base flex justify-between items-center">
+        <div className="fixed inset-0 bg-[#083831]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 no-print">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-[#D4AF37]/30">
+            <div className="p-5 bg-[#0B4A3F] text-white font-serif font-bold text-base flex justify-between items-center border-b border-[#D4AF37]/30">
               <span>{modalMode === 'ADD' ? 'Input Nilai Akademik Baru' : 'Edit Nilai Akademik'}</span>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-white">✕</button>
+              <button onClick={() => setIsModalOpen(false)} className="text-emerald-200 hover:text-white">✕</button>
             </div>
             <form onSubmit={handleSubmitNilai} className="p-6 space-y-4">
               <div>
-                <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Mata Pelajaran</label>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Mata Pelajaran</label>
                 <input
                   type="text"
                   required
                   value={formNilai.mataPelajaran}
                   onChange={(e) => setFormNilai({ ...formNilai, mataPelajaran: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2.5 text-xs focus:bg-white focus:border-emerald-500 outline-none"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                {/* Nilai UTS */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Nilai UTS</label>
+                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nilai UTS</label>
                   <input
                     type="number"
                     min="0"
@@ -480,13 +493,12 @@ function Pendidikan({ user }) {
                     value={formNilai.nilaiUts}
                     onChange={(e) => setFormNilai({ ...formNilai, nilaiUts: e.target.value })}
                     placeholder="0 - 100"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:bg-white focus:border-emerald-500 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
                 </div>
                 
-                {/* Nilai UAS */}
                 <div>
-                  <label className="block text-[10px] font-bold text-slate-600 uppercase tracking-wider mb-1">Nilai UAS</label>
+                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nilai UAS</label>
                   <input
                     type="number"
                     min="0"
@@ -495,27 +507,27 @@ function Pendidikan({ user }) {
                     value={formNilai.nilaiUas}
                     onChange={(e) => setFormNilai({ ...formNilai, nilaiUas: e.target.value })}
                     placeholder="0 - 100"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 text-xs focus:bg-white focus:border-emerald-500 outline-none"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
                 </div>
               </div>
 
               <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center space-x-2 text-[10px] text-slate-500">
-                <Calendar size={14} className="text-slate-400" />
-                <span>Nilai akan tersimpan pada <strong>Semester {semester}</strong> Tahun Ajaran <strong>{tahunAjaran}</strong>.</span>
+                <Calendar size={14} className="text-[#D4AF37]" />
+                <span>Tersimpan pada <strong>Semester {semester}</strong> Tahun Ajaran <strong>{tahunAjaran}</strong>.</span>
               </div>
 
               <div className="flex justify-end space-x-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg font-semibold text-xs"
+                  className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-bold text-xs"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-xs shadow-md"
+                  className="px-4 py-2 bg-[#0B4A3F] hover:bg-[#083831] text-white rounded-xl font-bold text-xs shadow-md"
                 >
                   Simpan Nilai
                 </button>
@@ -529,3 +541,4 @@ function Pendidikan({ user }) {
 }
 
 export default Pendidikan;
+
