@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Printer, CheckCircle, XCircle, RotateCcw, Calendar } from 'lucide-react';
+import { DollarSign, Printer, CheckCircle, XCircle, RotateCcw, Calendar, Sparkles } from 'lucide-react';
 import api from '../utils/api';
 
 function Keuangan({ user }) {
@@ -120,25 +120,43 @@ function Keuangan({ user }) {
     return listBulan[num - 1];
   };
 
-  // Terbilang helper untuk rupiah
   const getTerbilang = (amount) => {
     if (amount === 250000) return 'Dua Ratus Lima Puluh Ribu Rupiah';
-    return 'Dua Ratus Lima Puluh Ribu Rupiah'; // Standard SPP
+    return 'Dua Ratus Lima Puluh Ribu Rupiah';
   };
 
   return (
     <div className="space-y-6">
-      {/* TOOLBAR KEUANGAN (no-print) */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-4 no-print">
-        <div className="flex flex-wrap items-center gap-3">
+      {/* HEADER SECTION WITH TITLE & ACTIONS (no-print) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
+        <div>
+          <h1 className="text-xl font-bold font-serif text-[#0B4A3F] flex items-center space-x-2">
+            <DollarSign className="text-[#D4AF37]" size={22} />
+            <span>Modul Bendahara & Keuangan Syariah</span>
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">Kelola pencatatan dan kwitansi pembayaran syariah bulanan santri.</p>
+        </div>
+
+        <button
+          onClick={handlePrintRecap}
+          className="bg-[#0B4A3F] hover:bg-[#083831] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md shadow-[#0B4A3F]/10 flex items-center space-x-2 transition self-start sm:self-center"
+        >
+          <Printer size={16} className="text-[#E8C766]" />
+          <span>Laporan Rekap Syariah</span>
+        </button>
+      </div>
+
+      {/* FILTER TOOLBAR (no-print) */}
+      <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 flex flex-wrap items-center justify-between gap-4 no-print">
+        <div className="flex flex-wrap items-center gap-4">
           {/* Dropdown Pilihan Santri (Admin Only) */}
           {user.role === 'ADMIN' && (
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Pilih Santri</label>
+              <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Pilih Santri</label>
               <select
                 value={selectedSantriId}
                 onChange={(e) => setSelectedSantriId(e.target.value)}
-                className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
               >
                 {santriList.map(s => (
                   <option key={s.id} value={s.id}>{s.nama} ({s.kelas})</option>
@@ -149,11 +167,11 @@ function Keuangan({ user }) {
 
           {/* Tahun Buku Syariah */}
           <div className="flex flex-col">
-            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tahun Buku Syariah</label>
+            <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Tahun Buku Syariah</label>
             <select
               value={sppTahun}
               onChange={(e) => setSppTahun(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
             >
               <option value="2026">2026</option>
               <option value="2025">2025</option>
@@ -161,105 +179,105 @@ function Keuangan({ user }) {
           </div>
         </div>
 
-        <button
-          onClick={handlePrintRecap}
-          className="bg-slate-800 hover:bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center space-x-1.5 transition self-start md:self-center"
-        >
-          <Printer size={16} />
-          <span>Laporan Rekap Syariah</span>
-        </button>
+        <div className="text-xs text-slate-500 font-medium">
+          Santri: <strong className="text-[#0B4A3F]">{currentSantriDetails?.nama || '-'}</strong> ({currentSantriDetails?.kelas || '-'})
+        </div>
       </div>
 
       {/* KARTU RINGKASAN SALDO (no-print) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#16A34A] flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Sudah Dibayarkan ({sppTahun})</span>
-            <h3 className="text-2xl font-extrabold mt-1 text-emerald-800">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">TOTAL TERBAYAR ({sppTahun})</span>
+            <h3 className="text-2xl font-extrabold mt-1 text-[#16A34A] font-serif">
               Rp {keuanganData?.totalTerbayar.toLocaleString('id-ID') || 0}
             </h3>
           </div>
-          <div className="p-3 bg-emerald-100 text-emerald-700 rounded-2xl">
-            <CheckCircle size={28} />
+          <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
+            <CheckCircle size={26} />
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+        <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#DC2626] flex items-center justify-between">
           <div>
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Akumulasi Tunggakan ({sppTahun})</span>
-            <h3 className={`text-2xl font-extrabold mt-1 ${keuanganData?.totalTunggakan > 0 ? 'text-rose-600' : 'text-emerald-800'}`}>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">AKUMULASI TUNGGAKAN ({sppTahun})</span>
+            <h3 className={`text-2xl font-extrabold mt-1 font-serif ${keuanganData?.totalTunggakan > 0 ? 'text-[#DC2626]' : 'text-[#16A34A]'}`}>
               Rp {keuanganData?.totalTunggakan.toLocaleString('id-ID') || 0}
             </h3>
           </div>
-          <div className={`p-3 rounded-2xl ${keuanganData?.totalTunggakan > 0 ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-750'}`}>
-            <XCircle size={28} />
+          <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${keuanganData?.totalTunggakan > 0 ? 'bg-[#FEE2E2] text-[#DC2626]' : 'bg-[#DCFCE7] text-[#16A34A]'}`}>
+            <XCircle size={26} />
           </div>
         </div>
       </div>
 
-      {/* GRID 12 BULAN PEMBAYARAN (no-print) */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 no-print">
-        <h2 className="text-base font-bold text-slate-800 font-serif mb-6 flex items-center space-x-2">
-          <DollarSign className="text-emerald-600" size={20} />
-          <span>Status Iuran Pembayaran Syariah Bulanan - {currentSantriDetails?.nama}</span>
-        </h2>
+      {/* GRID 12 BULAN PEMBAYARAN SEPERTI KALENDER KECIL (no-print) */}
+      <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 no-print">
+        <div className="flex items-center justify-between mb-6 pb-2 border-b border-slate-100">
+          <h2 className="text-base font-bold text-[#0B4A3F] font-serif flex items-center space-x-2">
+            <Calendar className="text-[#D4AF37]" size={20} />
+            <span>Grid 12 Bulan Pembayaran Syariah Bulanan</span>
+          </h2>
+          <span className="text-xs text-slate-400 font-semibold">Tahun {sppTahun}</span>
+        </div>
 
         {loading ? (
-          <div className="flex justify-center py-10">
-            <div className="w-8 h-8 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+          <div className="flex justify-center py-12">
+            <div className="w-9 h-9 border-3 border-[#0B4A3F] border-t-transparent rounded-full animate-spin"></div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {keuanganData?.payments.map((p) => {
               const isPaid = p.status === 'LUNAS';
               return (
                 <div 
                   key={p.bulan} 
-                  className={`border rounded-2xl p-4 flex flex-col justify-between h-40 transition-all ${
+                  className={`border rounded-2xl p-4 flex flex-col justify-between h-40 transition-all duration-200 card-hover ${
                     isPaid 
-                      ? 'bg-emerald-50/40 border-emerald-200 shadow-sm' 
-                      : 'bg-white border-slate-200 hover:border-slate-300'
+                      ? 'bg-[#DCFCE7]/30 border-[#16A34A]/30 shadow-sm' 
+                      : 'bg-[#FEE2E2]/20 border-rose-200/60'
                   }`}
                 >
                   <div className="flex justify-between items-start">
                     <div>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">SYARIAH BULANAN</span>
-                      <h4 className="font-bold text-sm text-slate-800">{getNamaBulan(p.bulan)}</h4>
-                      <p className="text-xs text-slate-500 font-bold mt-1">Rp {p.jumlah.toLocaleString('id-ID')}</p>
+                      <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider block">BULAN {p.bulan}</span>
+                      <h4 className="font-extrabold text-sm text-[#0B4A3F] font-serif">{getNamaBulan(p.bulan)}</h4>
+                      <p className="text-xs font-bold text-slate-700 mt-1">Rp {p.jumlah.toLocaleString('id-ID')}</p>
                     </div>
-                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-bold ${
+                    {/* Status Badge */}
+                    <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
                       isPaid 
-                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-250' 
-                        : 'bg-rose-100 text-rose-800 border border-rose-250'
+                        ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/30' 
+                        : 'bg-[#FEE2E2] text-[#DC2626] border border-[#DC2626]/30'
                     }`}>
-                      {p.status}
+                      {isPaid ? 'LUNAS' : 'BELUM'}
                     </span>
                   </div>
 
-                  <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-1.5">
+                  <div className="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between gap-1.5">
                     {/* Aksi Bayar (Admin Only) */}
                     {user.role === 'ADMIN' ? (
                       <button
                         onClick={() => handleUpdateSppStatus(p.bulan, p.status)}
-                        className={`flex-1 py-1.5 px-2 rounded-lg font-bold text-[10px] transition text-center flex items-center justify-center space-x-1 ${
+                        className={`flex-1 py-1.5 px-2 rounded-xl font-bold text-[10px] transition text-center flex items-center justify-center space-x-1 ${
                           isPaid
-                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-650'
-                            : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shadow-emerald-600/10'
+                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                            : 'bg-[#0B4A3F] hover:bg-[#083831] text-white shadow-sm'
                         }`}
                       >
                         {isPaid ? (
                           <>
                             <RotateCcw size={10} />
-                            <span>Batal Bayar</span>
+                            <span>Batal</span>
                           </>
                         ) : (
                           <span>Tandai Lunas</span>
                         )}
                       </button>
                     ) : (
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-500 font-medium">
                         {isPaid 
-                          ? `Bayar: ${new Date(p.tanggalBayar).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}` 
+                          ? `Tgl: ${new Date(p.tanggalBayar).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}` 
                           : 'Belum Lunas'}
                       </span>
                     )}
@@ -269,9 +287,9 @@ function Keuangan({ user }) {
                       <button
                         onClick={() => handlePrintReceipt(p)}
                         title="Cetak Kwitansi Bukti Bayar"
-                        className="p-1.5 border border-slate-250 hover:bg-slate-100 rounded-lg text-slate-600 transition"
+                        className="p-1.5 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-600 transition"
                       >
-                        <Printer size={12} />
+                        <Printer size={13} />
                       </button>
                     )}
                   </div>
@@ -291,13 +309,13 @@ function Keuangan({ user }) {
 
           <div className="flex justify-between items-start border-b border-slate-400 pb-3 mb-4">
             <div>
-              <h2 className="text-base font-extrabold uppercase text-emerald-950 font-serif">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
+              <h2 className="text-base font-extrabold uppercase text-[#0B4A3F] font-serif">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
               <p className="text-[9px] text-slate-500 font-sans mt-0.5">
-                Jl. Raya Pesantren No. 1, Sumberpasir, Pakis, Malang • Telp: (0341) 789012
+                Sekertariat : Kp. Babakan Nanggerang RT 02 RW 01 Desa Sukajadi Kec. Tarogong Kaler Kabupaten Garut Kode Pos 44151 Tlp. 083826250636
               </p>
             </div>
             <div className="text-right">
-              <span className="bg-emerald-900/10 text-emerald-900 border border-emerald-900/20 text-[9px] font-bold px-2 py-0.5 rounded font-sans uppercase">
+              <span className="bg-[#DCFCE7] text-[#0B4A3F] border border-[#0B4A3F]/20 text-[9px] font-bold px-2 py-0.5 rounded font-sans uppercase">
                 Bukti Pembayaran Resmi
               </span>
               <p className="text-[10px] font-mono text-slate-600 mt-1">{printingInvoice.noInvoice}</p>
@@ -320,7 +338,7 @@ function Keuangan({ user }) {
             <div className="flex border-b border-slate-100 pb-1.5">
               <span className="w-40 text-slate-500 font-medium">Uang Sejumlah</span>
               <span className="w-4">:</span>
-              <span className="flex-1 font-bold text-emerald-800 text-sm">
+              <span className="flex-1 font-bold text-[#0B4A3F] text-sm">
                 Rp {printingInvoice.jumlah.toLocaleString('id-ID')}
               </span>
             </div>
@@ -337,7 +355,7 @@ function Keuangan({ user }) {
               <span className="w-40 text-slate-500 font-medium">Untuk Pembayaran</span>
               <span className="w-4">:</span>
               <span className="flex-1 font-medium text-slate-700">
-                Syariah Bulanan - Bulan <strong className="text-emerald-800">{getNamaBulan(printingInvoice.bulan)}</strong> Tahun <strong className="text-emerald-800">{printingInvoice.tahun}</strong>
+                Syariah Bulanan - Bulan <strong className="text-[#0B4A3F]">{getNamaBulan(printingInvoice.bulan)}</strong> Tahun <strong className="text-[#0B4A3F]">{printingInvoice.tahun}</strong>
               </span>
             </div>
 
@@ -351,9 +369,9 @@ function Keuangan({ user }) {
           </div>
 
           <div className="mt-8 flex justify-between items-center text-xs">
-            <div className="border-2 border-dashed border-emerald-700 bg-emerald-50 px-4 py-2 text-center rounded-lg">
-              <span className="text-[10px] uppercase font-bold text-emerald-800 tracking-wider">Status Transaksi</span>
-              <h4 className="text-base font-extrabold text-emerald-700 mt-0.5">LUNAS</h4>
+            <div className="border-2 border-dashed border-[#0B4A3F] bg-[#DCFCE7] px-4 py-2 text-center rounded-lg">
+              <span className="text-[10px] uppercase font-bold text-[#0B4A3F] tracking-wider">Status Transaksi</span>
+              <h4 className="text-base font-extrabold text-[#16A34A] mt-0.5">LUNAS</h4>
             </div>
             
             <div className="text-center font-sans">
@@ -372,9 +390,9 @@ function Keuangan({ user }) {
         <div className="hidden print:block print-area bg-white p-8 font-serif leading-relaxed text-sm">
           <div className="text-center border-b-4 border-double border-slate-900 pb-4 mb-6">
             <h1 className="text-xl font-bold uppercase tracking-wider">YAYASAN MIFTAHUL HUDA AS-SYADZILI</h1>
-            <h2 className="text-2xl font-extrabold uppercase font-serif text-emerald-950 mt-1">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
+            <h2 className="text-2xl font-extrabold uppercase font-serif text-[#0B4A3F] mt-1">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
             <p className="text-[10px] text-slate-500 font-sans mt-1">
-              Jl. Raya Pesantren No. 1, Sumberpasir, Pakis, Malang • Telp: (0341) 789012
+              Sekertariat : Kp. Babakan Nanggerang RT 02 RW 01 Desa Sukajadi Kec. Tarogong Kaler Kabupaten Garut Kode Pos 44151 Tlp. 083826250636
             </p>
           </div>
 
@@ -415,12 +433,12 @@ function Keuangan({ user }) {
                   <tr>
                     <td className="font-bold text-slate-500 py-1">Total Terbayar</td>
                     <td className="py-1">:</td>
-                    <td className="py-1 font-bold text-emerald-800">Rp {keuanganData?.totalTerbayar.toLocaleString('id-ID')}</td>
+                    <td className="py-1 font-bold text-[#16A34A]">Rp {keuanganData?.totalTerbayar.toLocaleString('id-ID')}</td>
                   </tr>
                   <tr>
                     <td className="font-bold text-slate-500 py-1">Total Tunggakan</td>
                     <td className="py-1">:</td>
-                    <td className="py-1 font-bold text-rose-600">Rp {keuanganData?.totalTunggakan.toLocaleString('id-ID')}</td>
+                    <td className="py-1 font-bold text-[#DC2626]">Rp {keuanganData?.totalTunggakan.toLocaleString('id-ID')}</td>
                   </tr>
                 </tbody>
               </table>
@@ -449,7 +467,7 @@ function Keuangan({ user }) {
                       {isPaid ? new Date(p.tanggalBayar).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'}
                     </td>
                     <td className="border border-slate-900 py-2 px-3 text-center font-bold">
-                      <span className={isPaid ? 'text-emerald-700' : 'text-rose-600'}>
+                      <span className={isPaid ? 'text-[#16A34A]' : 'text-[#DC2626]'}>
                         {isPaid ? '✓ LUNAS' : '✗ BELUM BAYAR'}
                       </span>
                     </td>
@@ -480,3 +498,4 @@ function Keuangan({ user }) {
 }
 
 export default Keuangan;
+

@@ -260,6 +260,25 @@ const request = async (method, url, data = null, params = null) => {
           return resolve(safeUser);
         }
 
+        // 3b. ROUTING: /auth/change-password
+        if (url === '/auth/change-password' && method.toLowerCase() === 'post') {
+          if (!currentUser) return reject({ message: 'Token tidak valid' });
+          const { passwordLama, passwordBaru } = data;
+          const users = getMockData('mock_users');
+          const idx = users.findIndex(u => u.id === currentUser.id);
+          if (idx === -1) return reject({ message: 'User tidak ditemukan' });
+
+          if (users[idx].password !== passwordLama) {
+            return reject({ message: 'Kata sandi lama Anda salah' });
+          }
+
+          users[idx].password = passwordBaru;
+          saveMockData('mock_users', users);
+          // Sync token dengan password baru
+          localStorage.setItem('simesra_token', JSON.stringify(users[idx]));
+          return resolve({ message: 'Kata sandi berhasil diperbarui' });
+        }
+
         // 4. ROUTING: /admin/stats
         if (url === '/admin/stats' && method.toLowerCase() === 'get') {
           if (!currentUser || currentUser.role !== 'ADMIN') return reject({ message: 'Unauthorized' });

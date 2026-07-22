@@ -197,11 +197,14 @@ function Profil({ user, onUserUpdate }) {
         
         users[idx].password = passwordBaru;
         localStorage.setItem('mock_users', JSON.stringify(users));
-        // Update token
-        localStorage.setItem('simesra_token', JSON.stringify(users[idx]));
+        // Update token jika user yang ubah password adalah user yang login saat ini
+        const loggedIn = JSON.parse(localStorage.getItem('simesra_token') || '{}');
+        if (loggedIn.id === user.id) {
+          localStorage.setItem('simesra_token', JSON.stringify(users[idx]));
+        }
       } else {
-        // Panggil endpoint backend asli
-        await api.put(`/admin/santri/${user.id}`, { password: passwordBaru });
+        // Panggil endpoint backend terpusat /auth/change-password
+        await api.post('/auth/change-password', { passwordLama, passwordBaru });
       }
 
       setPwdSuccess('Kata sandi berhasil diperbarui!');

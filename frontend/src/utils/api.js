@@ -250,6 +250,42 @@ const request = async (method, url, data = null, params = null) => {
           return resolve(safeUser);
         }
 
+        // 3b. ROUTING: /auth/change-password (Ganti password sendiri — berlaku untuk ADMIN & SANTRI)
+        if (url === '/auth/change-password' && method.toLowerCase() === 'post') {
+          if (!currentUser) return reject({ message: 'Token tidak valid atau sesi habis' });
+          const { passwordLama, passwordBaru } = data;
+          if (!passwordLama || !passwordBaru) {
+            return reject({ message: 'Password lama dan password baru wajib diisi' });
+          }
+          if (passwordBaru.length < 6) {
+            return reject({ message: 'Kata sandi baru minimal 6 karakter' });
+          }
+
+          const users = getMockData('mock_users');
+          const idx = users.findIndex(u => u.id === currentUser.id);
+          if (idx === -1) return reject({ message: 'Akun tidak ditemukan' });
+
+          // Verifikasi password lama dengan data terbaru di database (bukan dari token)
+          if (users[idx].password !== passwordLama) {
+            return reject({ message: 'Kata sandi lama yang Anda masukkan salah' });
+          }
+
+          // Pastikan password baru tidak sama dengan password lama
+          if (passwordBaru === passwordLama) {
+            return reject({ message: 'Kata sandi baru tidak boleh sama dengan kata sandi lama' });
+          }
+
+          // Ganti password di database mock
+          users[idx].password = passwordBaru;
+          saveMockData('mock_users', users);
+
+          // Buat token baru TANPA field password (aman) dan simpan ke localStorage
+          const { password: _pw, ...safeUserForToken } = users[idx];
+          localStorage.setItem('simesra_token', JSON.stringify(safeUserForToken));
+
+          return resolve({ message: 'Kata sandi berhasil diperbarui. Password lama tidak berlaku lagi.' });
+        }
+
         // 4. ROUTING: /admin/stats
         if (url === '/admin/stats' && method.toLowerCase() === 'get') {
           if (!currentUser || currentUser.role !== 'ADMIN') return reject({ message: 'Unauthorized' });

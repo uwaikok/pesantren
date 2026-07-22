@@ -14,6 +14,7 @@ const keuanganController = require('../controllers/keuanganController');
 router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
 router.get('/auth/me', verifyToken, authController.getMe);
+router.post('/auth/change-password', verifyToken, authController.changePassword);
 
 // --- ADMIN / SERVER ---
 router.get('/admin/stats', verifyToken, isAdmin, adminController.getStats);

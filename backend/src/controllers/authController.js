@@ -162,8 +162,46 @@ const getMe = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { passwordLama, passwordBaru } = req.body;
+    const userId = req.user.id;
+
+    if (!passwordLama || !passwordBaru) {
+      return res.status(400).json({ message: 'Kata sandi lama dan kata sandi baru wajib diisi' });
+    }
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return res.status(404).json({ message: 'User tidak ditemukan' });
+    }
+
+    // Verifikasi kata sandi lama
+    const isPasswordValid = await bcrypt.compare(passwordLama, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Kata sandi lama Anda salah' });
+    }
+
+    // Hash kata sandi baru
+    const newHashedPassword = await bcrypt.hash(passwordBaru, 10);
+
+    // Update password di database
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: newHashedPassword }
+    });
+
+    res.json({ message: 'Kata sandi berhasil diperbarui' });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server saat mengubah kata sandi' });
+  }
+};
+
 module.exports = {
   register,
   login,
-  getMe
+  getMe,
+  changePassword
 };
+

@@ -2,42 +2,91 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #0B4A3F;
+  --color-primary-dark: #083831;
+  --color-accent: #D4AF37;
+  --color-accent-light: #E8C766;
+  --color-bg-neutral: #F5F5F0;
+  --color-surface: #FFFFFF;
+  --color-text-main: #1A1A1A;
+  --color-text-muted: #4B5563;
+}
+
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 font-sans;
+    @apply bg-[#F5F5F0] text-[#1A1A1A] font-sans antialiased;
+    background-color: #F5F5F0;
+  }
+
+  h1, h2, h3, .font-heading {
+    font-family: 'Merriweather', 'Playfair Display', Georgia, serif;
   }
 }
 
-/* Custom Scrollbar for modern layout */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  @apply bg-transparent;
+  background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-200 rounded-full hover:bg-slate-300;
+  background: #D4AF37;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #B79526;
 }
 
-/* Glassmorphism utility */
+/* Glassmorphism & Gold Highlights */
 .glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.25);
 }
 
-.glass-dark {
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+.glass-emerald {
+  background: rgba(11, 74, 63, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.gold-border-top {
+  border-top: 3px solid #D4AF37;
+}
+
+.gold-gradient-border {
+  border-image: linear-gradient(to right, #D4AF37, #E8C766, #D4AF37) 1;
+}
+
+.card-hover {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(11, 74, 63, 0.1), 0 8px 10px -6px rgba(11, 74, 63, 0.05);
+}
+
+.btn-primary {
+  background-color: #0B4A3F;
+  color: #FFFFFF;
+  transition: all 0.2s ease-in-out;
+}
+.btn-primary:hover {
+  background-color: #083831;
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(11, 74, 63, 0.25);
+}
+.btn-primary:active {
+  transform: scale(0.98);
 }
 
 /* Print Friendly Layout CSS */
 @media print {
-  /* Sembunyikan seluruh isi halaman secara default */
   body {
     background: white !important;
     color: black !important;
@@ -48,12 +97,10 @@
     visibility: hidden;
   }
   
-  /* Hanya tampilkan elemen dengan kelas .print-area dan seluruh anaknya */
   .print-area, .print-area * {
     visibility: visible;
   }
   
-  /* Atur agar .print-area memenuhi kertas */
   .print-area {
     position: absolute;
     left: 0;
@@ -63,13 +110,12 @@
     padding: 0;
   }
   
-  /* Sembunyikan elemen tertentu saat dicetak */
   .no-print {
     display: none !important;
   }
   
-  /* Atur page breaks */
   .page-break {
     page-break-after: always;
   }
 }
+
