@@ -166,7 +166,7 @@ function Dashboard({ user }) {
         </div>
 
         {/* Widgets Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center space-x-4">
             <div className="p-3.5 bg-emerald-100 text-emerald-700 rounded-2xl">
               <Users size={24} />
@@ -253,7 +253,7 @@ function Dashboard({ user }) {
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <div className="bg-white border-t-4 border-[#bf953f] p-6 rounded-2xl shadow-sm hover:shadow transition flex items-center justify-between">
           <div>
             <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Santri Terdaftar</span>

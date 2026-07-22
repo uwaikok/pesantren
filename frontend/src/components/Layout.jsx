@@ -166,17 +166,33 @@ function Layout({ children, user, onLogout }) {
       </aside>
 
       {/* MOBILE HEADER */}
-      <header className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between shadow-md no-print">
+      <header className="md:hidden bg-slate-900 text-white p-3.5 flex items-center justify-between shadow-md no-print z-30 sticky top-0">
         <div className="flex items-center space-x-2">
           <img src="/logo.png" className="w-6 h-6 object-contain" alt="Logo" />
-          <span className="font-bold text-base tracking-wider text-emerald-100">SIM Pesantren</span>
+          <span className="font-bold text-sm tracking-wider text-emerald-100 font-serif">SIM Pesantren</span>
         </div>
-        <button
-          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-          className="p-1 hover:bg-slate-800 rounded transition"
-        >
-          {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        <div className="flex items-center space-x-2">
+          {user?.role === 'ADMIN' && (
+            <button 
+              onClick={() => setShowNotif(!showNotif)} 
+              className="relative p-2 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition"
+              title="Notifikasi Pending"
+            >
+              <Bell size={20} />
+              {pendingUsers > 0 && (
+                <span className="absolute top-1 right-1 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full border border-slate-900 animate-pulse">
+                  {pendingUsers}
+                </span>
+              )}
+            </button>
+          )}
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 text-slate-300 hover:text-white hover:bg-slate-800 rounded-lg transition"
+          >
+            {isSidebarOpen ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </header>
 
       {/* SIDEBAR - MOBILE DRAWER */}
@@ -274,33 +290,34 @@ function Layout({ children, user, onLogout }) {
                     </span>
                   )}
                 </button>
-                {/* NOTIFICATION MODAL */}
-                {showNotif && (
-                  <div className="absolute top-12 right-0 w-80 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-slate-800">
-                    <div className="bg-slate-50 border-b border-slate-100 p-3 font-bold text-xs flex justify-between items-center">
-                      <span>Persetujuan Akun Santri Baru</span>
-                      <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-[10px]">{pendingUsers} Pending</span>
-                    </div>
-                    <div className="max-h-80 overflow-y-auto">
-                      {pendingUsers === 0 ? (
-                        <div className="p-6 text-center text-xs text-slate-500">Tidak ada pendaftaran baru.</div>
-                      ) : (
-                        pendingUsersList.map(p => (
-                          <div key={p.id} className="p-3 border-b border-slate-100 hover:bg-slate-50 transition">
-                            <div className="font-bold text-xs">{p.nama}</div>
-                            <div className="text-[10px] text-slate-500 mb-2">{p.email} • {p.noHp}</div>
-                            <div className="flex space-x-2">
-                              <button onClick={() => handleAccept(p.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1.5 rounded transition">Terima</button>
-                              <button onClick={() => handleReject(p.id)} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold py-1.5 rounded transition">Tolak</button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
+      {/* NOTIFICATION POPUP MODAL (Mobile & Desktop) */}
+      {showNotif && user?.role === 'ADMIN' && (
+        <div className="fixed top-14 right-3 md:top-16 md:right-8 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-slate-800 animate-in fade-in zoom-in duration-150">
+          <div className="bg-slate-900 text-white p-3.5 font-bold text-xs flex justify-between items-center">
+            <span className="flex items-center space-x-1.5 font-serif">
+              <Bell size={14} className="text-emerald-400" />
+              <span>Persetujuan Santri Baru</span>
+            </span>
+            <span className="bg-rose-500 text-white font-bold px-2 py-0.5 rounded-full text-[10px]">{pendingUsers} Pending</span>
+          </div>
+          <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+            {pendingUsers === 0 ? (
+              <div className="p-6 text-center text-xs text-slate-400">Alhamdulillah, tidak ada pendaftaran tertunda.</div>
+            ) : (
+              pendingUsersList.map(p => (
+                <div key={p.id} className="p-3.5 hover:bg-slate-50 transition text-xs">
+                  <div className="font-bold text-slate-800">{p.nama}</div>
+                  <div className="text-[10px] text-slate-500 mb-2.5 mt-0.5">{p.email} • {p.noHp}</div>
+                  <div className="flex space-x-2">
+                    <button onClick={() => handleAccept(p.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition shadow-sm">Terima</button>
+                    <button onClick={() => handleReject(p.id)} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition shadow-sm">Tolak</button>
                   </div>
-                )}
-              </div>
+                </div>
+              ))
             )}
+          </div>
+        </div>
+      )}
             <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium border-l border-slate-200 pl-5">
               <span>SIM Pesantren - v1.0</span>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></div>
