@@ -195,7 +195,7 @@ const request = async (method, url, data = null, params = null) => {
           }
           // Simpan token (di demo mode, token kita adalah detail user itu sendiri)
           localStorage.setItem('simesra_token', JSON.stringify(found));
-          return resolve({ message: 'Login berhasil (Demo)', token: JSON.stringify(found), user: found });
+          return resolve({ message: 'Login berhasil', token: JSON.stringify(found), user: found });
         }
 
         // 2. ROUTING: /auth/register

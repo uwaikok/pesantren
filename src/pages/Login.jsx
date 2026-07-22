@@ -138,13 +138,6 @@ function Login({ onLoginSuccess }) {
             </button>
           </form>
 
-          {/* Demo account tooltip */}
-          <div className="mt-5 p-3 bg-[#FEF3C7]/60 border border-[#D4AF37]/30 rounded-xl text-[10px] text-slate-700">
-            <span className="font-bold text-[#0B4A3F] block mb-1">💡 Akun Uji Coba (Demo Mode):</span>
-            <p>• Admin: <strong className="text-[#0B4A3F]">admin@pesantren.com</strong> / <em>adminpassword</em></p>
-            <p>• Santri: <strong className="text-[#0B4A3F]">ahmad@pesantren.com</strong> / <em>studentpassword</em></p>
-          </div>
-
           {/* Link Daftar Mandiri warna Emas/Gold */}
           <div className="mt-6 text-center text-xs text-slate-500 font-medium">
             Belum memiliki akun santri?{' '}
