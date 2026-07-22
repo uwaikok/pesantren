@@ -166,12 +166,14 @@ const request = async (method, url, data = null, params = null) => {
       const response = await api({ method, url, data, params });
       return response.data;
     } catch (error) {
-      // Jika terjadi kesalahan koneksi/network/404/500/502 pada backend (misal di Vercel static host atau server offline),
-      // otomatis alihkan ke Fallback Demo Mode (LocalStorage)
-      console.warn('Koneksi ke server backend gagal/offline. Mengaktifkan Fallback Demo Mode (LocalStorage)...', error);
-      localStorage.setItem('use_mock_db', 'true');
-      window.useMockDb = true;
-      // Panggil ulang secara rekursif, sekarang akan diproses oleh logika Mock API
+      // Jika error dari backend berupa HTTP status 400, 401, 403, 404, 422, dsb (artinya server online dan merespon):
+      // Kembalikan pesan error dari server tersebut!
+      if (error.response) {
+        return Promise.reject(error.response.data || { message: 'Terjadi kesalahan pada server' });
+      }
+
+      // Jika murni kesalahan jaringan/offline (misal ServerDown / No Connection):
+      console.warn('Koneksi ke server backend offline. Menggunakan mode cadangan...', error);
       return request(method, url, data, params);
     }
   }
