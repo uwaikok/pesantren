@@ -55,20 +55,6 @@ function App() {
 
   return (
     <Router>
-      {demoMode && (
-        <div className="bg-amber-500 text-white text-center py-1 text-xs font-semibold px-4 flex justify-between items-center no-print">
-          <span>⚠️ Server offline. Berjalan dalam <strong>Mode Demo (Local Storage)</strong>. Seluruh data tersimpan di browser Anda.</span>
-          <button 
-            onClick={() => {
-              localStorage.removeItem('use_mock_db');
-              window.location.reload();
-            }}
-            className="bg-black/20 hover:bg-black/30 px-2 py-0.5 rounded text-[10px] transition"
-          >
-            Matikan Mode Demo
-          </button>
-        </div>
-      )}
       <Routes>
         {/* Public Routes */}
         <Route 
