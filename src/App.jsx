@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import axios from 'axios';
 import api from './utils/api';
 
 // ===== ERROR BOUNDARY =====
@@ -56,7 +57,23 @@ function App() {
   const [demoMode, setDemoMode] = useState(false);
 
   useEffect(() => {
-    checkAuth();
+    const detectBackendStatus = async () => {
+      try {
+        // Coba panggil endpoint auth/me secara langsung (tanpa interceptor mock)
+        // Kita gunakan timeout singkat agar tidak memperlambat loading
+        await axios.get('/api/auth/me', { timeout: 1500 });
+        localStorage.removeItem('use_mock_db');
+      } catch (err) {
+        // Jika response didapat (artinya server online tapi user belum terautentikasi / 401 / 403)
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+          localStorage.removeItem('use_mock_db');
+        }
+      } finally {
+        checkAuth();
+      }
+    };
+
+    detectBackendStatus();
   }, []);
 
   const checkAuth = async () => {
