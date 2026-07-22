@@ -1,0 +1,69 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  nama         String
+  email        String       @unique
+  password     String
+  noHp         String
+  alamat       String
+  namaWali     String?
+  role         String       // "ADMIN" or "SANTRI"
+  status       String       // "PENDING" or "ACTIVE"
+  kelas        String?      // Hanya untuk santri, misal "Kelas 10-A", "Kelas 11-B"
+  fotoProfil   String?      // Path/URL foto profil yang diupload
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  nilai        Nilai[]
+  sanksi       Sanksi[]
+  pembayaran   Pembayaran[]
+}
+
+model Nilai {
+  id            Int      @id @default(autoincrement())
+  santriId      Int
+  santri        User     @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  mataPelajaran String
+  nilaiUts      Float
+  nilaiUas      Float
+  semester      String   // "GANJIL" or "GENAP"
+  tahunAjaran   String   // misal "2025/2026"
+  tanggalInput  DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Sanksi {
+  id                 Int      @id @default(autoincrement())
+  santriId           Int
+  santri             User     @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  tanggalPelanggaran DateTime
+  tahun              String   // misal "2025/2026"
+  deskripsi          String
+  kategori           String   // "RINGAN", "SEDANG", "BERAT"
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Pembayaran {
+  id           Int       @id @default(autoincrement())
+  santriId     Int
+  santri       User      @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  bulan        Int       // 1 - 12 (Jan - Des)
+  tahun        Int       // misal 2026
+  status       String    // "LUNAS" or "BELUM_BAYAR"
+  tanggalBayar DateTime?
+  jumlah       Float
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@unique([santriId, bulan, tahun])
+}

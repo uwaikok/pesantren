@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-900 font-sans;
+  }
+}
+
+/* Custom Scrollbar for modern layout */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 rounded-full hover:bg-slate-300;
+}
+
+/* Glassmorphism utility */
+.glass {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Print Friendly Layout CSS */
+@media print {
+  /* Sembunyikan seluruh isi halaman secara default */
+  body {
+    background: white !important;
+    color: black !important;
+    font-size: 12pt;
+  }
+  
+  body * {
+    visibility: hidden;
+  }
+  
+  /* Hanya tampilkan elemen dengan kelas .print-area dan seluruh anaknya */
+  .print-area, .print-area * {
+    visibility: visible;
+  }
+  
+  /* Atur agar .print-area memenuhi kertas */
+  .print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+  }
+  
+  /* Sembunyikan elemen tertentu saat dicetak */
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Atur page breaks */
+  .page-break {
+    page-break-after: always;
+  }
+}
