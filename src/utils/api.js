@@ -3,8 +3,15 @@ import axios from 'axios';
 // Konfigurasi base Axios
 const api = axios.create({
   baseURL: '/api',
-  timeout: 5000,
+  timeout: 3000,
 });
+
+// Di lingkungan production (Vercel) tidak ada backend server,
+// langsung aktifkan Demo Mode (LocalStorage) tanpa perlu menunggu timeout.
+// import.meta.env.DEV = true saat 'npm run dev', false saat 'npm run build'
+if (!import.meta.env.DEV) {
+  localStorage.setItem('use_mock_db', 'true');
+}
 
 // Interceptor untuk menyisipkan token JWT di setiap request
 api.interceptors.request.use(
@@ -166,12 +173,12 @@ const request = async (method, url, data = null, params = null) => {
       const response = await api({ method, url, data, params });
       return response.data;
     } catch (error) {
-      // Jika terjadi kesalahan koneksi/network/404/500/502 pada backend (misal di Vercel static host atau server offline),
+      // Jika terjadi kesalahan koneksi/network/404/500/502 pada backend,
       // otomatis alihkan ke Fallback Demo Mode (LocalStorage)
-      console.warn('Koneksi ke server backend gagal/offline. Mengaktifkan Fallback Demo Mode (LocalStorage)...', error);
+      console.warn('Backend tidak tersedia. Mengaktifkan Mode Demo...', error?.message || error);
       localStorage.setItem('use_mock_db', 'true');
       window.useMockDb = true;
-      // Panggil ulang secara rekursif, sekarang akan diproses oleh logika Mock API
+      // Panggil ulang secara rekursif - kali ini akan masuk ke mock
       return request(method, url, data, params);
     }
   }

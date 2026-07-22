@@ -2,6 +2,43 @@ import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import api from './utils/api';
 
+// ===== ERROR BOUNDARY =====
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, info) {
+    console.error('React ErrorBoundary caught:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{minHeight:'100vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'#f8fafc',padding:'2rem',textAlign:'center'}}>
+          <div style={{fontSize:'3rem',marginBottom:'1rem'}}>⚠️</div>
+          <h1 style={{color:'#1e293b',fontWeight:'bold',fontSize:'1.25rem',marginBottom:'0.5rem'}}>Terjadi Kesalahan Aplikasi</h1>
+          <p style={{color:'#64748b',fontSize:'0.875rem',marginBottom:'1.5rem',maxWidth:'400px'}}>
+            Mohon maaf, terjadi kesalahan. Coba muat ulang halaman atau bersihkan cache browser Anda.
+          </p>
+          <p style={{color:'#ef4444',fontSize:'0.75rem',fontFamily:'monospace',background:'#fef2f2',padding:'0.5rem 1rem',borderRadius:'8px',marginBottom:'1rem',maxWidth:'500px',wordBreak:'break-all'}}>
+            {String(this.state.error)}
+          </p>
+          <button
+            onClick={() => { localStorage.clear(); window.location.reload(); }}
+            style={{background:'#059669',color:'white',border:'none',borderRadius:'8px',padding:'0.6rem 1.5rem',fontWeight:'bold',cursor:'pointer',fontSize:'0.875rem'}}
+          >
+            Reset & Muat Ulang
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // Pages & Components
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -54,67 +91,70 @@ function App() {
   }
 
   return (
-    <Router>
-      {demoMode && (
-        <div className="bg-amber-500 text-white text-center py-1 text-xs font-semibold px-4 flex justify-between items-center no-print">
-          <span>⚠️ Server offline. Berjalan dalam <strong>Mode Demo (Local Storage)</strong>. Seluruh data tersimpan di browser Anda.</span>
-          <button 
-            onClick={() => {
-              localStorage.removeItem('use_mock_db');
-              window.location.reload();
-            }}
-            className="bg-black/20 hover:bg-black/30 px-2 py-0.5 rounded text-[10px] transition"
-          >
-            Matikan Mode Demo
-          </button>
-        </div>
-      )}
-      <Routes>
-        {/* Public Routes */}
-        <Route 
-          path="/login" 
-          element={user ? <Navigate to="/" replace /> : <Login onLoginSuccess={checkAuth} />} 
-        />
-        <Route 
-          path="/register" 
-          element={user ? <Navigate to="/" replace /> : <Register />} 
-        />
+    <ErrorBoundary>
+      <Router>
+        {demoMode && (
+          <div className="bg-amber-500 text-white text-center py-1 text-xs font-semibold px-4 flex justify-between items-center no-print">
+            <span>⚠️ Server offline. Berjalan dalam <strong>Mode Demo (Local Storage)</strong>. Seluruh data tersimpan di browser Anda.</span>
+            <button 
+              onClick={() => {
+                localStorage.removeItem('use_mock_db');
+                window.location.reload();
+              }}
+              className="bg-black/20 hover:bg-black/30 px-2 py-0.5 rounded text-[10px] transition"
+            >
+              Matikan Mode Demo
+            </button>
+          </div>
+        )}
+        <Routes>
+          {/* Public Routes */}
+          <Route 
+            path="/login" 
+            element={user ? <Navigate to="/" replace /> : <Login onLoginSuccess={checkAuth} />} 
+          />
+          <Route 
+            path="/register" 
+            element={user ? <Navigate to="/" replace /> : <Register />} 
+          />
 
-        {/* Private Routes wrapped in Layout */}
-        <Route 
-          path="/" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Dashboard user={user} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/pendidikan" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Pendidikan user={user} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/keamanan" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Keamanan user={user} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/keuangan" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Keuangan user={user} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/profil" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Profil user={user} onUserUpdate={handleUserUpdate} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/profil/:id" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Profil user={user} onUserUpdate={handleUserUpdate} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/buat-akun" 
-          element={user && user.role === 'ADMIN' ? <Layout user={user} onLogout={handleLogout}><BuatAkun user={user} /></Layout> : <Navigate to="/" replace />} 
-        />
+          {/* Private Routes wrapped in Layout */}
+          <Route 
+            path="/" 
+            element={user ? <Layout user={user} onLogout={handleLogout}><Dashboard user={user} /></Layout> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/pendidikan" 
+            element={user ? <Layout user={user} onLogout={handleLogout}><Pendidikan user={user} /></Layout> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/keamanan" 
+            element={user ? <Layout user={user} onLogout={handleLogout}><Keamanan user={user} /></Layout> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/keuangan" 
+            element={user ? <Layout user={user} onLogout={handleLogout}><Keuangan user={user} /></Layout> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/profil" 
+            element={user ? <Layout user={user} onLogout={handleLogout}><Profil user={user} onUserUpdate={handleUserUpdate} /></Layout> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/profil/:id" 
+            element={user ? <Layout user={user} onLogout={handleLogout}><Profil user={user} onUserUpdate={handleUserUpdate} /></Layout> : <Navigate to="/login" replace />} 
+          />
+          <Route 
+            path="/buat-akun" 
+            element={user && user.role === 'ADMIN' ? <Layout user={user} onLogout={handleLogout}><BuatAkun user={user} /></Layout> : <Navigate to="/" replace />} 
+          />
 
-        {/* Fallback Redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+          {/* Fallback Redirect */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
 export default App;
+
