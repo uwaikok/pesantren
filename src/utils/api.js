@@ -3,7 +3,7 @@ import axios from 'axios';
 // Konfigurasi base Axios
 const api = axios.create({
   baseURL: '/api',
-  timeout: 3000,
+  timeout: 15000,
 });
 
 

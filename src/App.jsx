@@ -61,7 +61,7 @@ function App() {
       try {
         // Coba panggil endpoint auth/me secara langsung (tanpa interceptor mock)
         // Kita gunakan timeout singkat agar tidak memperlambat loading
-        await axios.get('/api/auth/me', { timeout: 1500 });
+        await axios.get('/api/auth/me', { timeout: 8000 });
         localStorage.removeItem('use_mock_db');
       } catch (err) {
         // Jika response didapat (artinya server online tapi user belum terautentikasi / 401 / 403)
