@@ -166,19 +166,13 @@ const request = async (method, url, data = null, params = null) => {
       const response = await api({ method, url, data, params });
       return response.data;
     } catch (error) {
-      // Jika error karena jaringan (server offline) atau proxy error (Vite proxy gagal), otomatis alihkan ke mock db
-      const isNetworkError = !error.response;
-      const isProxyError = error.response && (error.response.status === 500 || error.response.status === 502) && 
-                           (typeof error.response.data === 'string' || !error.response.data?.message);
-      
-      if (isNetworkError || isProxyError) {
-        console.warn('Koneksi ke backend gagal. Mengaktifkan Fallback Demo Mode (LocalStorage)...');
-        localStorage.setItem('use_mock_db', 'true');
-        window.useMockDb = true;
-        // Panggil ulang secara rekursif, sekarang ia akan masuk ke blok mock
-        return request(method, url, data, params);
-      }
-      throw error.response?.data || { message: 'Terjadi kesalahan sistem' };
+      // Jika terjadi kesalahan koneksi/network/404/500/502 pada backend (misal di Vercel static host atau server offline),
+      // otomatis alihkan ke Fallback Demo Mode (LocalStorage)
+      console.warn('Koneksi ke server backend gagal/offline. Mengaktifkan Fallback Demo Mode (LocalStorage)...', error);
+      localStorage.setItem('use_mock_db', 'true');
+      window.useMockDb = true;
+      // Panggil ulang secara rekursif, sekarang akan diproses oleh logika Mock API
+      return request(method, url, data, params);
     }
   }
 

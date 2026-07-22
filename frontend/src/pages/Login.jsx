@@ -64,10 +64,7 @@ function Login({ onLoginSuccess }) {
           <div className="flex bg-slate-100 p-1 rounded-xl mb-6 border border-slate-200">
             <button
               type="button"
-              onClick={() => {
-                setRole('ADMIN');
-                if (email === 'siti@pesantren.com' || email === 'ahmad@pesantren.com') setEmail('admin@pesantren.com');
-              }}
+              onClick={() => setRole('ADMIN')}
               className={`flex-1 flex items-center justify-center space-x-2 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 ${
                 role === 'ADMIN'
                   ? 'bg-white text-[#0d5c46] shadow-sm border-b-2 border-[#bf953f]'
@@ -79,10 +76,7 @@ function Login({ onLoginSuccess }) {
             </button>
             <button
               type="button"
-              onClick={() => {
-                setRole('SANTRI');
-                if (email === 'admin@pesantren.com' || email === '') setEmail('ahmad@pesantren.com');
-              }}
+              onClick={() => setRole('SANTRI')}
               className={`flex-1 flex items-center justify-center space-x-2 py-2.5 rounded-lg text-xs font-bold transition-all duration-200 ${
                 role === 'SANTRI'
                   ? 'bg-white text-[#0d5c46] shadow-sm border-b-2 border-[#bf953f]'

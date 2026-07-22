@@ -281,43 +281,45 @@ function Layout({ children, user, onLogout }) {
           
           <div className="flex items-center space-x-5">
             {user?.role === 'ADMIN' && (
-              <div className="relative">
-                <button onClick={() => setShowNotif(!showNotif)} className="relative flex items-center justify-center p-2 rounded-full hover:bg-slate-100 transition text-slate-500 hover:text-emerald-700" title="Notifikasi">
-                  <Bell size={18} />
-                  {pendingUsers > 0 && (
-                    <span className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white animate-pulse">
-                      {pendingUsers}
-                    </span>
-                  )}
-                </button>
-      {/* NOTIFICATION POPUP MODAL (Mobile & Desktop) */}
-      {showNotif && user?.role === 'ADMIN' && (
-        <div className="fixed top-14 right-3 md:top-16 md:right-8 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-slate-800 animate-in fade-in zoom-in duration-150">
-          <div className="bg-slate-900 text-white p-3.5 font-bold text-xs flex justify-between items-center">
-            <span className="flex items-center space-x-1.5 font-serif">
-              <Bell size={14} className="text-emerald-400" />
-              <span>Persetujuan Santri Baru</span>
-            </span>
-            <span className="bg-rose-500 text-white font-bold px-2 py-0.5 rounded-full text-[10px]">{pendingUsers} Pending</span>
-          </div>
-          <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-            {pendingUsers === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-400">Alhamdulillah, tidak ada pendaftaran tertunda.</div>
-            ) : (
-              pendingUsersList.map(p => (
-                <div key={p.id} className="p-3.5 hover:bg-slate-50 transition text-xs">
-                  <div className="font-bold text-slate-800">{p.nama}</div>
-                  <div className="text-[10px] text-slate-500 mb-2.5 mt-0.5">{p.email} • {p.noHp}</div>
-                  <div className="flex space-x-2">
-                    <button onClick={() => handleAccept(p.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition shadow-sm">Terima</button>
-                    <button onClick={() => handleReject(p.id)} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition shadow-sm">Tolak</button>
-                  </div>
-                </div>
-              ))
+              <button onClick={() => setShowNotif(!showNotif)} className="relative flex items-center justify-center p-2 rounded-full hover:bg-slate-100 transition text-slate-500 hover:text-emerald-700" title="Notifikasi">
+                <Bell size={18} />
+                {pendingUsers > 0 && (
+                  <span className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white animate-pulse">
+                    {pendingUsers}
+                  </span>
+                )}
+              </button>
             )}
-          </div>
-        </div>
-      )}
+            
+            {/* NOTIFICATION POPUP MODAL (Mobile & Desktop) */}
+            {showNotif && user?.role === 'ADMIN' && (
+              <div className="fixed top-14 right-3 md:top-16 md:right-8 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-slate-800 animate-in fade-in zoom-in duration-150">
+                <div className="bg-slate-900 text-white p-3.5 font-bold text-xs flex justify-between items-center">
+                  <span className="flex items-center space-x-1.5 font-serif">
+                    <Bell size={14} className="text-emerald-400" />
+                    <span>Persetujuan Santri Baru</span>
+                  </span>
+                  <span className="bg-rose-500 text-white font-bold px-2 py-0.5 rounded-full text-[10px]">{pendingUsers} Pending</span>
+                </div>
+                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
+                  {pendingUsers === 0 ? (
+                    <div className="p-6 text-center text-xs text-slate-400">Alhamdulillah, tidak ada pendaftaran tertunda.</div>
+                  ) : (
+                    pendingUsersList.map(p => (
+                      <div key={p.id} className="p-3.5 hover:bg-slate-50 transition text-xs">
+                        <div className="font-bold text-slate-800">{p.nama}</div>
+                        <div className="text-[10px] text-slate-500 mb-2.5 mt-0.5">{p.email} • {p.noHp}</div>
+                        <div className="flex space-x-2">
+                          <button onClick={() => handleAccept(p.id)} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1.5 rounded-lg transition shadow-sm">Terima</button>
+                          <button onClick={() => handleReject(p.id)} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition shadow-sm">Tolak</button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+
             <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium border-l border-slate-200 pl-5">
               <span>SIM Pesantren - v1.0</span>
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></div>
