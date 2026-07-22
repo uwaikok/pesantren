@@ -99,7 +99,7 @@ router.get('/users/:id/profile', verifyToken, async (req, res) => {
 
     const keuangan = [];
     let totalTunggakan = 0;
-    const defaultAmount = 250000;
+    const defaultAmount = 350000;
 
     for (let m = 1; m <= 12; m++) {
       const dbRecord = databasePayments.find(p => p.bulan === m);

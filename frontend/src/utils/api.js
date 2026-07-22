@@ -562,7 +562,7 @@ const request = async (method, url, data = null, params = null) => {
           const paymentsList = [];
           let totalTunggakan = 0;
           let totalTerbayar = 0;
-          const defaultAmount = 250000;
+          const defaultAmount = 350000;
 
           for (let m = 1; m <= 12; m++) {
             const dbRecord = pembayaran.find(p => p.bulan === m);
@@ -615,7 +615,7 @@ const request = async (method, url, data = null, params = null) => {
           
           const paymentsList = [];
           let totalTunggakan = 0;
-          const defaultAmount = 250000;
+          const defaultAmount = 350000;
 
           for (let m = 1; m <= 12; m++) {
             const dbRecord = payments.find(p => p.bulan === m);

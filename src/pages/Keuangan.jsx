@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Printer, CheckCircle, XCircle, RotateCcw, Calendar, Sparkles } from 'lucide-react';
+import { DollarSign, Printer, CheckCircle, XCircle, RotateCcw, Calendar, X } from 'lucide-react';
 import api from '../utils/api';
 
 function Keuangan({ user }) {
@@ -11,10 +11,16 @@ function Keuangan({ user }) {
   const [sppTahun, setSppTahun] = useState(new Date().getFullYear());
   const [loading, setLoading] = useState(false);
 
-  // State untuk cetak kwitansi tunggal
+  // State Modal Pembayaran (Admin Only)
+  const [isPayModalOpen, setIsPayModalOpen] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [payAmount, setPayAmount] = useState(350000);
+  const [paySubmitting, setPaySubmitting] = useState(false);
+
+  // State untuk cetak kwitansi tunggal & rekap
   const [printingInvoice, setPrintingInvoice] = useState(null);
-  // State untuk tipe cetak: 'RECIP' (Kwitansi Tunggal) atau 'RECAP' (Laporan Rekap Setahun)
-  const [printType, setPrintType] = useState('RECAP');
+  const [printType, setPrintType] = useState('RECAP'); // 'RECIP' | 'RECAP'
 
   useEffect(() => {
     if (user.role === 'ADMIN') {
@@ -68,31 +74,54 @@ function Keuangan({ user }) {
     }
   };
 
-  const handleUpdateSppStatus = async (bulan, currentStatus) => {
-    const nextStatus = currentStatus === 'LUNAS' ? 'BELUM_BAYAR' : 'LUNAS';
-    
-    // Konfirmasi
-    const msg = nextStatus === 'LUNAS'
-      ? `Catat iuran syariah bulan ${getNamaBulan(bulan)} ${sppTahun} sebagai LUNAS?`
-      : `Batalkan status Lunas syariah bulan ${getNamaBulan(bulan)} ${sppTahun} menjadi BELUM BAYAR?`;
-      
-    if (!window.confirm(msg)) return;
+  const openPaymentModal = (paymentItem) => {
+    setSelectedPayment(paymentItem);
+    setPayDate(paymentItem.tanggalBayar ? paymentItem.tanggalBayar.split('T')[0] : new Date().toISOString().split('T')[0]);
+    setPayAmount(paymentItem.jumlah || 350000);
+    setIsPayModalOpen(true);
+  };
+
+  const handleCancelPayment = async (bulan) => {
+    if (!window.confirm(`Batalkan status Lunas syariah bulan ${getNamaBulan(bulan)} ${sppTahun} menjadi BELUM BAYAR?`)) return;
 
     try {
       await api.post('/keuangan', {
         santriId: parseInt(selectedSantriId),
         bulan,
         tahun: parseInt(sppTahun),
-        status: nextStatus,
-        jumlah: 250000 // Tarif Syariah Bulanan
+        status: 'BELUM_BAYAR',
+        jumlah: 350000
       });
       fetchKeuanganData();
     } catch (err) {
-      alert(err.message || 'Gagal memperbarui status syariah');
+      alert(err.message || 'Gagal membatalkan pembayaran');
     }
   };
 
-  // Fungsi Cetak Kwitansi Tunggal
+  const handleSavePayment = async (e) => {
+    e.preventDefault();
+    if (!selectedPayment) return;
+
+    setPaySubmitting(true);
+    try {
+      await api.post('/keuangan', {
+        santriId: parseInt(selectedSantriId),
+        bulan: selectedPayment.bulan,
+        tahun: parseInt(sppTahun),
+        status: 'LUNAS',
+        jumlah: parseFloat(payAmount),
+        tanggalBayar: payDate
+      });
+
+      setIsPayModalOpen(false);
+      fetchKeuanganData();
+    } catch (err) {
+      alert(err.message || 'Gagal menyimpan pembayaran');
+    } finally {
+      setPaySubmitting(false);
+    }
+  };
+
   const handlePrintReceipt = (sppItem) => {
     setPrintType('RECIP');
     setPrintingInvoice({
@@ -104,7 +133,6 @@ function Keuangan({ user }) {
     }, 100);
   };
 
-  // Fungsi Cetak Laporan Rekap Bulanan
   const handlePrintRecap = () => {
     setPrintType('RECAP');
     setTimeout(() => {
@@ -121,8 +149,9 @@ function Keuangan({ user }) {
   };
 
   const getTerbilang = (amount) => {
+    if (amount === 350000) return 'Tiga Ratus Lima Puluh Ribu Rupiah';
     if (amount === 250000) return 'Dua Ratus Lima Puluh Ribu Rupiah';
-    return 'Dua Ratus Lima Puluh Ribu Rupiah';
+    return `${amount.toLocaleString('id-ID')} Rupiah`;
   };
 
   return (
@@ -232,7 +261,7 @@ function Keuangan({ user }) {
               return (
                 <div 
                   key={p.bulan} 
-                  className={`border rounded-2xl p-4 flex flex-col justify-between h-40 transition-all duration-200 card-hover ${
+                  className={`border rounded-2xl p-4 flex flex-col justify-between h-44 transition-all duration-200 card-hover ${
                     isPaid 
                       ? 'bg-[#DCFCE7]/30 border-[#16A34A]/30 shadow-sm' 
                       : 'bg-[#FEE2E2]/20 border-rose-200/60'
@@ -243,6 +272,11 @@ function Keuangan({ user }) {
                       <span className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider block">BULAN {p.bulan}</span>
                       <h4 className="font-extrabold text-sm text-[#0B4A3F] font-serif">{getNamaBulan(p.bulan)}</h4>
                       <p className="text-xs font-bold text-slate-700 mt-1">Rp {p.jumlah.toLocaleString('id-ID')}</p>
+                      {isPaid && p.tanggalBayar && (
+                        <span className="text-[10px] text-slate-500 block mt-0.5 font-medium">
+                          Tgl: {new Date(p.tanggalBayar).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      )}
                     </div>
                     {/* Status Badge */}
                     <span className={`inline-block px-2.5 py-0.5 rounded-full text-[9px] font-extrabold uppercase ${
@@ -257,27 +291,26 @@ function Keuangan({ user }) {
                   <div className="mt-3 pt-3 border-t border-slate-200/60 flex items-center justify-between gap-1.5">
                     {/* Aksi Bayar (Admin Only) */}
                     {user.role === 'ADMIN' ? (
-                      <button
-                        onClick={() => handleUpdateSppStatus(p.bulan, p.status)}
-                        className={`flex-1 py-1.5 px-2 rounded-xl font-bold text-[10px] transition text-center flex items-center justify-center space-x-1 ${
-                          isPaid
-                            ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                            : 'bg-[#0B4A3F] hover:bg-[#083831] text-white shadow-sm'
-                        }`}
-                      >
-                        {isPaid ? (
-                          <>
-                            <RotateCcw size={10} />
-                            <span>Batal</span>
-                          </>
-                        ) : (
-                          <span>Tandai Lunas</span>
-                        )}
-                      </button>
+                      isPaid ? (
+                        <button
+                          onClick={() => handleCancelPayment(p.bulan)}
+                          className="flex-1 py-1.5 px-2 rounded-xl font-bold text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 transition text-center flex items-center justify-center space-x-1"
+                        >
+                          <RotateCcw size={10} />
+                          <span>Batal</span>
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => openPaymentModal(p)}
+                          className="flex-1 py-1.5 px-2 rounded-xl font-bold text-[10px] bg-[#0B4A3F] hover:bg-[#083831] text-white shadow-sm transition text-center flex items-center justify-center space-x-1"
+                        >
+                          <span>Bayar</span>
+                        </button>
+                      )
                     ) : (
                       <span className="text-[10px] text-slate-500 font-medium">
                         {isPaid 
-                          ? `Tgl: ${new Date(p.tanggalBayar).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}` 
+                          ? `Lunas` 
                           : 'Belum Lunas'}
                       </span>
                     )}
@@ -299,6 +332,70 @@ function Keuangan({ user }) {
           </div>
         )}
       </div>
+
+      {/* --- MODAL INPUT PEMBAYARAN SYARIAH (ADMIN ONLY) --- */}
+      {isPayModalOpen && selectedPayment && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 no-print">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 relative animate-fadeIn">
+            <button
+              onClick={() => setIsPayModalOpen(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 p-1 rounded-lg transition"
+            >
+              <X size={18} />
+            </button>
+
+            <div className="mb-5 pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-[#0B4A3F] font-serif">Catat Pembayaran Syariah</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Bulan <strong className="text-[#0B4A3F]">{getNamaBulan(selectedPayment.bulan)} {sppTahun}</strong> - {currentSantriDetails?.nama}
+              </p>
+            </div>
+
+            <form onSubmit={handleSavePayment} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">Tanggal Pembayaran</label>
+                <input
+                  type="date"
+                  required
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none"
+                  value={payDate}
+                  onChange={(e) => setPayDate(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-slate-700 uppercase mb-1">Nominal Pembayaran (Rp)</label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  step="1000"
+                  className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 outline-none"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                />
+              </div>
+
+              <div className="pt-3 flex space-x-3">
+                <button
+                  type="button"
+                  onClick={() => setIsPayModalOpen(false)}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={paySubmitting}
+                  className="flex-1 py-2.5 bg-[#0B4A3F] hover:bg-[#083831] text-white font-bold text-xs rounded-xl shadow-md shadow-[#0B4A3F]/20 transition flex items-center justify-center space-x-1"
+                >
+                  {paySubmitting ? <span>Menyimpan...</span> : <span>Simpan & Tandai Lunas</span>}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* --- BAGIAN CETAK: 1. KWITANSI TUNGGAL (TAMPIL HANYA SAAT PRINT) --- */}
       {printType === 'RECIP' && printingInvoice && (
@@ -360,6 +457,14 @@ function Keuangan({ user }) {
             </div>
 
             <div className="flex border-b border-slate-100 pb-1.5">
+              <span className="w-40 text-slate-500 font-medium">Tanggal Pembayaran</span>
+              <span className="w-4">:</span>
+              <span className="flex-1 font-bold text-slate-800">
+                {new Date(printingInvoice.tanggalBayar).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </span>
+            </div>
+
+            <div className="flex border-b border-slate-100 pb-1.5">
               <span className="w-40 text-slate-500 font-medium">Kelas / ID Santri</span>
               <span className="w-4">:</span>
               <span className="flex-1 text-slate-700">
@@ -375,10 +480,10 @@ function Keuangan({ user }) {
             </div>
             
             <div className="text-center font-sans">
-              <p className="text-slate-500">Malang, {new Date(printingInvoice.tanggalBayar).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p className="text-slate-500">Garut, {new Date(printingInvoice.tanggalBayar).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
               <p className="font-bold text-slate-800 mt-1">Bendahara Pondok Pesantren</p>
               <div className="h-12"></div>
-              <p className="underline font-bold text-slate-800 font-serif">Ustadz Pembina Bendahara</p>
+              <p className="underline font-bold text-slate-800 font-serif">DINA ROSDIANA</p>
               <p className="text-[9px] text-slate-400">SIM Miftahul Huda As-Syadzili Auto-Generated</p>
             </div>
           </div>
@@ -388,12 +493,14 @@ function Keuangan({ user }) {
       {/* --- BAGIAN CETAK: 2. LAPORAN REKAP BULANAN SETAHUN (TAMPIL HANYA SAAT PRINT) --- */}
       {printType === 'RECAP' && (
         <div className="hidden print:block print-area bg-white p-8 font-serif leading-relaxed text-sm">
-          <div className="text-center border-b-4 border-double border-slate-900 pb-4 mb-6">
-            <h1 className="text-xl font-bold uppercase tracking-wider">YAYASAN MIFTAHUL HUDA AS-SYADZILI</h1>
-            <h2 className="text-2xl font-extrabold uppercase font-serif text-[#0B4A3F] mt-1">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
-            <p className="text-[10px] text-slate-500 font-sans mt-1">
-              Sekertariat : Kp. Babakan Nanggerang RT 02 RW 01 Desa Sukajadi Kec. Tarogong Kaler Kabupaten Garut Kode Pos 44151 Tlp. 083826250636
-            </p>
+          <div className="flex items-center border-b-4 border-double border-slate-900 pb-4 mb-6 gap-4">
+            <img src="/logo.png" className="w-20 h-20 object-contain flex-shrink-0" alt="Logo Pesantren" />
+            <div className="flex-1">
+              <h2 className="text-2xl font-extrabold uppercase font-serif text-[#0B4A3F]">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
+              <p className="text-[10px] text-slate-600 font-sans mt-1">
+                Sekertariat : Kp. Babakan Nanggerang RT 02 RW 01 Desa Sukajadi Kec. Tarogong Kaler Kabupaten Garut Kode Pos 44151 Tlp. 083826250636
+              </p>
+            </div>
           </div>
 
           <h3 className="text-center text-base font-bold underline uppercase tracking-wider mb-6">
@@ -479,16 +586,16 @@ function Keuangan({ user }) {
 
           <div className="grid grid-cols-2 text-center text-xs mt-12">
             <div>
-              <p>Mengesahkan,</p>
-              <p className="font-bold">Kepala Pengasuh Pesantren</p>
+              <p>Garut, {new Date().toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              <p className="font-bold">Pimpinan Pondok Pesantren</p>
               <div className="h-16"></div>
-              <p className="underline font-bold">RIFKI AHMAD DZULFIKRI</p>
+              <p className="underline font-bold">K.H QUSYAERI AHMAD FAUZI</p>
             </div>
             <div>
               <p>Dibuat Oleh,</p>
               <p className="font-bold">Bendahara Pondok Pesantren</p>
               <div className="h-16"></div>
-              <p className="underline font-bold">Ustadz Pembina Bendahara</p>
+              <p className="underline font-bold">DINA ROSDIANA</p>
             </div>
           </div>
         </div>
@@ -498,4 +605,3 @@ function Keuangan({ user }) {
 }
 
 export default Keuangan;
-

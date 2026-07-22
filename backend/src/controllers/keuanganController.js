@@ -1,7 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const DEFAULT_SPP_AMOUNT = 250000; // Rp 250.000 per bulan sebagai default SPP
+const DEFAULT_SPP_AMOUNT = 350000; // Rp 350.000 per bulan sebagai default SPP
 
 const createOrUpdatePembayaran = async (req, res) => {
   try {
