@@ -167,13 +167,22 @@ const request = async (method, url, data = null, params = null) => {
       const response = await api({ method, url, data, params });
       return response.data;
     } catch (error) {
-      // Jika terjadi kesalahan koneksi/network/404/500/502 pada backend,
-      // otomatis alihkan ke Fallback Demo Mode (LocalStorage)
-      console.warn('Backend tidak tersedia. Mengaktifkan Mode Demo...', error?.message || error);
-      localStorage.setItem('use_mock_db', 'true');
-      window.useMockDb = true;
-      // Panggil ulang secara rekursif - kali ini akan masuk ke mock
-      return request(method, url, data, params);
+      // Hanya alihkan ke mock mode jika terjadi Network Error (tidak ada response) 
+      // atau Server Error (status >= 500)
+      const isNetworkError = !error.response;
+      const isServerError = error.response && error.response.status >= 500;
+
+      if (isNetworkError || isServerError) {
+        console.warn('Backend tidak tersedia. Mengaktifkan Mode Demo...', error?.message || error);
+        localStorage.setItem('use_mock_db', 'true');
+        window.useMockDb = true;
+        // Panggil ulang secara rekursif - kali ini akan masuk ke mock
+        return request(method, url, data, params);
+      }
+      
+      // Jika ini adalah error client (400, 401, 403, 404, dll), lempar error aslinya
+      // agar ditangani oleh halaman/komponen pemanggil
+      throw error.response && error.response.data ? error.response.data : error;
     }
   }
 
