@@ -158,12 +158,7 @@ function Login({ onLoginSuccess }) {
             </button>
           </form>
 
-          {/* Dummy account helper tooltip */}
-          <div className="mt-5 p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl text-[10px] text-emerald-800">
-            <span className="font-bold block mb-1">💡 Akun Uji Coba (Demo Mode):</span>
-            <p>• Admin: <strong>admin@pesantren.com</strong> / <em>adminpassword</em></p>
-            <p>• Santri: <strong>ahmad@pesantren.com</strong> / <em>studentpassword</em></p>
-          </div>
+
 
           <div className="mt-6 text-center text-xs text-slate-500">
             Belum memiliki akun santri?{' '}
