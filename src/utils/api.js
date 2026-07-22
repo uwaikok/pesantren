@@ -6,12 +6,6 @@ const api = axios.create({
   timeout: 3000,
 });
 
-// Di lingkungan production (Vercel) tidak ada backend server,
-// langsung aktifkan Demo Mode (LocalStorage) tanpa perlu menunggu timeout.
-// import.meta.env.DEV = true saat 'npm run dev', false saat 'npm run build'
-if (!import.meta.env.DEV) {
-  localStorage.setItem('use_mock_db', 'true');
-}
 
 // Interceptor untuk menyisipkan token JWT di setiap request
 api.interceptors.request.use(

@@ -5,23 +5,7 @@ const fs = require('fs');
 const prisma = new PrismaClient();
 
 // ---- KONFIGURASI MULTER UPLOAD FOTO PROFIL ----
-const uploadDir = path.join(__dirname, '../../uploads/foto-profil');
-// Buat folder jika belum ada
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    // Format: user-{id}-{timestamp}{ext}
-    const ext = path.extname(file.originalname).toLowerCase();
-    const filename = `user-${req.params.id}-${Date.now()}${ext}`;
-    cb(null, filename);
-  }
-});
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|webp/;
@@ -262,26 +246,18 @@ const uploadFotoProfil = async (req, res) => {
       return res.status(404).json({ message: 'User tidak ditemukan' });
     }
 
-    // Hapus foto lama jika ada
-    if (user.fotoProfil) {
-      const oldPath = path.join(__dirname, '../../', user.fotoProfil);
-      if (fs.existsSync(oldPath)) {
-        fs.unlinkSync(oldPath);
-      }
-    }
-
-    // Simpan path relatif foto baru
-    const fotoPath = `uploads/foto-profil/${req.file.filename}`;
+    // Convert file buffer ke Base64 data URL
+    const fotoBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
     const updated = await prisma.user.update({
       where: { id: userId },
-      data: { fotoProfil: fotoPath },
+      data: { fotoProfil: fotoBase64 },
       select: { id: true, nama: true, fotoProfil: true }
     });
 
     res.json({ 
       message: 'Foto profil berhasil diperbarui', 
-      fotoProfil: fotoPath,
+      fotoProfil: fotoBase64,
       user: updated 
     });
   } catch (error) {
