@@ -119,7 +119,7 @@ function Layout({ children, user, onLogout }) {
                   onError={(e) => { e.target.style.display = 'none'; }}
                 />
               ) : (
-                user?.nama.charAt(0)
+                user?.nama?.charAt(0)
               )}
             </div>
             <div className="overflow-hidden">
@@ -218,7 +218,7 @@ function Layout({ children, user, onLogout }) {
                       onError={(e) => { e.target.style.display = 'none'; }}
                     />
                   ) : (
-                    user?.nama.charAt(0)
+                    user?.nama?.charAt(0)
                   )}
                 </div>
                 <div>
