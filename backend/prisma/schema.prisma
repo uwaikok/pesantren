@@ -12,12 +12,23 @@ model User {
   nama         String
   email        String       @unique
   password     String
-  noHp         String
-  alamat       String
+  noHp         String?
+  alamat       String?
+  fotoProfil   String?      // Path/URL foto profil yang diupload
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  pengumuman   Pengumuman[]
+}
+
+model Santri {
+  id           Int          @id @default(autoincrement())
+  nama         String
+  noHp         String?
+  alamat       String?
   namaWali     String?
-  role         String       // "ADMIN" or "SANTRI"
-  status       String       // "PENDING" or "ACTIVE"
   kelas        String?      // Hanya untuk santri, misal "Kelas 10-A", "Kelas 11-B"
+  status       String       @default("ACTIVE") // "ACTIVE" atau "INACTIVE"
   fotoProfil   String?      // Path/URL foto profil yang diupload
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
@@ -30,10 +41,10 @@ model User {
 model Nilai {
   id            Int      @id @default(autoincrement())
   santriId      Int
-  santri        User     @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  santri        Santri   @relation(fields: [santriId], references: [id], onDelete: Cascade)
   mataPelajaran String
-  nilaiUts      Float
-  nilaiUas      Float
+  nilaiUts      Float?   // Nullable — bisa diisi UTS saja atau UAS saja
+  nilaiUas      Float?   // Nullable — bisa diisi UTS saja atau UAS saja
   semester      String   // "GANJIL" or "GENAP"
   tahunAjaran   String   // misal "2025/2026"
   tanggalInput  DateTime @default(now())
@@ -44,7 +55,7 @@ model Nilai {
 model Sanksi {
   id                 Int      @id @default(autoincrement())
   santriId           Int
-  santri             User     @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  santri             Santri   @relation(fields: [santriId], references: [id], onDelete: Cascade)
   tanggalPelanggaran DateTime
   tahun              String   // misal "2025/2026"
   deskripsi          String
@@ -56,7 +67,7 @@ model Sanksi {
 model Pembayaran {
   id           Int       @id @default(autoincrement())
   santriId     Int
-  santri       User      @relation(fields: [santriId], references: [id], onDelete: Cascade)
+  santri       Santri    @relation(fields: [santriId], references: [id], onDelete: Cascade)
   bulan        Int       // 1 - 12 (Jan - Des)
   tahun        Int       // misal 2026
   status       String    // "LUNAS" or "BELUM_BAYAR"
@@ -66,4 +77,14 @@ model Pembayaran {
   updatedAt    DateTime  @updatedAt
 
   @@unique([santriId, bulan, tahun])
+}
+
+model Pengumuman {
+  id        Int      @id @default(autoincrement())
+  judul     String
+  isi       String
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

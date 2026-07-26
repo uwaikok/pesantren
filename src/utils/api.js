@@ -9,7 +9,7 @@ const api = axios.create({
 // Interceptor untuk menyisipkan token JWT di setiap request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('simesra_token');
+    const token = sessionStorage.getItem('simesra_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -145,7 +145,7 @@ const saveMockData = (key, data) => localStorage.setItem(key, JSON.stringify(dat
 
 // Cek siapa user yang sedang login berdasarkan token
 const getLoggedInUser = () => {
-  const token = localStorage.getItem('simesra_token');
+  const token = sessionStorage.getItem('simesra_token');
   if (!token) return null;
   try {
     // Di demo mode, token hanyalah JSON string user
@@ -196,7 +196,7 @@ const request = async (method, url, data = null, params = null) => {
             return reject({ message: 'Akun Anda belum aktif. Silakan hubungi admin untuk aktivasi.' });
           }
           // Simpan token (di demo mode, token kita adalah detail user itu sendiri)
-          localStorage.setItem('simesra_token', JSON.stringify(found));
+          sessionStorage.setItem('simesra_token', JSON.stringify(found));
           return resolve({ message: 'Login berhasil', token: JSON.stringify(found), user: found });
         }
 
@@ -246,7 +246,7 @@ const request = async (method, url, data = null, params = null) => {
           if (!latestUser) return reject({ message: 'User tidak ditemukan' });
           // Sync token dengan data terbaru
           const userForToken = { ...latestUser };
-          localStorage.setItem('simesra_token', JSON.stringify(userForToken));
+          sessionStorage.setItem('simesra_token', JSON.stringify(userForToken));
           // Return tanpa password
           const { password, ...safeUser } = latestUser;
           return resolve(safeUser);
@@ -281,11 +281,55 @@ const request = async (method, url, data = null, params = null) => {
           users[idx].password = passwordBaru;
           saveMockData('mock_users', users);
 
-          // Buat token baru TANPA field password (aman) dan simpan ke localStorage
+          // Buat token baru TANPA field password (aman) dan simpan ke sessionStorage
           const { password: _pw, ...safeUserForToken } = users[idx];
-          localStorage.setItem('simesra_token', JSON.stringify(safeUserForToken));
+          sessionStorage.setItem('simesra_token', JSON.stringify(safeUserForToken));
 
           return resolve({ message: 'Kata sandi berhasil diperbarui. Password lama tidak berlaku lagi.' });
+        }
+
+        // 3c. ROUTING: /auth/profile (GET & PUT)
+        if (url === '/auth/profile' && method.toLowerCase() === 'get') {
+          if (!currentUser) return reject({ message: 'Token tidak valid' });
+          const users = getMockData('mock_users');
+          const latestUser = users.find(u => u.id === currentUser.id);
+          if (!latestUser) return reject({ message: 'User tidak ditemukan' });
+          const { password, ...safeUser } = latestUser;
+          return resolve({
+            user: safeUser,
+            keuangan: { tahun: new Date().getFullYear(), totalTunggakan: 0, payments: [] }
+          });
+        }
+
+        if (url === '/auth/profile' && method.toLowerCase() === 'put') {
+          if (!currentUser) return reject({ message: 'Token tidak valid' });
+          const { nama, email, password, noHp, alamat } = data;
+          const users = getMockData('mock_users');
+          const idx = users.findIndex(u => u.id === currentUser.id);
+          if (idx === -1) return reject({ message: 'User tidak ditemukan' });
+
+          if (email && email !== users[idx].email) {
+            if (users.some(u => u.email === email && u.id !== currentUser.id)) {
+              return reject({ message: 'Email sudah terdaftar oleh pengguna lain' });
+            }
+          }
+
+          if (nama) users[idx].nama = nama;
+          if (email) users[idx].email = email;
+          if (noHp !== undefined) users[idx].noHp = noHp;
+          if (alamat !== undefined) users[idx].alamat = alamat;
+          if (password) users[idx].password = password;
+
+          saveMockData('mock_users', users);
+
+          // Update token
+          const { password: _p, ...safeUser } = users[idx];
+          sessionStorage.setItem('simesra_token', JSON.stringify(safeUser));
+
+          return resolve({
+            message: 'Profil berhasil diperbarui',
+            user: { ...safeUser, role: 'ADMIN', status: 'ACTIVE' }
+          });
         }
 
         // 4. ROUTING: /admin/stats
@@ -296,7 +340,7 @@ const request = async (method, url, data = null, params = null) => {
           const pembayaran = getMockData('mock_pembayaran');
 
           const activeCount = users.filter(u => u.status === 'ACTIVE').length;
-          const pendingCount = users.filter(u => u.status === 'PENDING').length;
+          const inactiveCount = users.length - activeCount;
           
           // Hitung lunas bulan ini
           const currentMonth = new Date().getMonth() + 1;
@@ -315,7 +359,7 @@ const request = async (method, url, data = null, params = null) => {
           return resolve({
             totalSantri: users.length,
             activeSantri: activeCount,
-            pendingSantri: pendingCount,
+            inactiveSantri: inactiveCount,
             totalSanksi: sanksi.length,
             sppStats: {
               bulan: currentMonth,
@@ -376,7 +420,7 @@ const request = async (method, url, data = null, params = null) => {
           
           // Sinkronkan token jika user yang diedit adalah user yang sedang login
           if (currentUser.id === id) {
-            localStorage.setItem('simesra_token', JSON.stringify(users[idx]));
+            sessionStorage.setItem('simesra_token', JSON.stringify(users[idx]));
           }
           return resolve({ message: 'Data santri berhasil diperbarui', user: users[idx] });
         }

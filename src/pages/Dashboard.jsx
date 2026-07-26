@@ -58,9 +58,6 @@ function Dashboard({ user }) {
         params: { search, kelas: filterKelas } 
       });
       setSantriList(list);
-
-      const pending = await api.get('/admin/users/pending');
-      setPendingUsers(pending);
     } catch (err) {
       console.error(err);
       setError('Gagal memuat data dashboard admin');
@@ -277,18 +274,15 @@ function Dashboard({ user }) {
           </div>
         </div>
 
-        {/* Pendaftaran Pending */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between relative">
+        {/* Santri Tidak Aktif */}
+        <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">PENDAFTARAN PENDING</span>
-            <h3 className="text-3xl font-extrabold mt-1 text-[#D97706] font-serif">{stats?.pendingSantri || 0}</h3>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">STATUS TIDAK AKTIF</span>
+            <h3 className="text-3xl font-extrabold mt-1 text-[#D97706] font-serif">{stats?.inactiveSantri || 0}</h3>
           </div>
           <div className="w-12 h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0">
             <UserPlus size={24} />
           </div>
-          {stats?.pendingSantri > 0 && (
-            <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-rose-500 animate-ping"></div>
-          )}
         </div>
 
         {/* Total Sanksi */}
@@ -302,35 +296,6 @@ function Dashboard({ user }) {
           </div>
         </div>
       </div>
-
-      {/* Panel Persetujuan Registrasi Akun Santri Baru - Kuning Pastel Soft + Border Left Gold */}
-      {pendingUsers.length > 0 && (
-        <div className="bg-[#FEF3C7]/70 border-l-4 border-l-[#D4AF37] border border-amber-200/80 rounded-2xl p-5 shadow-soft">
-          <h2 className="text-xs font-bold text-[#D97706] uppercase tracking-wider mb-3 flex items-center space-x-2">
-            <AlertTriangle size={16} className="text-[#D97706]" />
-            <span>Persetujuan Registrasi Akun Santri Baru ({pendingUsers.length})</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {pendingUsers.map(u => (
-              <div key={u.id} className="bg-white border border-amber-200/60 rounded-xl p-4 flex items-center justify-between shadow-sm hover:shadow transition">
-                <div>
-                  <h4 className="font-bold text-xs text-[#0B4A3F] font-sans">{u.nama}</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{u.email} • HP: {u.noHp}</p>
-                  <p className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded inline-block mt-1 font-medium">Wali: {u.namaWali}</p>
-                </div>
-                {/* Tombol Aktifkan Pill-shape Hijau */}
-                <button
-                  onClick={() => handleVerify(u.id, u.nama)}
-                  className="bg-[#16A34A] hover:bg-[#15803d] text-white px-3.5 py-1.5 rounded-full font-bold text-xs shadow transition flex items-center space-x-1.5"
-                >
-                  <Check size={14} />
-                  <span>Aktifkan</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Main Content Layout: Graph & Santri CRUD List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -420,9 +385,9 @@ function Dashboard({ user }) {
                         <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${
                           s.status === 'ACTIVE' 
                             ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/30' 
-                            : 'bg-[#FEF3C7] text-[#D97706] border border-[#D97706]/30'
+                            : 'bg-slate-100 text-slate-500 border border-slate-300'
                         }`}>
-                          {s.status === 'ACTIVE' ? 'AKTIF' : 'PENDING'}
+                          {s.status === 'ACTIVE' ? 'AKTIF' : 'TIDAK AKTIF'}
                         </span>
                       </td>
                       {/* Action Icons with Soft Circle Hover & Colors */}
@@ -492,21 +457,11 @@ function Dashboard({ user }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Alamat Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={editingSantri.email}
-                    onChange={(e) => setEditingSantri({ ...editingSantri, email: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
-                  />
-                </div>
-                <div>
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nomor HP</label>
                   <input
                     type="text"
                     required
-                    value={editingSantri.noHp}
+                    value={editingSantri.noHp || ''}
                     onChange={(e) => setEditingSantri({ ...editingSantri, noHp: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
@@ -532,14 +487,14 @@ function Dashboard({ user }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Status Akun</label>
+                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Status Santri</label>
                   <select
-                    value={editingSantri.status}
+                    value={editingSantri.status || 'ACTIVE'}
                     onChange={(e) => setEditingSantri({ ...editingSantri, status: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none font-bold"
                   >
                     <option value="ACTIVE">Aktif (ACTIVE)</option>
-                    <option value="PENDING">Ditangguhkan (PENDING)</option>
+                    <option value="INACTIVE">Tidak Aktif (INACTIVE)</option>
                   </select>
                 </div>
               </div>

@@ -11,53 +11,14 @@ import {
   X, 
   ChevronRight,
   UserPlus,
-  Bell,
   Sparkles
 } from 'lucide-react';
 import api from '../utils/api';
 
 function Layout({ children, user, onLogout }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [pendingUsers, setPendingUsers] = useState(0);
-  const [pendingUsersList, setPendingUsersList] = useState([]);
-  const [showNotif, setShowNotif] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-
-  React.useEffect(() => {
-    if (user?.role === 'ADMIN') {
-      const fetchPending = async () => {
-        try {
-          const res = await api.get('/admin/users/pending');
-          setPendingUsersList(res);
-          setPendingUsers(res.length);
-        } catch (e) {}
-      };
-      fetchPending();
-    }
-  }, [user]);
-
-  const handleAccept = async (id) => {
-    try {
-      await api.put(`/admin/users/${id}/verify`);
-      setPendingUsersList(prev => prev.filter(u => u.id !== id));
-      setPendingUsers(prev => prev - 1);
-      window.dispatchEvent(new Event('refreshData')); // for Dashboard
-    } catch (e) {
-      alert('Gagal menyetujui');
-    }
-  };
-
-  const handleReject = async (id) => {
-    try {
-      await api.delete(`/admin/santri/${id}`);
-      setPendingUsersList(prev => prev.filter(u => u.id !== id));
-      setPendingUsers(prev => prev - 1);
-      window.dispatchEvent(new Event('refreshData')); // for Dashboard
-    } catch (e) {
-      alert('Gagal menolak');
-    }
-  };
 
   // Memetakan rute ke label breadcrumbs
   const getBreadcrumbs = () => {
@@ -72,8 +33,8 @@ function Layout({ children, user, onLogout }) {
       crumbs.push({ label: 'Modul Bendahara & Syariah', path: '/keuangan' });
     } else if (path.startsWith('/profil')) {
       crumbs.push({ label: 'Profil Akun', path: '/profil' });
-    } else if (path === '/buat-akun') {
-      crumbs.push({ label: 'Buat Akun Santri', path: '/buat-akun' });
+    } else if (path === '/tambah-santri') {
+      crumbs.push({ label: 'Tambah Santri Baru', path: '/tambah-santri' });
     }
 
     return crumbs;
@@ -85,7 +46,6 @@ function Layout({ children, user, onLogout }) {
     { label: 'Keamanan', path: '/keamanan', icon: ShieldAlert, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Bendahara', path: '/keuangan', icon: DollarSign, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Profil', path: '/profil', icon: User, roles: ['ADMIN', 'SANTRI'] },
-    { label: 'Buat Akun', path: '/buat-akun', icon: UserPlus, roles: ['ADMIN'] },
   ];
 
   const handleLogoutClick = () => {
@@ -94,6 +54,7 @@ function Layout({ children, user, onLogout }) {
   };
 
   const filteredNavItems = navItems.filter(item => item.roles.includes(user?.role));
+  const isTambahSantriActive = location.pathname === '/tambah-santri';
 
   return (
     <div className="min-h-screen bg-[#F5F5F0] flex flex-col md:flex-row text-[#1A1A1A]">
@@ -161,6 +122,23 @@ function Layout({ children, user, onLogout }) {
               </Link>
             );
           })}
+
+          {/* Tombol Tambah Santri Baru (Aksi Khusus) */}
+          {user?.role === 'ADMIN' && (
+            <div className="pt-3 mt-1 border-t border-white/10">
+              <Link
+                to="/tambah-santri"
+                className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 ${
+                  isTambahSantriActive
+                    ? 'bg-[#D4AF37] text-[#083831] shadow-lg'
+                    : 'bg-[#D4AF37]/15 text-[#E8C766] hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40'
+                }`}
+              >
+                <UserPlus size={18} className={isTambahSantriActive ? 'text-[#083831]' : 'text-[#E8C766]'} />
+                <span>Tambah Santri Baru</span>
+              </Link>
+            </div>
+          )}
         </nav>
 
         {/* Logout Button */}
@@ -185,20 +163,6 @@ function Layout({ children, user, onLogout }) {
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          {user?.role === 'ADMIN' && (
-            <button 
-              onClick={() => setShowNotif(!showNotif)} 
-              className="relative p-2 text-emerald-100 hover:text-white rounded-lg hover:bg-white/10 transition"
-              title="Notifikasi Pending"
-            >
-              <Bell size={18} />
-              {pendingUsers > 0 && (
-                <span className="absolute top-1 right-1 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full border border-[#0B4A3F] animate-pulse">
-                  {pendingUsers}
-                </span>
-              )}
-            </button>
-          )}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="p-2 text-[#E8C766] hover:text-white hover:bg-white/10 rounded-lg transition"
@@ -237,7 +201,7 @@ function Layout({ children, user, onLogout }) {
                 <div>
                   <h2 className="font-bold text-xs text-white">{user?.nama}</h2>
                   <span className="inline-block text-[9px] font-bold px-2 rounded-full bg-[#D4AF37]/20 text-[#E8C766] border border-[#D4AF37]/30 uppercase mt-0.5">
-                    {user?.role}
+                    {user?.role === 'ADMIN' ? 'Server / Admin' : `Santri ${user?.kelas || ''}`}
                   </span>
                 </div>
               </div>
@@ -263,6 +227,24 @@ function Layout({ children, user, onLogout }) {
                   </Link>
                 );
               })}
+
+              {/* Tombol Tambah Santri Mobile */}
+              {user?.role === 'ADMIN' && (
+                <div className="pt-3 mt-1 border-t border-white/10">
+                  <Link
+                    to="/tambah-santri"
+                    onClick={() => setIsSidebarOpen(false)}
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
+                      isTambahSantriActive
+                        ? 'bg-[#D4AF37] text-[#083831]'
+                        : 'bg-[#D4AF37]/15 text-[#E8C766] hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40'
+                    }`}
+                  >
+                    <UserPlus size={18} className={isTambahSantriActive ? 'text-[#083831]' : 'text-[#E8C766]'} />
+                    <span>Tambah Santri Baru</span>
+                  </Link>
+                </div>
+              )}
             </nav>
             <div className="p-4 border-t border-white/10 bg-[#083831]">
               <button
@@ -278,7 +260,7 @@ function Layout({ children, user, onLogout }) {
       )}
 
       {/* CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0" onClick={() => showNotif && setShowNotif(false)}>
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Header Desktop */}
         <header className="hidden md:flex bg-white h-16 border-b border-slate-200/80 items-center justify-between px-8 no-print shadow-sm">
           <div className="flex items-center text-xs font-bold text-slate-500 space-x-2">
@@ -293,47 +275,7 @@ function Layout({ children, user, onLogout }) {
           </div>
           
           <div className="flex items-center space-x-5">
-            {user?.role === 'ADMIN' && (
-              <button onClick={() => setShowNotif(!showNotif)} className="relative flex items-center justify-center p-2 rounded-full hover:bg-slate-100 transition text-slate-600 hover:text-[#0B4A3F]" title="Notifikasi Pending">
-                <Bell size={18} />
-                {pendingUsers > 0 && (
-                  <span className="absolute top-0 right-0 bg-rose-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white animate-pulse">
-                    {pendingUsers}
-                  </span>
-                )}
-              </button>
-            )}
-            
-            {/* NOTIFICATION POPUP MODAL */}
-            {showNotif && user?.role === 'ADMIN' && (
-              <div className="fixed top-14 right-3 md:top-16 md:right-8 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-slate-800 animate-in fade-in zoom-in duration-150">
-                <div className="bg-[#0B4A3F] text-white p-3.5 font-bold text-xs flex justify-between items-center border-b border-[#D4AF37]/30">
-                  <span className="flex items-center space-x-1.5 font-serif">
-                    <Bell size={14} className="text-[#E8C766]" />
-                    <span>Persetujuan Santri Baru</span>
-                  </span>
-                  <span className="bg-[#D4AF37] text-[#0B4A3F] font-extrabold px-2 py-0.5 rounded-full text-[10px]">{pendingUsers} Pending</span>
-                </div>
-                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100">
-                  {pendingUsers === 0 ? (
-                    <div className="p-6 text-center text-xs text-slate-400">Alhamdulillah, tidak ada pendaftaran tertunda.</div>
-                  ) : (
-                    pendingUsersList.map(p => (
-                      <div key={p.id} className="p-3.5 hover:bg-slate-50 transition text-xs">
-                        <div className="font-bold text-[#0B4A3F]">{p.nama}</div>
-                        <div className="text-[10px] text-slate-500 mb-2.5 mt-0.5">{p.email} • {p.noHp}</div>
-                        <div className="flex space-x-2">
-                          <button onClick={() => handleAccept(p.id)} className="flex-1 bg-[#0B4A3F] hover:bg-[#083831] text-white text-[10px] font-bold py-1.5 rounded-lg transition shadow-sm">Terima</button>
-                          <button onClick={() => handleReject(p.id)} className="flex-1 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-bold py-1.5 rounded-lg transition shadow-sm">Tolak</button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium border-l border-slate-200 pl-5">
+            <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium pl-5">
               <span className="font-serif text-[#0B4A3F] font-bold">Miftahul Huda As-Syadzili</span>
               <div className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse"></div>
             </div>

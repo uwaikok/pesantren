@@ -137,14 +137,6 @@ function Login({ onLoginSuccess }) {
               )}
             </button>
           </form>
-
-          {/* Link Daftar Mandiri warna Emas/Gold */}
-          <div className="mt-6 text-center text-xs text-slate-500 font-medium">
-            Belum memiliki akun santri?{' '}
-            <Link to="/register" className="text-[#D4AF37] hover:text-[#B79526] font-bold underline transition">
-              Daftar Mandiri Disini
-            </Link>
-          </div>
         </div>
       </div>
     </div>

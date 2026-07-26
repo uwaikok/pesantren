@@ -9,8 +9,8 @@ const createSanksi = async (req, res) => {
       return res.status(400).json({ message: 'Semua field sanksi wajib diisi' });
     }
 
-    const santri = await prisma.user.findUnique({ where: { id: parseInt(santriId) } });
-    if (!santri || santri.role !== 'SANTRI') {
+    const santri = await prisma.santri.findUnique({ where: { id: parseInt(santriId) } });
+    if (!santri) {
       return res.status(404).json({ message: 'Data santri tidak ditemukan' });
     }
 
@@ -80,7 +80,7 @@ const getSanksiBySantri = async (req, res) => {
     const { santriId } = req.params;
     const { kategori, tahun } = req.query;
 
-    if (req.user.role !== 'ADMIN' && req.user.id !== parseInt(santriId)) {
+    if (req.user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Akses ditolak: Anda tidak memiliki wewenang melihat data ini' });
     }
 
@@ -101,23 +101,7 @@ const getSanksiBySantri = async (req, res) => {
 };
 
 const getMySanksi = async (req, res) => {
-  try {
-    const { kategori, tahun } = req.query;
-
-    const whereClause = { santriId: req.user.id };
-    if (kategori) whereClause.kategori = kategori;
-    if (tahun) whereClause.tahun = tahun;
-
-    const riwayatSanksi = await prisma.sanksi.findMany({
-      where: whereClause,
-      orderBy: { tanggalPelanggaran: 'desc' },
-    });
-
-    res.json(riwayatSanksi);
-  } catch (error) {
-    console.error('Get my sanksi error:', error);
-    res.status(500).json({ message: 'Gagal memuat riwayat sanksi Anda' });
-  }
+  return res.status(403).json({ message: 'Fitur santri dinonaktifkan pada versi server local' });
 };
 
 module.exports = {

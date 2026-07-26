@@ -11,16 +11,95 @@ const keamananController = require('../controllers/keamananController');
 const keuanganController = require('../controllers/keuanganController');
 
 // --- AUTENTIKASI ---
-router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
 router.get('/auth/me', verifyToken, authController.getMe);
 router.post('/auth/change-password', verifyToken, authController.changePassword);
 
+// --- PROFIL ADMIN SENDIRI (bukan Santri) ---
+router.get('/auth/profile', verifyToken, async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, nama: true, email: true, noHp: true, alamat: true, fotoProfil: true, createdAt: true }
+    });
+    if (!user) return res.status(404).json({ message: 'Profil tidak ditemukan' });
+    res.json({
+      user: { ...user, role: 'ADMIN', status: 'ACTIVE', namaWali: null, kelas: null },
+      akademik: [],
+      keamanan: [],
+      keuangan: { tahun: new Date().getFullYear(), totalTunggakan: 0, payments: [] }
+    });
+  } catch (error) {
+    console.error('ERROR IN GET PROFILE:', error);
+    res.status(500).json({ message: 'Gagal memuat profil admin' });
+  }
+});
+
+// --- UPDATE PROFIL ADMIN SENDIRI ---
+router.put('/auth/profile', verifyToken, async (req, res) => {
+  try {
+    const { nama, email, password, noHp, alamat } = req.body;
+    const bcrypt = require('bcryptjs');
+    const jwt = require('jsonwebtoken');
+
+    // Check if email already taken
+    if (email) {
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          email,
+          NOT: { id: req.user.id }
+        }
+      });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email sudah terdaftar oleh pengguna lain' });
+      }
+    }
+
+    const updateData = {};
+    if (nama) updateData.nama = nama;
+    if (email) updateData.email = email;
+    if (noHp !== undefined) updateData.noHp = noHp;
+    if (alamat !== undefined) updateData.alamat = alamat;
+    
+    if (password) {
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: updateData,
+      select: { id: true, nama: true, email: true, noHp: true, alamat: true, fotoProfil: true, createdAt: true }
+    });
+
+    // Generate token baru agar login otomatis dengan data/email/password baru tetap valid
+    const token = jwt.sign(
+      {
+        id: updated.id,
+        nama: updated.nama,
+        email: updated.email,
+        role: 'ADMIN',
+        status: 'ACTIVE'
+      },
+      process.env.JWT_SECRET || 'pesantren_secret_key_jwt_super_secure_123!',
+      { expiresIn: '7d' }
+    );
+
+    res.json({ 
+      message: 'Profil berhasil diperbarui', 
+      token,
+      user: { ...updated, role: 'ADMIN', status: 'ACTIVE' } 
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Gagal memperbarui profil admin' });
+  }
+});
+
+
 // --- ADMIN / SERVER ---
 router.get('/admin/stats', verifyToken, isAdmin, adminController.getStats);
 router.get('/admin/santri', verifyToken, isAdmin, adminController.getSantriList);
-router.get('/admin/users/pending', verifyToken, isAdmin, adminController.getPendingUsers);
-router.put('/admin/users/:id/verify', verifyToken, isAdmin, adminController.verifyUser);
+router.post('/admin/santri', verifyToken, isAdmin, adminController.createSantri);
 router.put('/admin/santri/:id', verifyToken, isAdmin, adminController.updateSantri);
 router.delete('/admin/santri/:id', verifyToken, isAdmin, adminController.deleteSantri);
 
@@ -48,36 +127,40 @@ router.get('/keuangan/my', verifyToken, keuanganController.getMyPembayaran);
 router.get('/keuangan/santri/:santriId', verifyToken, keuanganController.getRiwayatPembayaran);
 
 // --- AGGREGATE PROFILE ENDPOINT ---
-// Dapat diakses oleh admin, atau oleh santri bersangkutan untuk melihat resume data dirinya
+// Dapat diakses oleh admin
 router.get('/users/:id/profile', verifyToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
 
-    // RBAC check: Santri hanya boleh melihat profilnya sendiri
-    if (req.user.role !== 'ADMIN' && req.user.id !== userId) {
+    // RBAC check: Hanya admin
+    if (req.user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Akses ditolak: Anda tidak berhak mengakses data profil ini' });
     }
 
-    const user = await prisma.user.findUnique({
+    const santri = await prisma.santri.findUnique({
       where: { id: userId },
       select: {
         id: true,
         nama: true,
-        email: true,
         noHp: true,
         alamat: true,
         namaWali: true,
         kelas: true,
-        role: true,
-        status: true,
         fotoProfil: true,
         createdAt: true,
       }
     });
 
-    if (!user) {
-      return res.status(404).json({ message: 'User tidak ditemukan' });
+    if (!santri) {
+      return res.status(404).json({ message: 'Santri tidak ditemukan' });
     }
+
+    const user = {
+      ...santri,
+      email: '-',
+      role: 'SANTRI',
+      status: 'ACTIVE'
+    };
 
     // Ambil Nilai Akademik
     const akademik = await prisma.nilai.findMany({

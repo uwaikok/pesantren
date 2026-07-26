@@ -10,10 +10,10 @@ async function main() {
   await prisma.sanksi.deleteMany({});
   await prisma.pembayaran.deleteMany({});
   await prisma.user.deleteMany({});
+  await prisma.santri.deleteMany({});
 
   // Hash password
   const adminPassword = await bcrypt.hash('adminpassword', 10);
-  const studentPassword = await bcrypt.hash('studentpassword', 10);
 
   // 1. Buat User Admin
   const admin = await prisma.user.create({
@@ -23,71 +23,51 @@ async function main() {
       password: adminPassword,
       noHp: '081234567890',
       alamat: 'Komplek Pesantren Miftahul Huda As-Syadzili No. 1',
-      role: 'ADMIN',
-      status: 'ACTIVE',
     },
   });
   console.log('Admin dibuat: admin@pesantren.com / adminpassword');
 
-  // 2. Buat User Santri Aktif
-  const santri1 = await prisma.user.create({
+  // 2. Buat Santri
+  const santri1 = await prisma.santri.create({
     data: {
       nama: 'Ahmad Fauzi',
-      email: 'ahmad@pesantren.com',
-      password: studentPassword,
       noHp: '081223344556',
       alamat: 'Jl. Melati No. 12, Kebayoran Baru, Jakarta Selatan',
       namaWali: 'Bp. Slamet Fauzi',
       kelas: 'Tsanawi 3',
-      role: 'SANTRI',
-      status: 'ACTIVE',
     },
   });
 
-  const santri2 = await prisma.user.create({
+  const santri2 = await prisma.santri.create({
     data: {
       nama: 'Siti Aisyah',
-      email: 'siti@pesantren.com',
-      password: studentPassword,
       noHp: '085778899001',
       alamat: 'Jl. Mawar Gg. Masjid No. 4, Ujungberung, Bandung',
       namaWali: 'Ibu Hajah Aminah',
       kelas: 'Ibtida 3',
-      role: 'SANTRI',
-      status: 'ACTIVE',
     },
   });
-  console.log('Santri aktif dibuat: ahmad@pesantren.com, siti@pesantren.com / studentpassword');
 
-  // 3. Buat User Santri Pending
-  const pending1 = await prisma.user.create({
+  const santri3 = await prisma.santri.create({
     data: {
       nama: 'Muhammad Yusuf',
-      email: 'yusuf@pesantren.com',
-      password: studentPassword,
       noHp: '089911223344',
       alamat: 'Dusun Sukamaju RT 02 RW 05, Ciamis',
       namaWali: 'Bp. H. Abdul Ghofur',
       kelas: 'Imdad Putra',
-      role: 'SANTRI',
-      status: 'PENDING',
     },
   });
 
-  const pending2 = await prisma.user.create({
+  const santri4 = await prisma.santri.create({
     data: {
       nama: 'Fatimah Azzahra',
-      email: 'fatimah@pesantren.com',
-      password: studentPassword,
       noHp: '081399887766',
       alamat: 'Perum Permata Indah Blok C/10, Sleman, Yogyakarta',
       namaWali: 'Bp. Rahmat Hadi',
       kelas: 'Imdad Putri',
-      role: 'SANTRI',
-      status: 'PENDING',
     },
   });
-  console.log('Santri pending dibuat: yusuf@pesantren.com, fatimah@pesantren.com (Perlu aktivasi admin)');
+  console.log('Santri dibuat: Ahmad Fauzi, Siti Aisyah, Muhammad Yusuf, Fatimah Azzahra');
 
   // 4. Seeding Nilai Akademik
   // Ahmad Fauzi - Semester Ganjil 2025/2026

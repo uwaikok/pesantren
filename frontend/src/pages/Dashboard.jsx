@@ -21,7 +21,6 @@ import api from '../utils/api';
 function Dashboard({ user }) {
   const [stats, setStats] = useState(null);
   const [santriList, setSantriList] = useState([]);
-  const [pendingUsers, setPendingUsers] = useState([]);
   const [search, setSearch] = useState('');
   const [filterKelas, setFilterKelas] = useState('');
   const [loading, setLoading] = useState(true);
@@ -31,23 +30,15 @@ function Dashboard({ user }) {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSantri, setEditingSantri] = useState(null);
 
-  // State untuk data santri (jika login sebagai Santri)
-  const [mySummary, setMySummary] = useState(null);
-
   useEffect(() => {
-    if (user.role === 'ADMIN') {
-      fetchAdminData();
-    } else {
-      fetchSantriData();
-    }
+    fetchAdminData();
 
     const handleRefresh = () => {
-      if (user.role === 'ADMIN') fetchAdminData();
-      else fetchSantriData();
+      fetchAdminData();
     };
     window.addEventListener('refreshData', handleRefresh);
     return () => window.removeEventListener('refreshData', handleRefresh);
-  }, [search, filterKelas, user]);
+  }, [search, filterKelas]);
 
   const fetchAdminData = async () => {
     try {
@@ -58,49 +49,11 @@ function Dashboard({ user }) {
         params: { search, kelas: filterKelas } 
       });
       setSantriList(list);
-
-      const pending = await api.get('/admin/users/pending');
-      setPendingUsers(pending);
     } catch (err) {
       console.error(err);
       setError('Gagal memuat data dashboard admin');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchSantriData = async () => {
-    try {
-      const profileData = await api.get(`/users/${user.id}/profile`);
-      
-      // Hitung ringkasan
-      const totalNilai = profileData.akademik.length;
-      const avgNilai = totalNilai > 0
-        ? (profileData.akademik.reduce((sum, n) => sum + ((n.nilaiUts + n.nilaiUas) / 2), 0) / totalNilai).toFixed(1)
-        : '0';
-
-      setMySummary({
-        user: profileData.user,
-        avgNilai,
-        sanksiCount: profileData.keamanan.length,
-        tunggakan: profileData.keuangan.totalTunggakan,
-        unpaidMonths: profileData.keuangan.payments.filter(p => p.status === 'BELUM_BAYAR').length
-      });
-    } catch (err) {
-      console.error(err);
-      setError('Gagal memuat data ringkasan santri');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleVerify = async (id, nama) => {
-    if (!window.confirm(`Aktifkan akun santri ${nama}?`)) return;
-    try {
-      await api.put(`/admin/users/${id}/verify`);
-      fetchAdminData();
-    } catch (err) {
-      alert(err.message || 'Gagal mengaktifkan akun');
     }
   };
 
@@ -138,118 +91,6 @@ function Dashboard({ user }) {
     );
   }
 
-  // --- RENDERING DASHBOARD SANTRI ---
-  if (user.role === 'SANTRI') {
-    return (
-      <div className="space-y-6">
-        {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-[#0B4A3F] via-[#083831] to-[#041e1a] text-white rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden border border-[#D4AF37]/30">
-          <div className="absolute top-0 right-0 translate-x-12 -translate-y-12 w-64 h-64 bg-[#D4AF37]/15 rounded-full blur-2xl pointer-events-none"></div>
-          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <span className="bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#E8C766] text-xs px-3.5 py-1 rounded-full font-bold uppercase tracking-wider inline-flex items-center space-x-1.5">
-                <Sparkles size={12} />
-                <span>Assalamu'alaikum Wr. Wb.</span>
-              </span>
-              <h1 className="text-2xl md:text-3xl font-bold font-serif mt-3 text-white">Selamat Datang, {user.nama}</h1>
-              <p className="text-emerald-100/90 text-xs md:text-sm mt-1.5 max-w-xl leading-relaxed">
-                Pantau perkembangan akademik, riwayat kedisiplinan, serta administrasi pembayaran bulanan Anda melalui SIM Pesantren Miftahul Huda As-Syadzili.
-              </p>
-            </div>
-            <Link 
-              to="/profil" 
-              className="inline-flex items-center space-x-2 bg-[#D4AF37] hover:bg-[#E8C766] text-[#0B4A3F] font-bold px-5 py-3 rounded-xl transition shadow-lg text-xs self-start md:self-center"
-            >
-              <span>Lihat Detail Profil</span>
-              <ArrowRight size={15} />
-            </Link>
-          </div>
-        </div>
-
-        {/* Widgets Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
-              <Users size={22} />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Kelas Santri</p>
-              <h3 className="text-base font-extrabold text-[#0B4A3F] mt-0.5">{mySummary?.user.kelas || 'Belum Set'}</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0">
-              <BookOpen size={22} />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rata-Rata Nilai</p>
-              <h3 className="text-base font-extrabold text-[#0B4A3F] mt-0.5">{mySummary?.avgNilai} / 100</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center flex-shrink-0">
-              <ShieldAlert size={22} />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Pelanggaran</p>
-              <h3 className="text-base font-extrabold text-slate-800 mt-0.5">{mySummary?.sanksiCount} Pelanggaran</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#0B4A3F] flex items-center justify-center flex-shrink-0">
-              <DollarSign size={22} />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tunggakan Syariah</p>
-              <h3 className={`text-base font-extrabold mt-0.5 ${mySummary?.tunggakan > 0 ? 'text-[#DC2626]' : 'text-[#16A34A]'}`}>
-                {mySummary?.tunggakan > 0 ? `Rp ${mySummary.tunggakan.toLocaleString('id-ID')}` : 'Lunas'}
-              </h3>
-            </div>
-          </div>
-        </div>
-
-        {/* Quick info alerts */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80">
-            <h2 className="text-base font-bold text-[#0B4A3F] font-serif mb-4 flex items-center space-x-2">
-              <span>📚 Pengumuman Santri</span>
-            </h2>
-            <div className="space-y-3">
-              <div className="p-4 bg-[#DCFCE7]/50 border border-[#16A34A]/20 rounded-xl">
-                <span className="text-xs font-bold text-[#0B4A3F]">Ujian Akhir Semester (UAS)</span>
-                <p className="text-slate-650 text-xs mt-1 leading-relaxed">UAS semester genap tahun ajaran 2025/2026 dijadwalkan mulai pekan depan. Harap santri mempersiapkan hafalan kitab dan kebersihan administrasi Syariah.</p>
-              </div>
-              <div className="p-4 bg-[#FAF9F6] border border-slate-200/60 rounded-xl">
-                <span className="text-xs font-bold text-slate-700">Roan Kebersihan Pesantren</span>
-                <p className="text-slate-600 text-xs mt-1 leading-relaxed">Roan akbar (gotong royong) seluruh komplek pesantren akan diselenggarakan hari Ahad pagi jam 08:00 WIB.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 flex flex-col justify-between">
-            <div>
-              <h2 className="text-base font-bold text-[#0B4A3F] font-serif mb-3">💳 Status Tagihan Keuangan</h2>
-              <p className="text-slate-600 text-xs leading-relaxed">
-                Pembayaran Syariah jatuh tempo setiap tanggal 10 tiap bulannya sebesar <strong>Rp 250.000</strong>. Anda memiliki total <strong>{mySummary?.unpaidMonths} bulan</strong> tunggakan di tahun ini.
-              </p>
-            </div>
-            <div className="mt-6 flex gap-3">
-              <Link to="/keuangan" className="flex-1 bg-[#0B4A3F] hover:bg-[#083831] text-white text-center py-2.5 font-bold text-xs rounded-xl shadow-sm transition">
-                Bayar Syariah / Cek Riwayat
-              </Link>
-              <Link to="/pendidikan" className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-center py-2.5 font-bold text-xs rounded-xl transition">
-                Lihat Nilai Rapor
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // --- RENDERING DASHBOARD ADMIN ---
   return (
     <div className="space-y-6">
@@ -258,7 +99,7 @@ function Dashboard({ user }) {
         {/* Total Santri */}
         <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">TOTAL SANTRI TERDAFTAR</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">TOTAL SANTRI</span>
             <h3 className="text-3xl font-extrabold mt-1 text-[#0B4A3F] font-serif">{stats?.totalSantri || 0}</h3>
           </div>
           <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
@@ -269,7 +110,7 @@ function Dashboard({ user }) {
         {/* Santri Aktif */}
         <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">SANTRI STATUS AKTIF</span>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">STATUS AKTIF</span>
             <h3 className="text-3xl font-extrabold mt-1 text-[#0B4A3F] font-serif">{stats?.activeSantri || 0}</h3>
           </div>
           <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#0B4A3F] flex items-center justify-center flex-shrink-0">
@@ -277,19 +118,19 @@ function Dashboard({ user }) {
           </div>
         </div>
 
-        {/* Pendaftaran Pending */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between relative">
+        {/* Tambah Santri Baru Card */}
+        <Link to="/tambah-santri" className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">PENDAFTARAN PENDING</span>
-            <h3 className="text-3xl font-extrabold mt-1 text-[#D97706] font-serif">{stats?.pendingSantri || 0}</h3>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">AKSI MANUAL</span>
+            <h3 className="text-sm font-extrabold mt-3 text-[#0B4A3F] flex items-center space-x-1.5 hover:underline">
+              <span>Tambah Santri</span>
+              <ArrowRight size={14} className="text-[#D4AF37]" />
+            </h3>
           </div>
           <div className="w-12 h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0">
             <UserPlus size={24} />
           </div>
-          {stats?.pendingSantri > 0 && (
-            <div className="absolute top-3 right-3 w-3 h-3 rounded-full bg-rose-500 animate-ping"></div>
-          )}
-        </div>
+        </Link>
 
         {/* Total Sanksi */}
         <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
@@ -302,35 +143,6 @@ function Dashboard({ user }) {
           </div>
         </div>
       </div>
-
-      {/* Panel Persetujuan Registrasi Akun Santri Baru - Kuning Pastel Soft + Border Left Gold */}
-      {pendingUsers.length > 0 && (
-        <div className="bg-[#FEF3C7]/70 border-l-4 border-l-[#D4AF37] border border-amber-200/80 rounded-2xl p-5 shadow-soft">
-          <h2 className="text-xs font-bold text-[#D97706] uppercase tracking-wider mb-3 flex items-center space-x-2">
-            <AlertTriangle size={16} className="text-[#D97706]" />
-            <span>Persetujuan Registrasi Akun Santri Baru ({pendingUsers.length})</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {pendingUsers.map(u => (
-              <div key={u.id} className="bg-white border border-amber-200/60 rounded-xl p-4 flex items-center justify-between shadow-sm hover:shadow transition">
-                <div>
-                  <h4 className="font-bold text-xs text-[#0B4A3F] font-sans">{u.nama}</h4>
-                  <p className="text-[11px] text-slate-500 mt-0.5">{u.email} • HP: {u.noHp}</p>
-                  <p className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded inline-block mt-1 font-medium">Wali: {u.namaWali}</p>
-                </div>
-                {/* Tombol Aktifkan Pill-shape Hijau */}
-                <button
-                  onClick={() => handleVerify(u.id, u.nama)}
-                  className="bg-[#16A34A] hover:bg-[#15803d] text-white px-3.5 py-1.5 rounded-full font-bold text-xs shadow transition flex items-center space-x-1.5"
-                >
-                  <Check size={14} />
-                  <span>Aktifkan</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Main Content Layout: Graph & Santri CRUD List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -349,7 +161,7 @@ function Dashboard({ user }) {
                 return (
                   <div key={index} className="space-y-1">
                     <div className="flex justify-between text-xs font-bold text-slate-700">
-                      <span>{c.kelas}</span>
+                      <span>{c.kelas || 'Belum Ditentukan'}</span>
                       <span className="text-[#0B4A3F]">{c.jumlah} Santri ({pct}%)</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200/50">
@@ -369,7 +181,7 @@ function Dashboard({ user }) {
           <div className="mt-8 p-4 bg-[#DCFCE7]/40 rounded-xl border border-[#16A34A]/20 text-xs">
             <h4 className="font-bold text-[#0B4A3F] mb-1">💡 Informasi Sistem:</h4>
             <p className="text-[11px] text-slate-650 leading-relaxed">
-              Data terhubung langsung dengan database. Kelola mata pelajaran, sanksi, dan keuangan Syariah santri melalui menu sidebar.
+              Sistem kasir/server pesantren beroperasi penuh secara lokal. Kelola mata pelajaran, sanksi, dan keuangan Syariah santri secara langsung.
             </p>
           </div>
         </div>
@@ -414,15 +226,15 @@ function Dashboard({ user }) {
                       <td className="py-3.5 px-4 font-bold text-slate-800">{s.nama}</td>
                       <td className="py-3.5 px-4 text-slate-600 font-medium">{s.kelas || '-'}</td>
                       <td className="py-3.5 px-4 text-slate-600">{s.namaWali || '-'}</td>
-                      <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{s.noHp}</td>
+                      <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{s.noHp || '-'}</td>
                       {/* Pill-shape Status Badge */}
                       <td className="py-3.5 px-4">
                         <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${
                           s.status === 'ACTIVE' 
                             ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/30' 
-                            : 'bg-[#FEF3C7] text-[#D97706] border border-[#D97706]/30'
+                            : 'bg-slate-100 text-slate-500 border border-slate-300'
                         }`}>
-                          {s.status === 'ACTIVE' ? 'AKTIF' : 'PENDING'}
+                          {s.status === 'ACTIVE' ? 'AKTIF' : 'TIDAK AKTIF'}
                         </span>
                       </td>
                       {/* Action Icons with Soft Circle Hover & Colors */}
@@ -481,7 +293,7 @@ function Dashboard({ user }) {
             </div>
             <form onSubmit={handleUpdateSantri} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div>
+                <div className="col-span-2">
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nama Lengkap</label>
                   <input
                     type="text"
@@ -492,21 +304,10 @@ function Dashboard({ user }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Alamat Email</label>
-                  <input
-                    type="email"
-                    required
-                    value={editingSantri.email}
-                    onChange={(e) => setEditingSantri({ ...editingSantri, email: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
-                  />
-                </div>
-                <div>
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nomor HP</label>
                   <input
                     type="text"
-                    required
-                    value={editingSantri.noHp}
+                    value={editingSantri.noHp || ''}
                     onChange={(e) => setEditingSantri({ ...editingSantri, noHp: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
@@ -515,42 +316,42 @@ function Dashboard({ user }) {
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nama Wali</label>
                   <input
                     type="text"
-                    required
                     value={editingSantri.namaWali || ''}
                     onChange={(e) => setEditingSantri({ ...editingSantri, namaWali: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
                 </div>
-                <div>
+                <div className="col-span-2">
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kelas</label>
                   <input
                     type="text"
-                    required
                     value={editingSantri.kelas || ''}
                     onChange={(e) => setEditingSantri({ ...editingSantri, kelas: e.target.value })}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Status Akun</label>
-                  <select
-                    value={editingSantri.status}
-                    onChange={(e) => setEditingSantri({ ...editingSantri, status: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none font-bold"
-                  >
-                    <option value="ACTIVE">Aktif (ACTIVE)</option>
-                    <option value="PENDING">Ditangguhkan (PENDING)</option>
-                  </select>
                 </div>
               </div>
               <div>
                 <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Alamat Lengkap</label>
                 <textarea
                   rows="2"
-                  value={editingSantri.alamat}
+                  value={editingSantri.alamat || ''}
                   onChange={(e) => setEditingSantri({ ...editingSantri, alamat: e.target.value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none resize-none"
                 ></textarea>
+              </div>
+
+              {/* Status Santri */}
+              <div>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Status Santri</label>
+                <select
+                  value={editingSantri.status || 'ACTIVE'}
+                  onChange={(e) => setEditingSantri({ ...editingSantri, status: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
+                >
+                  <option value="ACTIVE">AKTIF</option>
+                  <option value="INACTIVE">TIDAK AKTIF</option>
+                </select>
               </div>
               
               <div className="flex justify-end space-x-2 pt-2">

@@ -16,11 +16,14 @@ function Pendidikan({ user }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState('ADD'); // ADD or EDIT
   const [editingNilaiId, setEditingNilaiId] = useState(null);
+  const [existingEntry, setExistingEntry] = useState(null); // entri duplikat yang akan digabung
   const [formNilai, setFormNilai] = useState({
     mataPelajaran: '',
     nilaiUts: '',
     nilaiUas: '',
   });
+
+  const [jenisRaporCetak, setJenisRaporCetak] = useState('AKHIR'); // 'UTS', 'UAS', 'AKHIR'
 
   useEffect(() => {
     if (user.role === 'ADMIN') {
@@ -76,6 +79,8 @@ function Pendidikan({ user }) {
 
   const handleOpenAdd = () => {
     setModalMode('ADD');
+    setEditingNilaiId(null);
+    setExistingEntry(null);
     setFormNilai({
       mataPelajaran: '',
       nilaiUts: '',
@@ -87,10 +92,12 @@ function Pendidikan({ user }) {
   const handleOpenEdit = (n) => {
     setModalMode('EDIT');
     setEditingNilaiId(n.id);
+    setExistingEntry(null);
     setFormNilai({
       mataPelajaran: n.mataPelajaran,
-      nilaiUts: n.nilaiUts.toString(),
-      nilaiUas: n.nilaiUas.toString(),
+      // Tampilkan string kosong jika null agar input tidak error
+      nilaiUts: n.nilaiUts !== null && n.nilaiUts !== undefined ? n.nilaiUts.toString() : '',
+      nilaiUas: n.nilaiUas !== null && n.nilaiUas !== undefined ? n.nilaiUas.toString() : '',
     });
     setIsModalOpen(true);
   };
@@ -99,30 +106,84 @@ function Pendidikan({ user }) {
     e.preventDefault();
     const { mataPelajaran, nilaiUts, nilaiUas } = formNilai;
 
-    if (!mataPelajaran || nilaiUts === '' || nilaiUas === '') {
-      alert('Semua field nilai wajib diisi');
+    if (!mataPelajaran) {
+      alert('Mata pelajaran wajib diisi');
       return;
+    }
+    if (nilaiUts === '' && nilaiUas === '') {
+      alert('Minimal salah satu nilai (UTS atau UAS) harus diisi');
+      return;
+    }
+
+    // ⭐ DETEKSI DUPLIKAT: Jika mode ADD, cari apakah mapel ini sudah ada
+    let targetId = editingNilaiId;
+    let isUpsert = false;
+
+    if (modalMode === 'ADD') {
+      const duplicate = nilaiList.find(
+        (n) => n.mataPelajaran.trim().toLowerCase() === mataPelajaran.trim().toLowerCase()
+      );
+      if (duplicate) {
+        // Gunakan ID yang sudah ada, gabungkan nilai
+        targetId = duplicate.id;
+        isUpsert = true;
+      }
+    }
+
+    // Jika upsert (gabung ke entri lama), nilai yang kosong = pakai nilai lama
+    let finalUts = nilaiUts !== '' ? parseFloat(nilaiUts) : null;
+    let finalUas = nilaiUas !== '' ? parseFloat(nilaiUas) : null;
+
+    if (isUpsert && existingEntry) {
+      // Kalau field dikosongkan, pertahankan nilai lama
+      if (nilaiUts === '' && existingEntry.nilaiUts !== null) finalUts = existingEntry.nilaiUts;
+      if (nilaiUas === '' && existingEntry.nilaiUas !== null) finalUas = existingEntry.nilaiUas;
     }
 
     const payload = {
       santriId: parseInt(selectedSantriId),
       mataPelajaran,
-      nilaiUts: parseFloat(nilaiUts),
-      nilaiUas: parseFloat(nilaiUas),
+      nilaiUts: finalUts,
+      nilaiUas: finalUas,
       semester,
       tahunAjaran
     };
 
     try {
-      if (modalMode === 'ADD') {
+      if (modalMode === 'ADD' && !isUpsert) {
+        // Mapel baru, buat entri baru
         await api.post('/akademik', payload);
       } else {
-        await api.put(`/akademik/${editingNilaiId}`, payload);
+        // Mapel sudah ada (upsert) atau mode EDIT biasa
+        await api.put(`/akademik/${targetId}`, payload);
       }
       setIsModalOpen(false);
+      setExistingEntry(null);
       fetchNilaiData();
     } catch (err) {
       alert(err.message || 'Gagal menyimpan nilai');
+    }
+  };
+
+  // Deteksi real-time saat user ketik nama mapel di form ADD
+  const handleMataPelajaranChange = (val) => {
+    setFormNilai({ ...formNilai, mataPelajaran: val });
+    if (modalMode === 'ADD') {
+      const found = nilaiList.find(
+        (n) => n.mataPelajaran.trim().toLowerCase() === val.trim().toLowerCase()
+      );
+      if (found) {
+        setExistingEntry(found);
+        // Auto-isi field dengan nilai lama supaya user bisa lihat dan edit
+        setFormNilai(prev => ({
+          ...prev,
+          mataPelajaran: val,
+          nilaiUts: found.nilaiUts !== null && found.nilaiUts !== undefined ? found.nilaiUts.toString() : '',
+          nilaiUas: found.nilaiUas !== null && found.nilaiUas !== undefined ? found.nilaiUas.toString() : '',
+        }));
+      } else {
+        setExistingEntry(null);
+      }
     }
   };
 
@@ -140,9 +201,18 @@ function Pendidikan({ user }) {
     window.print();
   };
 
-  const getAverage = (uts, uas) => ((uts + uas) / 2).toFixed(1);
+  // Hitung rata-rata hanya dari nilai yang tersedia (UTS dan/atau UAS)
+  const getAverage = (uts, uas) => {
+    const hasUts = uts !== null && uts !== undefined;
+    const hasUas = uas !== null && uas !== undefined;
+    if (hasUts && hasUas) return ((parseFloat(uts) + parseFloat(uas)) / 2).toFixed(1);
+    if (hasUts) return parseFloat(uts).toFixed(1);
+    if (hasUas) return parseFloat(uas).toFixed(1);
+    return '-';
+  };
 
   const getHuruf = (score) => {
+    if (score === '-') return '-';
     const s = parseFloat(score);
     if (s >= 85) return 'A';
     if (s >= 75) return 'B';
@@ -152,6 +222,7 @@ function Pendidikan({ user }) {
   };
 
   const getKeterangan = (huruf) => {
+    if (huruf === '-') return 'Belum Lengkap';
     if (huruf === 'A') return 'Sangat Baik (Mumtaz)';
     if (huruf === 'B') return 'Baik (Jayyid)';
     if (huruf === 'C') return 'Cukup (Maqbul)';
@@ -159,8 +230,12 @@ function Pendidikan({ user }) {
     return 'Kurang Sekali';
   };
 
-  const totalNilai = nilaiList.reduce((acc, curr) => acc + (curr.nilaiUts + curr.nilaiUas) / 2, 0);
-  const rataRataRapor = nilaiList.length > 0 ? (totalNilai / nilaiList.length).toFixed(1) : '-';
+  const totalNilai = nilaiList.reduce((acc, curr) => {
+    const avg = getAverage(curr.nilaiUts, curr.nilaiUas);
+    return avg !== '-' ? acc + parseFloat(avg) : acc;
+  }, 0);
+  const validCount = nilaiList.filter(n => getAverage(n.nilaiUts, n.nilaiUas) !== '-').length;
+  const rataRataRapor = validCount > 0 ? (totalNilai / validCount).toFixed(1) : '-';
 
   return (
     <div className="space-y-6">
@@ -184,6 +259,15 @@ function Pendidikan({ user }) {
               <span>+ Tambah Nilai</span>
             </button>
           )}
+          <select
+            value={jenisRaporCetak}
+            onChange={(e) => setJenisRaporCetak(e.target.value)}
+            className="bg-[#0B4A3F]/10 text-[#0B4A3F] border border-[#0B4A3F]/20 rounded-xl px-3 py-2.5 text-xs font-bold outline-none no-print transition hover:bg-[#0B4A3F]/20"
+          >
+            <option value="AKHIR">Rapor Akhir Semester</option>
+            <option value="UTS">Rapor UTS saja</option>
+            <option value="UAS">Rapor UAS saja</option>
+          </select>
           <button
             onClick={handlePrint}
             className="bg-[#083831] hover:bg-[#052b25] text-white px-4 py-2.5 rounded-xl font-bold text-xs shadow-md flex items-center space-x-1.5 transition"
@@ -331,16 +415,18 @@ function Pendidikan({ user }) {
       {/* ELEMEN RAPOR CETAK PRINT-FRIENDLY (TAMPIL HANYA SAAT PRINT) */}
       <div className="hidden print:block print-area bg-white p-8 font-serif leading-relaxed text-sm">
         {/* KOP Surat Pesantren */}
-        <div className="text-center border-b-4 border-double border-slate-900 pb-4 mb-6">
-          <h1 className="text-xl font-bold uppercase tracking-wider">YAYASAN MIFTAHUL HUDA AS-SYADZILI</h1>
-          <h2 className="text-2xl font-extrabold uppercase font-serif text-[#0B4A3F] mt-1">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
-          <p className="text-[10px] text-slate-500 font-sans mt-1">
-            Sekertariat : Kp. Babakan Nanggerang RT 02 RW 01 Desa Sukajadi Kec. Tarogong Kaler Kabupaten Garut Kode Pos 44151 Tlp. 083826250636
-          </p>
+        <div className="flex items-center justify-between border-b-4 border-double border-slate-900 pb-4 mb-6">
+          <img src="/logo.png" alt="Logo" className="w-16 h-16 object-contain" />
+          <div className="flex-1 text-center pr-16">
+            <h2 className="text-xl font-extrabold uppercase font-serif text-[#0B4A3F]">PONDOK PESANTREN MIFTAHUL HUDA AS-SYADZILI</h2>
+            <p className="text-[9px] text-slate-500 font-sans mt-0.5">
+              Sekretariat : Kp. Babakan Nanggerang RT 02 RW 01 Desa Sukajadi Kec. Tarogong Kaler Kabupaten Garut Kode Pos 44151 Tlp. 083826250636
+            </p>
+          </div>
         </div>
 
-        <h3 className="text-center text-base font-bold underline uppercase tracking-wider mb-6">
-          LAPORAN HASIL EVALUASI BELAJAR SANTRI (RAPOR)
+        <h3 className="text-center text-sm font-bold underline uppercase tracking-wider mb-6">
+          {jenisRaporCetak === 'UTS' ? `LAPORAN HASIL EVALUASI UTS SEMESTER ${semester}` : jenisRaporCetak === 'UAS' ? `LAPORAN HASIL EVALUASI UAS SEMESTER ${semester}` : `LAPORAN HASIL EVALUASI BELAJAR SANTRI (RAPOR SEMESTER ${semester})`}
         </h3>
 
         {/* Informasi Santri Grid */}
@@ -354,7 +440,7 @@ function Pendidikan({ user }) {
                   <td className="font-bold py-1 text-slate-800">{currentSantriDetails?.nama}</td>
                 </tr>
                 <tr>
-                  <td className="font-bold text-slate-500 py-1">Kelas / Kamar</td>
+                  <td className="font-bold text-slate-500 py-1">Kelas</td>
                   <td className="py-1">:</td>
                   <td className="py-1">{currentSantriDetails?.kelas || 'Belum Ditentukan'}</td>
                 </tr>
@@ -391,49 +477,159 @@ function Pendidikan({ user }) {
 
         {/* Tabel Nilai Rapor */}
         <table className="w-full border-collapse border border-slate-900 text-xs mb-8">
-          <thead>
-            <tr className="bg-slate-100">
-              <th className="border border-slate-900 py-2.5 px-3 text-center w-8">No</th>
-              <th className="border border-slate-900 py-2.5 px-3 text-left">Mata Pelajaran Pesantren</th>
-              <th className="border border-slate-900 py-2.5 px-3 text-center w-20">Nilai UTS</th>
-              <th className="border border-slate-900 py-2.5 px-3 text-center w-20">Nilai UAS</th>
-              <th className="border border-slate-900 py-2.5 px-3 text-center w-24">Rata-Rata Angka</th>
-              <th className="border border-slate-900 py-2.5 px-3 text-center w-20">Nilai Huruf</th>
-              <th className="border border-slate-900 py-2.5 px-3 text-left w-48">Kriteria Ketuntasan</th>
-            </tr>
-          </thead>
-          <tbody>
-            {nilaiList.length > 0 ? (
-              nilaiList.map((n, i) => {
-                const avg = getAverage(n.nilaiUts, n.nilaiUas);
-                const huruf = getHuruf(avg);
-                return (
-                  <tr key={n.id}>
-                    <td className="border border-slate-900 py-2 px-3 text-center">{i + 1}</td>
-                    <td className="border border-slate-900 py-2 px-3 font-semibold">{n.mataPelajaran}</td>
-                    <td className="border border-slate-900 py-2 px-3 text-center">{n.nilaiUts}</td>
-                    <td className="border border-slate-900 py-2 px-3 text-center">{n.nilaiUas}</td>
-                    <td className="border border-slate-900 py-2 px-3 text-center font-bold">{avg}</td>
-                    <td className="border border-slate-900 py-2 px-3 text-center font-bold">{huruf}</td>
-                    <td className="border border-slate-900 py-2 px-3">{getKeterangan(huruf)}</td>
+          {jenisRaporCetak === 'UTS' && (
+            <>
+              <thead>
+                <tr className="bg-slate-100">
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-8">No</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-left">Mata Pelajaran Pesantren</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-24">Nilai UTS</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-20">Nilai Huruf</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-left w-48">Kriteria Ketuntasan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nilaiList.length > 0 ? (
+                  nilaiList.map((n, i) => {
+                    const score = n.nilaiUts !== null && n.nilaiUts !== undefined ? n.nilaiUts : '-';
+                    const huruf = score !== '-' ? getHuruf(score) : '-';
+                    return (
+                      <tr key={n.id}>
+                        <td className="border border-slate-900 py-2 px-3 text-center">{i + 1}</td>
+                        <td className="border border-slate-900 py-2 px-3 font-semibold">{n.mataPelajaran}</td>
+                        <td className="border border-slate-900 py-2 px-3 text-center">{score}</td>
+                        <td className="border border-slate-900 py-2 px-3 text-center font-bold">{huruf}</td>
+                        <td className="border border-slate-900 py-2 px-3">{getKeterangan(huruf)}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="border border-slate-900 py-6 text-center text-slate-400">
+                      Tidak ada data nilai rapor untuk semester ini.
+                    </td>
                   </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan="7" className="border border-slate-900 py-6 text-center text-slate-400">
-                  Tidak ada data nilai rapor untuk semester ini.
-                </td>
-              </tr>
-            )}
-            <tr className="bg-slate-100 font-bold">
-              <td colSpan="4" className="border border-slate-900 py-2 px-3 text-right">Nilai Rata-Rata Akumulasi</td>
-              <td className="border border-slate-900 py-2 px-3 text-center text-[#0B4A3F] text-sm">{rataRataRapor}</td>
-              <td colSpan="2" className="border border-slate-900 py-2 px-3 text-left uppercase text-[10px]">
-                {rataRataRapor !== '-' ? `Predikat: ${getKeterangan(getHuruf(rataRataRapor))}` : ''}
-              </td>
-            </tr>
-          </tbody>
+                )}
+                {(() => {
+                  const totalUts = nilaiList.reduce((acc, curr) => curr.nilaiUts !== null && curr.nilaiUts !== undefined ? acc + curr.nilaiUts : acc, 0);
+                  const countUts = nilaiList.filter(n => n.nilaiUts !== null && n.nilaiUts !== undefined).length;
+                  const avgUts = countUts > 0 ? (totalUts / countUts).toFixed(1) : '-';
+                  return (
+                    <tr className="bg-slate-100 font-bold">
+                      <td colSpan="2" className="border border-slate-900 py-2 px-3 text-right">Nilai Rata-Rata Akumulasi UTS</td>
+                      <td className="border border-slate-900 py-2 px-3 text-center text-[#0B4A3F] text-sm">{avgUts}</td>
+                      <td colSpan="2" className="border border-slate-900 py-2 px-3 text-left uppercase text-[10px]">
+                        {avgUts !== '-' ? `Predikat: ${getKeterangan(getHuruf(avgUts))}` : ''}
+                      </td>
+                    </tr>
+                  );
+                })()}
+              </tbody>
+            </>
+          )}
+
+          {jenisRaporCetak === 'UAS' && (
+            <>
+              <thead>
+                <tr className="bg-slate-100">
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-8">No</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-left">Mata Pelajaran Pesantren</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-24">Nilai UAS</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-20">Nilai Huruf</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-left w-48">Kriteria Ketuntasan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nilaiList.length > 0 ? (
+                  nilaiList.map((n, i) => {
+                    const score = n.nilaiUas !== null && n.nilaiUas !== undefined ? n.nilaiUas : '-';
+                    const huruf = score !== '-' ? getHuruf(score) : '-';
+                    return (
+                      <tr key={n.id}>
+                        <td className="border border-slate-900 py-2 px-3 text-center">{i + 1}</td>
+                        <td className="border border-slate-900 py-2 px-3 font-semibold">{n.mataPelajaran}</td>
+                        <td className="border border-slate-900 py-2 px-3 text-center">{score}</td>
+                        <td className="border border-slate-900 py-2 px-3 text-center font-bold">{huruf}</td>
+                        <td className="border border-slate-900 py-2 px-3">{getKeterangan(huruf)}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="border border-slate-900 py-6 text-center text-slate-400">
+                      Tidak ada data nilai rapor untuk semester ini.
+                    </td>
+                  </tr>
+                )}
+                {(() => {
+                  const totalUas = nilaiList.reduce((acc, curr) => curr.nilaiUas !== null && curr.nilaiUas !== undefined ? acc + curr.nilaiUas : acc, 0);
+                  const countUas = nilaiList.filter(n => n.nilaiUas !== null && n.nilaiUas !== undefined).length;
+                  const avgUas = countUas > 0 ? (totalUas / countUas).toFixed(1) : '-';
+                  return (
+                    <tr className="bg-slate-100 font-bold">
+                      <td colSpan="2" className="border border-slate-900 py-2 px-3 text-right">Nilai Rata-Rata Akumulasi UAS</td>
+                      <td className="border border-slate-900 py-2 px-3 text-center text-[#0B4A3F] text-sm">{avgUas}</td>
+                      <td colSpan="2" className="border border-slate-900 py-2 px-3 text-left uppercase text-[10px]">
+                        {avgUas !== '-' ? `Predikat: ${getKeterangan(getHuruf(avgUas))}` : ''}
+                      </td>
+                    </tr>
+                  );
+                })()}
+              </tbody>
+            </>
+          )}
+
+          {jenisRaporCetak === 'AKHIR' && (
+            <>
+              <thead>
+                <tr className="bg-slate-100">
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-8">No</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-left">Mata Pelajaran Pesantren</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-20">Nilai UTS</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-20">Nilai UAS</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-24">Rata-Rata Angka</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-center w-20">Nilai Huruf</th>
+                  <th className="border border-slate-900 py-2.5 px-3 text-left w-48">Kriteria Ketuntasan</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nilaiList.length > 0 ? (
+                  nilaiList.map((n, i) => {
+                    const avg = getAverage(n.nilaiUts, n.nilaiUas);
+                    const huruf = getHuruf(avg);
+                    return (
+                      <tr key={n.id}>
+                        <td className="border border-slate-900 py-2 px-3 text-center">{i + 1}</td>
+                        <td className="border border-slate-900 py-2 px-3 font-semibold">{n.mataPelajaran}</td>
+                        <td className="border border-slate-900 py-2 px-3 text-center">
+                          {n.nilaiUts !== null && n.nilaiUts !== undefined ? n.nilaiUts : <span className="text-slate-300 text-[10px]">-</span>}
+                        </td>
+                        <td className="border border-slate-900 py-2 px-3 text-center">
+                          {n.nilaiUas !== null && n.nilaiUas !== undefined ? n.nilaiUas : <span className="text-slate-300 text-[10px]">-</span>}
+                        </td>
+                        <td className="border border-slate-900 py-2 px-3 text-center font-bold">{avg}</td>
+                        <td className="border border-slate-900 py-2 px-3 text-center font-bold">{huruf}</td>
+                        <td className="border border-slate-900 py-2 px-3">{getKeterangan(huruf)}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="border border-slate-900 py-6 text-center text-slate-400">
+                      Tidak ada data nilai rapor untuk semester ini.
+                    </td>
+                  </tr>
+                )}
+                <tr className="bg-slate-100 font-bold">
+                  <td colSpan="4" className="border border-slate-900 py-2 px-3 text-right">Nilai Rata-Rata Akumulasi</td>
+                  <td className="border border-slate-900 py-2 px-3 text-center text-[#0B4A3F] text-sm">{rataRataRapor}</td>
+                  <td colSpan="2" className="border border-slate-900 py-2 px-3 text-left uppercase text-[10px]">
+                    {rataRataRapor !== '-' ? `Predikat: ${getKeterangan(getHuruf(rataRataRapor))}` : ''}
+                  </td>
+                </tr>
+              </tbody>
+            </>
+          )}
         </table>
 
         {/* Tanda Tangan Cetak */}
@@ -446,18 +642,18 @@ function Pendidikan({ user }) {
             <p className="text-[10px] text-slate-500">Nama Lengkap & Ttd</p>
           </div>
           <div>
-            <p>Ditetapkan di Malang,</p>
-            <p className="font-bold">Wali Kelas / Kamar</p>
+            <p>Ditetapkan di Garut,</p>
+            <p className="font-bold">Wali Kelas</p>
             <div className="h-16"></div>
-            <p className="underline font-bold">{user.role === 'ADMIN' ? user.nama : 'Ustadz Pembina Kelas'}</p>
-            <p className="text-[10px] text-slate-500">NIP. PP-{selectedSantriId}</p>
+            <p className="underline font-bold">______________________</p>
+            <p className="text-[10px] text-slate-500">NIP. ______________________</p>
           </div>
           <div>
             <p>Mengesahkan,</p>
-            <p className="font-bold">Kepala Pengasuh Pesantren</p>
+            <p className="font-bold">PIMPINAN PONDOK PESANTREN</p>
             <div className="h-16"></div>
-            <p className="underline font-bold">RIFKI AHMAD DZULFIKRI</p>
-            <p className="text-[10px] text-slate-500">Pimpinan Yayasan Miftahul Huda As-Syadzili</p>
+            <p className="underline font-bold">K.M QUSYAERI AHMAD FAUZI</p>
+            <p className="text-[10px] text-slate-500 font-bold">Pimpinan Miftahul Huda As-syadzili</p>
           </div>
         </div>
       </div>
@@ -467,18 +663,32 @@ function Pendidikan({ user }) {
         <div className="fixed inset-0 bg-[#083831]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 no-print">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-[#D4AF37]/30">
             <div className="p-5 bg-[#0B4A3F] text-white font-serif font-bold text-base flex justify-between items-center border-b border-[#D4AF37]/30">
-              <span>{modalMode === 'ADD' ? 'Input Nilai Akademik Baru' : 'Edit Nilai Akademik'}</span>
-              <button onClick={() => setIsModalOpen(false)} className="text-emerald-200 hover:text-white">✕</button>
+              <span>{modalMode === 'EDIT' ? 'Edit Nilai Akademik' : existingEntry ? '⟳ Perbarui Nilai Mapel' : 'Input Nilai Akademik Baru'}</span>
+              <button onClick={() => { setIsModalOpen(false); setExistingEntry(null); }} className="text-emerald-200 hover:text-white">✕</button>
             </div>
             <form onSubmit={handleSubmitNilai} className="p-6 space-y-4">
+
+              {/* Banner: Mapel sudah ada, nilai akan digabung */}
+              {existingEntry && modalMode === 'ADD' && (
+                <div className="flex items-start gap-2.5 p-3 bg-amber-50 border border-amber-200 rounded-xl text-[10px] text-amber-800">
+                  <span className="text-amber-500 text-base leading-none">⚠</span>
+                  <div>
+                    <p className="font-bold text-amber-700 mb-0.5">Mata pelajaran ini sudah ada!</p>
+                    <p>Nilai lama: <strong>UTS={existingEntry.nilaiUts ?? '-'}</strong> / <strong>UAS={existingEntry.nilaiUas ?? '-'}</strong>.</p>
+                    <p className="mt-0.5">Form sudah diisi dengan nilai lama. Ubah nilai yang ingin diperbarui, lalu simpan — kedua nilai akan <strong>digabung</strong> dalam satu baris.</p>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Mata Pelajaran</label>
                 <input
                   type="text"
                   required
                   value={formNilai.mataPelajaran}
-                  onChange={(e) => setFormNilai({ ...formNilai, mataPelajaran: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
+                  onChange={(e) => handleMataPelajaranChange(e.target.value)}
+                  readOnly={modalMode === 'EDIT'}
+                  className={`w-full bg-slate-50 border rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none ${modalMode === 'EDIT' ? 'border-slate-100 text-slate-400 cursor-not-allowed' : 'border-slate-200'}`}
                 />
               </div>
 
@@ -489,12 +699,12 @@ function Pendidikan({ user }) {
                     type="number"
                     min="0"
                     max="100"
-                    required
                     value={formNilai.nilaiUts}
                     onChange={(e) => setFormNilai({ ...formNilai, nilaiUts: e.target.value })}
-                    placeholder="0 - 100"
+                    placeholder="Opsional (0 - 100)"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
+                  <p className="text-[9px] text-slate-400 mt-0.5">Kosongkan jika belum ada</p>
                 </div>
                 
                 <div>
@@ -503,12 +713,12 @@ function Pendidikan({ user }) {
                     type="number"
                     min="0"
                     max="100"
-                    required
                     value={formNilai.nilaiUas}
                     onChange={(e) => setFormNilai({ ...formNilai, nilaiUas: e.target.value })}
-                    placeholder="0 - 100"
+                    placeholder="Opsional (0 - 100)"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
+                  <p className="text-[9px] text-slate-400 mt-0.5">Kosongkan jika belum ada</p>
                 </div>
               </div>
 
@@ -527,9 +737,9 @@ function Pendidikan({ user }) {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-[#0B4A3F] hover:bg-[#083831] text-white rounded-xl font-bold text-xs shadow-md"
+                  className={`px-4 py-2 ${existingEntry ? 'bg-amber-600 hover:bg-amber-700' : 'bg-[#0B4A3F] hover:bg-[#083831]'} text-white rounded-xl font-bold text-xs shadow-md transition`}
                 >
-                  Simpan Nilai
+                  {existingEntry && modalMode === 'ADD' ? '⟳ Gabung & Simpan' : 'Simpan Nilai'}
                 </button>
               </div>
             </form>

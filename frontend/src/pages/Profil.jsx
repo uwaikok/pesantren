@@ -6,22 +6,24 @@ import api from '../utils/api';
 function Profil({ user, onUserUpdate }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  const targetId = id ? parseInt(id) : user.id;
-  const isSelf = targetId === user.id;
+
+  // Jika tidak ada :id di URL = admin lihat profilnya sendiri
+  const isAdminSelf = !id;
+  const targetId = id ? parseInt(id) : null;
+  const isSelf = isAdminSelf;
 
   const [profileData, setProfileData] = useState(null);
-  const [activeTab, setActiveTab] = useState('pribadi'); // 'pribadi', 'akademik', 'keamanan', 'keuangan'
+  const [activeTab, setActiveTab] = useState('pribadi');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
+
   // State untuk upload foto profil
   const [fotoLoading, setFotoLoading] = useState(false);
   const [fotoSuccess, setFotoSuccess] = useState('');
   const [fotoError, setFotoError] = useState('');
   const [previewFoto, setPreviewFoto] = useState(null);
   const fotoInputRef = useRef(null);
-  
+
   // State untuk form ubah password
   const [passwordForm, setPasswordForm] = useState({
     passwordLama: '',
@@ -48,26 +50,30 @@ function Profil({ user, onUserUpdate }) {
   const [resetSuccessMessage, setResetSuccessMessage] = useState('');
 
   useEffect(() => {
-    if (user.role !== 'ADMIN' && !isSelf) {
+    if (!isAdminSelf && !targetId) {
       navigate('/profil', { replace: true });
       return;
     }
     fetchProfile();
-  }, [targetId]);
+  }, [id]);
 
   const fetchProfile = async () => {
     setLoading(true);
     setError('');
     try {
-      const data = await api.get(`/users/${targetId}/profile`);
+      // Jika admin lihat profil sendiri → endpoint khusus /auth/profile (tabel User)
+      // Jika admin lihat profil santri tertentu → /users/:id/profile (tabel Santri)
+      const data = isAdminSelf
+        ? await api.get('/auth/profile')
+        : await api.get(`/users/${targetId}/profile`);
+
       setProfileData(data);
-      
       setEditForm({
         nama: data.user.nama,
-        email: data.user.email,
-        noHp: data.user.noHp,
+        email: data.user.email || '',
+        noHp: data.user.noHp || '',
         namaWali: data.user.namaWali || '',
-        alamat: data.user.alamat,
+        alamat: data.user.alamat || '',
         kelas: data.user.kelas || ''
       });
     } catch (err) {
@@ -206,7 +212,14 @@ function Profil({ user, onUserUpdate }) {
   const handleSaveBiodata = async (e) => {
     e.preventDefault();
     try {
-      await api.put(`/admin/santri/${targetId}`, editForm);
+      if (isAdminSelf) {
+        // Update profil admin sendiri via /auth/profile
+        const result = await api.put('/auth/profile', editForm);
+        if (onUserUpdate) onUserUpdate({ nama: result.user.nama, noHp: result.user.noHp, alamat: result.user.alamat });
+      } else {
+        // Update data santri via /admin/santri/:id
+        await api.put(`/admin/santri/${targetId}`, editForm);
+      }
       setIsEditing(false);
       fetchProfile();
     } catch (err) {
@@ -363,19 +376,17 @@ function Profil({ user, onUserUpdate }) {
 
           {/* DUA TOMBOL AKSI UTAMA DI KANAN HEADER: EDIT BIODATA & RESET PASSWORD */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Tombol Edit Biodata (Bisa untuk Admin mengedit diri sendiri/santri, ATAU Santri mengedit dirinya sendiri) */}
-            {((isTargetAdmin && isSelf) || (!isTargetAdmin && user.role === 'ADMIN')) && (
-              <button
-                onClick={() => setIsEditing(!isEditing)}
-                className="bg-[#DCFCE7] hover:bg-emerald-200 text-[#0B4A3F] px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition border border-[#16A34A]/30 flex items-center space-x-1.5"
-              >
-                <Edit size={14} />
-                <span>{isEditing ? 'Batal Edit' : 'Edit Biodata'}</span>
-              </button>
-            )}
+            {/* Tombol Edit Biodata — selalu tampil untuk admin */}
+            <button
+              onClick={() => setIsEditing(!isEditing)}
+              className="bg-[#DCFCE7] hover:bg-emerald-200 text-[#0B4A3F] px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition border border-[#16A34A]/30 flex items-center space-x-1.5"
+            >
+              <Edit size={14} />
+              <span>{isEditing ? 'Batal Edit' : 'Edit Biodata'}</span>
+            </button>
 
-            {/* Tombol Reset Password (Hanya muncul jika yang melihat adalah Admin DAN targetnya adalah akun Santri) */}
-            {user.role === 'ADMIN' && !isTargetAdmin && (
+            {/* Tombol Reset Password (Hanya muncul jika yang melihat adalah Admin DAN targetnya adalah santri) */}
+            {!isAdminSelf && (
               <button
                 onClick={handleResetPasswordSantri}
                 disabled={resettingPassword}
@@ -400,8 +411,8 @@ function Profil({ user, onUserUpdate }) {
         )}
       </div>
 
-      {/* PROFIL SEBAGAI SANTRI */}
-      {!isTargetAdmin ? (
+      {/* PROFIL SEBAGAI SANTRI (bukan admin sendiri) */}
+      {!isAdminSelf ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* TABS SIDEBAR */}
           <div className="lg:col-span-1 bg-white p-3 rounded-2xl shadow-soft border border-slate-200/80 flex flex-row lg:flex-col overflow-x-auto lg:overflow-visible gap-1 text-xs">

@@ -28,14 +28,12 @@ const getSantriList = async (req, res) => {
   try {
     const { search, kelas } = req.query;
 
-    const whereClause = {
-      role: 'SANTRI',
-    };
+    const whereClause = {};
 
     if (search) {
       whereClause.OR = [
-        { nama: { contains: search } },
-        { kelas: { contains: search } }
+        { nama: { contains: search, mode: 'insensitive' } },
+        { kelas: { contains: search, mode: 'insensitive' } }
       ];
     }
 
@@ -43,85 +41,72 @@ const getSantriList = async (req, res) => {
       whereClause.kelas = kelas;
     }
 
-    const santri = await prisma.user.findMany({
+    const santri = await prisma.santri.findMany({
       where: whereClause,
-      select: {
-        id: true,
-        nama: true,
-        email: true,
-        noHp: true,
-        alamat: true,
-        namaWali: true,
-        kelas: true,
-        status: true,
-        createdAt: true,
-      },
       orderBy: {
         nama: 'asc',
       },
     });
 
-    res.json(santri);
+    // Map for frontend compatibility
+    const mapped = santri.map(s => ({
+      ...s,
+      email: '-',
+    }));
+
+    res.json(mapped);
   } catch (error) {
     console.error('Get santri error:', error);
     res.status(500).json({ message: 'Gagal mengambil data santri' });
   }
 };
 
-const getPendingUsers = async (req, res) => {
+const createSantri = async (req, res) => {
   try {
-    const pendingUsers = await prisma.user.findMany({
-      where: { status: 'PENDING' },
-      select: {
-        id: true,
-        nama: true,
-        email: true,
-        noHp: true,
-        alamat: true,
-        namaWali: true,
-        kelas: true,
-        role: true,
-        createdAt: true,
-      },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    });
-    res.json(pendingUsers);
-  } catch (error) {
-    console.error('Get pending error:', error);
-    res.status(500).json({ message: 'Gagal mengambil data pendaftaran tertunda' });
-  }
-};
+    const { nama, noHp, alamat, namaWali, kelas } = req.body;
 
-const verifyUser = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await prisma.user.findUnique({ where: { id: parseInt(id) } });
-
-    if (!user) {
-      return res.status(404).json({ message: 'User tidak ditemukan' });
+    if (!nama) {
+      return res.status(400).json({ message: 'Nama wajib diisi' });
     }
 
-    const updatedUser = await prisma.user.update({
-      where: { id: parseInt(id) },
-      data: { status: 'ACTIVE' },
+    if (noHp) {
+      const numericPhone = /^[0-9]+$/;
+      if (!numericPhone.test(noHp)) {
+        return res.status(400).json({ message: 'Nomor HP harus berupa angka' });
+      }
+    }
+
+    const newSantri = await prisma.santri.create({
+      data: {
+        nama,
+        noHp,
+        alamat,
+        namaWali,
+        kelas
+      }
     });
 
-    res.json({ message: `Akun ${updatedUser.nama} berhasil diaktifkan.`, user: updatedUser });
+    res.status(201).json({ 
+      message: 'Santri berhasil ditambahkan.', 
+      user: {
+        ...newSantri,
+        email: '-',
+        status: 'ACTIVE'
+      } 
+    });
   } catch (error) {
-    console.error('Verify user error:', error);
-    res.status(500).json({ message: 'Gagal memverifikasi user' });
+    console.error('Create santri error:', error);
+    res.status(500).json({ message: 'Gagal menambahkan santri' });
   }
 };
 
 const updateSantri = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nama, email, noHp, alamat, namaWali, kelas, status } = req.body;
+    const { nama, noHp, alamat, namaWali, kelas } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { id: parseInt(id) } });
-    if (!user) {
+    const santri = await prisma.santri.findUnique({ where: { id: parseInt(id) } });
+    if (!santri) {
       return res.status(404).json({ message: 'Santri tidak ditemukan' });
     }
 
@@ -132,20 +117,25 @@ const updateSantri = async (req, res) => {
       }
     }
 
-    const updated = await prisma.user.update({
+    const updated = await prisma.santri.update({
       where: { id: parseInt(id) },
       data: {
-        nama: nama || user.nama,
-        email: email || user.email,
-        noHp: noHp || user.noHp,
-        alamat: alamat || user.alamat,
-        namaWali: namaWali !== undefined ? namaWali : user.namaWali,
-        kelas: kelas !== undefined ? kelas : user.kelas,
-        status: status || user.status,
+        nama: nama || santri.nama,
+        noHp: noHp !== undefined ? noHp : santri.noHp,
+        alamat: alamat !== undefined ? alamat : santri.alamat,
+        namaWali: namaWali !== undefined ? namaWali : santri.namaWali,
+        kelas: kelas !== undefined ? kelas : santri.kelas,
+        ...(req.body.status && { status: req.body.status }),
       },
     });
 
-    res.json({ message: 'Data santri berhasil diperbarui', user: updated });
+    res.json({ 
+      message: 'Data santri berhasil diperbarui', 
+      user: {
+        ...updated,
+        email: '-',
+      } 
+    });
   } catch (error) {
     console.error('Update santri error:', error);
     res.status(500).json({ message: 'Gagal memperbarui data santri' });
@@ -155,13 +145,13 @@ const updateSantri = async (req, res) => {
 const deleteSantri = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await prisma.user.findUnique({ where: { id: parseInt(id) } });
+    const santri = await prisma.santri.findUnique({ where: { id: parseInt(id) } });
 
-    if (!user) {
+    if (!santri) {
       return res.status(404).json({ message: 'Santri tidak ditemukan' });
     }
 
-    await prisma.user.delete({ where: { id: parseInt(id) } });
+    await prisma.santri.delete({ where: { id: parseInt(id) } });
     res.json({ message: 'Data santri dan seluruh riwayatnya berhasil dihapus' });
   } catch (error) {
     console.error('Delete santri error:', error);
@@ -171,9 +161,9 @@ const deleteSantri = async (req, res) => {
 
 const getStats = async (req, res) => {
   try {
-    const totalSantri = await prisma.user.count({ where: { role: 'SANTRI' } });
-    const activeSantri = await prisma.user.count({ where: { role: 'SANTRI', status: 'ACTIVE' } });
-    const pendingSantri = await prisma.user.count({ where: { role: 'SANTRI', status: 'PENDING' } });
+    const totalSantri = await prisma.santri.count();
+    const activeSantri = await prisma.santri.count({ where: { status: 'ACTIVE' } });
+    const inactiveSantri = totalSantri - activeSantri;
     const totalSanksi = await prisma.sanksi.count();
 
     // Dapatkan data pembayaran SPP bulan ini (misal bulan sekarang)
@@ -196,10 +186,10 @@ const getStats = async (req, res) => {
       },
     });
 
-    // Ambil data untuk chart statistik per kelas
-    const classes = await prisma.user.groupBy({
+    // Ambil data untuk chart statistik per kelas (hanya santri aktif)
+    const classes = await prisma.santri.groupBy({
+      where: { status: 'ACTIVE' },
       by: ['kelas'],
-      where: { role: 'SANTRI', status: 'ACTIVE' },
       _count: {
         id: true,
       },
@@ -208,7 +198,7 @@ const getStats = async (req, res) => {
     res.json({
       totalSantri,
       activeSantri,
-      pendingSantri,
+      inactiveSantri,
       totalSanksi,
       sppStats: {
         bulan: currentMonth,
@@ -230,10 +220,9 @@ const getStats = async (req, res) => {
 const uploadFotoProfil = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = parseInt(id);
+    const targetId = parseInt(id);
 
-    // Hanya admin atau user sendiri yang boleh mengupload
-    if (req.user.role !== 'ADMIN' && req.user.id !== userId) {
+    if (req.user.role !== 'ADMIN') {
       return res.status(403).json({ message: 'Akses ditolak' });
     }
 
@@ -241,16 +230,34 @@ const uploadFotoProfil = async (req, res) => {
       return res.status(400).json({ message: 'Tidak ada file yang diupload' });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      return res.status(404).json({ message: 'User tidak ditemukan' });
-    }
-
     // Convert file buffer ke Base64 data URL
     const fotoBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
-    const updated = await prisma.user.update({
-      where: { id: userId },
+    // Cek apakah targetId adalah admin yang sedang login
+    if (targetId === req.user.id) {
+      const updatedUser = await prisma.user.update({
+        where: { id: targetId },
+        data: { fotoProfil: fotoBase64 },
+        select: { id: true, nama: true, fotoProfil: true }
+      });
+      return res.json({ 
+        message: 'Foto profil admin berhasil diperbarui', 
+        fotoProfil: fotoBase64,
+        user: {
+          ...updatedUser,
+          role: 'ADMIN',
+          status: 'ACTIVE'
+        } 
+      });
+    }
+
+    const santri = await prisma.santri.findUnique({ where: { id: targetId } });
+    if (!santri) {
+      return res.status(404).json({ message: 'Santri tidak ditemukan' });
+    }
+
+    const updated = await prisma.santri.update({
+      where: { id: targetId },
       data: { fotoProfil: fotoBase64 },
       select: { id: true, nama: true, fotoProfil: true }
     });
@@ -258,7 +265,10 @@ const uploadFotoProfil = async (req, res) => {
     res.json({ 
       message: 'Foto profil berhasil diperbarui', 
       fotoProfil: fotoBase64,
-      user: updated 
+      user: {
+        ...updated,
+        email: '-',
+      } 
     });
   } catch (error) {
     console.error('Upload foto profil error:', error);
@@ -268,8 +278,7 @@ const uploadFotoProfil = async (req, res) => {
 
 module.exports = {
   getSantriList,
-  getPendingUsers,
-  verifyUser,
+  createSantri,
   updateSantri,
   deleteSantri,
   getStats,

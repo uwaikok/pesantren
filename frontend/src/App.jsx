@@ -5,13 +5,12 @@ import api from './utils/api';
 // Pages & Components
 import Layout from './components/Layout';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Pendidikan from './pages/Pendidikan';
 import Keamanan from './pages/Keamanan';
 import Keuangan from './pages/Keuangan';
 import Profil from './pages/Profil';
-import BuatAkun from './pages/BuatAkun';
+import TambahSantri from './pages/TambahSantri';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -61,10 +60,6 @@ function App() {
           path="/login" 
           element={user ? <Navigate to="/" replace /> : <Login onLoginSuccess={checkAuth} />} 
         />
-        <Route 
-          path="/register" 
-          element={user ? <Navigate to="/" replace /> : <Register />} 
-        />
 
         {/* Private Routes wrapped in Layout */}
         <Route 
@@ -92,8 +87,8 @@ function App() {
           element={user ? <Layout user={user} onLogout={handleLogout}><Profil user={user} onUserUpdate={handleUserUpdate} /></Layout> : <Navigate to="/login" replace />} 
         />
         <Route 
-          path="/buat-akun" 
-          element={user && user.role === 'ADMIN' ? <Layout user={user} onLogout={handleLogout}><BuatAkun user={user} /></Layout> : <Navigate to="/" replace />} 
+          path="/tambah-santri" 
+          element={user && user.role === 'ADMIN' ? <Layout user={user} onLogout={handleLogout}><TambahSantri /></Layout> : <Navigate to="/" replace />} 
         />
 
         {/* Fallback Redirect */}
