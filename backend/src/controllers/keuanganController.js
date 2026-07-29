@@ -54,6 +54,25 @@ const createOrUpdatePembayaran = async (req, res) => {
   }
 };
 
+// Helper: tentukan bulan awal berdasarkan tanggalMasuk dan tahun yang diminta
+const getStartMonth = (tanggalMasuk, targetTahun) => {
+  if (!tanggalMasuk) return 1; // Default: mulai dari Januari
+  const masuk = new Date(tanggalMasuk);
+  const tahunMasuk = masuk.getFullYear();
+  const bulanMasuk = masuk.getMonth() + 1; // 1-12
+
+  if (tahunMasuk > targetTahun) {
+    // Santri belum masuk di tahun ini, tidak ada bulan yang perlu ditampilkan
+    return 13; // Nilai sentinel: tidak ada bulan
+  } else if (tahunMasuk === targetTahun) {
+    // Mulai dari bulan masuk
+    return bulanMasuk;
+  } else {
+    // Santri sudah masuk sebelum tahun ini, mulai dari Januari
+    return 1;
+  }
+};
+
 const getRiwayatPembayaran = async (req, res) => {
   try {
     const { santriId } = req.params;
@@ -65,6 +84,11 @@ const getRiwayatPembayaran = async (req, res) => {
       return res.status(403).json({ message: 'Akses ditolak: Anda tidak memiliki wewenang melihat data ini' });
     }
 
+    const santri = await prisma.santri.findUnique({ where: { id: parseInt(santriId) } });
+    if (!santri) {
+      return res.status(404).json({ message: 'Data santri tidak ditemukan' });
+    }
+
     // Ambil semua data pembayaran yang terdaftar di DB untuk tahun tersebut
     const databasePayments = await prisma.pembayaran.findMany({
       where: {
@@ -73,12 +97,14 @@ const getRiwayatPembayaran = async (req, res) => {
       },
     });
 
-    // Peta kan 1 sampai 12 bulan
+    const startMonth = getStartMonth(santri.tanggalMasuk, targetTahun);
+
+    // Peta kan bulan mulai dari bulan masuk santri
     const paymentsList = [];
     let totalTunggakan = 0;
     let totalTerbayar = 0;
 
-    for (let m = 1; m <= 12; m++) {
+    for (let m = startMonth; m <= 12; m++) {
       const dbRecord = databasePayments.find(p => p.bulan === m);
       if (dbRecord) {
         paymentsList.push(dbRecord);
@@ -105,6 +131,7 @@ const getRiwayatPembayaran = async (req, res) => {
     res.json({
       santriId: parseInt(santriId),
       tahun: targetTahun,
+      tanggalMasuk: santri.tanggalMasuk,
       totalTunggakan,
       totalTerbayar,
       payments: paymentsList,
@@ -122,6 +149,8 @@ const getMyPembayaran = async (req, res) => {
 
     const targetTahun = tahun ? parseInt(tahun) : new Date().getFullYear();
 
+    const santri = await prisma.santri.findUnique({ where: { id: parseInt(santriId) } });
+
     // Ambil semua data pembayaran yang terdaftar di DB untuk tahun tersebut
     const databasePayments = await prisma.pembayaran.findMany({
       where: {
@@ -130,12 +159,14 @@ const getMyPembayaran = async (req, res) => {
       },
     });
 
-    // Peta kan 1 sampai 12 bulan
+    const startMonth = santri ? getStartMonth(santri.tanggalMasuk, targetTahun) : 1;
+
+    // Peta kan bulan mulai dari bulan masuk santri
     const paymentsList = [];
     let totalTunggakan = 0;
     let totalTerbayar = 0;
 
-    for (let m = 1; m <= 12; m++) {
+    for (let m = startMonth; m <= 12; m++) {
       const dbRecord = databasePayments.find(p => p.bulan === m);
       if (dbRecord) {
         paymentsList.push(dbRecord);
@@ -162,6 +193,7 @@ const getMyPembayaran = async (req, res) => {
     res.json({
       santriId: parseInt(santriId),
       tahun: targetTahun,
+      tanggalMasuk: santri ? santri.tanggalMasuk : null,
       totalTunggakan,
       totalTerbayar,
       payments: paymentsList,

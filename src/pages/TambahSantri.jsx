@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Check } from 'lucide-react';
+import { UserPlus, Check, Calendar } from 'lucide-react';
 import api from '../utils/api';
 
 function TambahSantri() {
   const navigate = useNavigate();
+  const today = new Date().toISOString().split('T')[0];
   const [formData, setFormData] = useState({
     nama: '',
     email: '',
@@ -13,7 +14,8 @@ function TambahSantri() {
     namaWali: '',
     alamat: '',
     kelas: '',
-    isBeasiswa: false
+    isBeasiswa: false,
+    tanggalMasuk: today
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -37,7 +39,7 @@ function TambahSantri() {
       await api.post('/admin/santri', formData);
       setSuccess(`Data santri ${formData.nama} berhasil ditambahkan!`);
       // Reset form
-      setFormData({ nama: '', email: '', password: '', noHp: '', namaWali: '', alamat: '', kelas: '', isBeasiswa: false });
+      setFormData({ nama: '', email: '', password: '', noHp: '', namaWali: '', alamat: '', kelas: '', isBeasiswa: false, tanggalMasuk: today });
       // Navigasi ke dashboard setelah jeda singkat
       setTimeout(() => navigate('/'), 1500);
     } catch (err) {
@@ -46,6 +48,28 @@ function TambahSantri() {
       setLoading(false);
     }
   };
+
+  // Hitung info tahun ajaran & bulan mulai berdasarkan tanggalMasuk
+  const getTahunAjaranInfo = () => {
+    if (!formData.tanggalMasuk) return null;
+    const d = new Date(formData.tanggalMasuk);
+    const bulan = d.getMonth() + 1; // 1-12
+    const tahun = d.getFullYear();
+    const namaBulan = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    // Tahun ajaran: jika masuk Jul-Des → tahun/tahun+1, jika Jan-Jun → tahun-1/tahun
+    const tahunAjaran = bulan >= 7
+      ? `${tahun}/${tahun + 1}`
+      : `${tahun - 1}/${tahun}`;
+    return {
+      namaBulan: namaBulan[bulan - 1],
+      tahun,
+      bulanNum: bulan,
+      tahunAjaran
+    };
+  };
+
+  const info = getTahunAjaranInfo();
 
   return (
     <div className="bg-white p-6 md:p-8 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37]">
@@ -115,6 +139,36 @@ function TambahSantri() {
             value={formData.namaWali} 
             onChange={(e) => setFormData({...formData, namaWali: e.target.value})} 
           />
+        </div>
+
+        {/* TANGGAL MASUK PESANTREN */}
+        <div className="md:col-span-2">
+          <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1 flex items-center space-x-1">
+            <Calendar size={11} className="text-[#D4AF37]" />
+            <span>Tanggal Masuk / Daftar Pesantren</span>
+          </label>
+          <div className="flex flex-col sm:flex-row gap-3 items-start">
+            <input 
+              type="date" 
+              required
+              className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-[#D4AF37] font-semibold text-slate-700" 
+              value={formData.tanggalMasuk} 
+              onChange={(e) => setFormData({...formData, tanggalMasuk: e.target.value})} 
+            />
+            {info && (
+              <div className="flex flex-wrap gap-2 text-[10px]">
+                <span className="bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/25 px-3 py-1.5 rounded-full font-bold">
+                  📅 Bendahara mulai dari: <strong>{info.namaBulan} {info.tahun}</strong>
+                </span>
+                <span className="bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full font-bold">
+                  🎓 Tahun Ajaran: <strong>{info.tahunAjaran}</strong>
+                </span>
+              </div>
+            )}
+          </div>
+          <p className="text-[10px] text-slate-400 mt-1.5">
+            Data bendahara hanya akan dihitung dari bulan ini ke depan. Data akademik dimulai dari tahun ajaran masuk.
+          </p>
         </div>
 
         <div>

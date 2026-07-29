@@ -33,6 +33,7 @@ model Santri {
   status       String       @default("ACTIVE") // "ACTIVE" atau "INACTIVE"
   fotoProfil   String?      // Path/URL foto profil yang diupload
   isBeasiswa   Boolean      @default(false)
+  tanggalMasuk DateTime?    // Tanggal resmi masuk/daftar pesantren
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 

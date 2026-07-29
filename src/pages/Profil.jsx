@@ -674,7 +674,6 @@ function Profil({ user, onUserUpdate }) {
               </div>
             )}
 
-            {/* TAB: AKADEMIK */}
             {activeTab === 'akademik' && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
@@ -685,26 +684,54 @@ function Profil({ user, onUserUpdate }) {
                 </div>
 
                 {/* Ringkasan Statistik Akademik */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3">
-                    <div className="p-3 bg-emerald-100 text-[#0B4A3F] rounded-xl"><Award size={20} /></div>
-                    <div>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase">Mata Pelajaran Diikuti</p>
-                      <h4 className="text-base font-bold text-slate-800">{profileData.akademik ? profileData.akademik.length : 0} Pelajaran Pesantren</h4>
+                {(() => {
+                  // Gabungkan pelajaran yang sama dari ganjil+genap menjadi 1 entri unik
+                  const akademikData = profileData.akademik || [];
+                  const uniqueMapel = [];
+                  const seen = new Set();
+                  akademikData.forEach(n => {
+                    const key = n.mataPelajaran.trim().toLowerCase();
+                    if (!seen.has(key)) {
+                      seen.add(key);
+                      uniqueMapel.push(n);
+                    }
+                  });
+
+                  // Hitung rata-rata dari unique mapel saja
+                  const validNilai = uniqueMapel.filter(n => 
+                    (n.nilaiUts !== null && n.nilaiUts !== undefined) ||
+                    (n.nilaiUas !== null && n.nilaiUas !== undefined)
+                  );
+                  const avgTotal = validNilai.length > 0
+                    ? (validNilai.reduce((acc, n) => {
+                        const hasUts = n.nilaiUts !== null && n.nilaiUts !== undefined;
+                        const hasUas = n.nilaiUas !== null && n.nilaiUas !== undefined;
+                        if (hasUts && hasUas) return acc + (n.nilaiUts + n.nilaiUas) / 2;
+                        if (hasUts) return acc + n.nilaiUts;
+                        if (hasUas) return acc + n.nilaiUas;
+                        return acc;
+                      }, 0) / validNilai.length).toFixed(1)
+                    : '-';
+
+                  return (
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3">
+                        <div className="p-3 bg-emerald-100 text-[#0B4A3F] rounded-xl"><Award size={20} /></div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Mata Pelajaran Diikuti</p>
+                          <h4 className="text-base font-bold text-slate-800">{uniqueMapel.length} Pelajaran Pesantren</h4>
+                        </div>
+                      </div>
+                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3">
+                        <div className="p-3 bg-amber-100 text-[#D4AF37] rounded-xl"><Sparkles size={20} /></div>
+                        <div>
+                          <p className="text-[9px] font-bold text-slate-400 uppercase">Rata-Rata Angka Studi</p>
+                          <h4 className="text-base font-bold text-slate-800">{avgTotal}</h4>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3">
-                    <div className="p-3 bg-amber-100 text-[#D4AF37] rounded-xl"><Sparkles size={20} /></div>
-                    <div>
-                      <p className="text-[9px] font-bold text-slate-400 uppercase">Rata-Rata Angka Studi</p>
-                      <h4 className="text-base font-bold text-slate-800">
-                        {profileData.akademik && profileData.akademik.length > 0
-                          ? (profileData.akademik.reduce((acc, curr) => acc + (curr.nilaiUts + curr.nilaiUas) / 2, 0) / profileData.akademik.length).toFixed(1)
-                          : '-'}
-                      </h4>
-                    </div>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
@@ -720,18 +747,39 @@ function Profil({ user, onUserUpdate }) {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {profileData.akademik && profileData.akademik.length > 0 ? (
-                        profileData.akademik.map((n) => (
-                          <tr key={n.id} className="hover:bg-slate-100/40 transition">
-                            <td className="py-3 px-4 font-semibold text-slate-700">{n.tahunAjaran}</td>
-                            <td className="py-3 px-4 font-medium">{n.semester}</td>
-                            <td className="py-3 px-4 text-slate-800 font-bold">{n.mataPelajaran}</td>
-                            <td className="py-3 px-4 text-center font-medium text-slate-650">{n.nilaiUts}</td>
-                            <td className="py-3 px-4 text-center font-medium text-slate-650">{n.nilaiUas}</td>
-                            <td className="py-3 px-4 text-center font-extrabold text-[#0B4A3F]">
-                              {((n.nilaiUts + n.nilaiUas) / 2).toFixed(1)}
-                            </td>
-                          </tr>
-                        ))
+                        (() => {
+                          // Kelompokkan berdasarkan tahunAjaran+semester, lalu dalam setiap kelompok
+                          // hapus duplikat mataPelajaran
+                          const grouped = {};
+                          profileData.akademik.forEach(n => {
+                            const groupKey = `${n.tahunAjaran}__${n.semester}`;
+                            if (!grouped[groupKey]) grouped[groupKey] = [];
+                            // Cek apakah sudah ada mapel yang sama
+                            const existsInGroup = grouped[groupKey].some(
+                              x => x.mataPelajaran.trim().toLowerCase() === n.mataPelajaran.trim().toLowerCase()
+                            );
+                            if (!existsInGroup) grouped[groupKey].push(n);
+                          });
+
+                          return Object.values(grouped).flat().map((n) => {
+                            const hasUts = n.nilaiUts !== null && n.nilaiUts !== undefined;
+                            const hasUas = n.nilaiUas !== null && n.nilaiUas !== undefined;
+                            let avg = '-';
+                            if (hasUts && hasUas) avg = ((n.nilaiUts + n.nilaiUas) / 2).toFixed(1);
+                            else if (hasUts) avg = parseFloat(n.nilaiUts).toFixed(1);
+                            else if (hasUas) avg = parseFloat(n.nilaiUas).toFixed(1);
+                            return (
+                              <tr key={n.id} className="hover:bg-slate-100/40 transition">
+                                <td className="py-3 px-4 font-semibold text-slate-700">{n.tahunAjaran}</td>
+                                <td className="py-3 px-4 font-medium">{n.semester}</td>
+                                <td className="py-3 px-4 text-slate-800 font-bold">{n.mataPelajaran}</td>
+                                <td className="py-3 px-4 text-center font-medium text-slate-650">{hasUts ? n.nilaiUts : '-'}</td>
+                                <td className="py-3 px-4 text-center font-medium text-slate-650">{hasUas ? n.nilaiUas : '-'}</td>
+                                <td className="py-3 px-4 text-center font-extrabold text-[#0B4A3F]">{avg}</td>
+                              </tr>
+                            );
+                          });
+                        })()
                       ) : (
                         <tr>
                           <td colSpan="6" className="py-8 text-center text-slate-400">Belum ada riwayat akademik tercatat.</td>

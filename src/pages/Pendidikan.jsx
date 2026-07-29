@@ -25,6 +25,27 @@ function Pendidikan({ user }) {
 
   const [jenisRaporCetak, setJenisRaporCetak] = useState('AKHIR'); // 'UTS', 'UAS', 'AKHIR'
 
+  const getTahunAjaranOptions = () => {
+    const currentYear = new Date().getFullYear();
+    let startYear = 2025; // default fallback
+
+    if (currentSantriDetails?.tanggalMasuk) {
+      const entryDate = new Date(currentSantriDetails.tanggalMasuk);
+      const entryYear = entryDate.getFullYear();
+      const entryMonth = entryDate.getMonth() + 1; // 1-12
+      // Jika masuk Juli-Desember -> tahunAjaran awal = entryYear/(entryYear+1)
+      // Jika masuk Januari-Juni -> tahunAjaran awal = (entryYear-1)/entryYear
+      startYear = entryMonth >= 7 ? entryYear : entryYear - 1;
+    }
+
+    const endYear = Math.max(currentYear + 1, startYear + 2);
+    const options = [];
+    for (let y = startYear; y <= endYear; y++) {
+      options.push(`${y}/${y + 1}`);
+    }
+    return options.length > 0 ? options.reverse() : ['2025/2026', '2026/2027'];
+  };
+
   useEffect(() => {
     if (user.role === 'ADMIN') {
       fetchSantriList();
@@ -33,6 +54,16 @@ function Pendidikan({ user }) {
       setCurrentSantriDetails(user);
     }
   }, [user]);
+
+  // Adjust tahunAjaran if current selection is not valid for student
+  useEffect(() => {
+    if (currentSantriDetails) {
+      const options = getTahunAjaranOptions();
+      if (options.length > 0 && !options.includes(tahunAjaran)) {
+        setTahunAjaran(options[0]); // default to latest available/valid year
+      }
+    }
+  }, [currentSantriDetails]);
 
   useEffect(() => {
     if (selectedSantriId) {
@@ -283,12 +314,12 @@ function Pendidikan({ user }) {
         <div className="flex flex-wrap items-center gap-4">
           {/* Dropdown Pilihan Santri (Admin Only) */}
           {user.role === 'ADMIN' && (
-            <div className="flex flex-col">
+            <div className="flex flex-col w-full sm:w-auto">
               <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Pilih Santri</label>
               <select
                 value={selectedSantriId}
                 onChange={(e) => setSelectedSantriId(e.target.value)}
-                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
               >
                 {santriList.map(s => (
                   <option key={s.id} value={s.id}>{s.nama} ({s.kelas})</option>
@@ -298,25 +329,26 @@ function Pendidikan({ user }) {
           )}
 
           {/* Tahun Ajaran */}
-          <div className="flex flex-col">
+          <div className="flex flex-col w-full sm:w-auto">
             <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Tahun Ajaran</label>
             <select
               value={tahunAjaran}
               onChange={(e) => setTahunAjaran(e.target.value)}
-              className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+              className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
             >
-              <option value="2025/2026">2025/2026</option>
-              <option value="2026/2027">2026/2027</option>
+              {getTahunAjaranOptions().map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
             </select>
           </div>
 
           {/* Semester */}
-          <div className="flex flex-col">
+          <div className="flex flex-col w-full sm:w-auto">
             <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Semester</label>
             <select
               value={semester}
               onChange={(e) => setSemester(e.target.value)}
-              className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+              className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
             >
               <option value="GANJIL">GANJIL</option>
               <option value="GENAP">GENAP</option>

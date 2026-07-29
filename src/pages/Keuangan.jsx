@@ -31,6 +31,29 @@ function Keuangan({ user }) {
     }
   }, [user]);
 
+  // Adjust sppTahun if it is less than student's admission year
+  useEffect(() => {
+    if (currentSantriDetails?.tanggalMasuk) {
+      const startYear = new Date(currentSantriDetails.tanggalMasuk).getFullYear();
+      if (parseInt(sppTahun) < startYear) {
+        setSppTahun(startYear);
+      }
+    }
+  }, [currentSantriDetails]);
+
+  const getYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const startYear = currentSantriDetails?.tanggalMasuk 
+      ? new Date(currentSantriDetails.tanggalMasuk).getFullYear() 
+      : 2025;
+    const years = [];
+    const maxYear = Math.max(currentYear + 1, startYear);
+    for (let y = startYear; y <= maxYear; y++) {
+      years.push(y);
+    }
+    return years.length > 0 ? years.reverse() : [currentYear];
+  };
+
   useEffect(() => {
     if (selectedSantriId) {
       fetchKeuanganData();
@@ -182,12 +205,12 @@ function Keuangan({ user }) {
         <div className="flex flex-wrap items-center gap-4">
           {/* Dropdown Pilihan Santri (Admin Only) */}
           {user.role === 'ADMIN' && (
-            <div className="flex flex-col">
+            <div className="flex flex-col w-full sm:w-auto">
               <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Pilih Santri</label>
               <select
                 value={selectedSantriId}
                 onChange={(e) => setSelectedSantriId(e.target.value)}
-                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+                className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
               >
                 {santriList.map(s => (
                   <option key={s.id} value={s.id}>{s.nama} ({s.kelas})</option>
@@ -197,15 +220,16 @@ function Keuangan({ user }) {
           )}
 
           {/* Tahun Buku Syariah */}
-          <div className="flex flex-col">
+          <div className="flex flex-col w-full sm:w-auto">
             <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Tahun Buku Syariah</label>
             <select
               value={sppTahun}
-              onChange={(e) => setSppTahun(e.target.value)}
-              className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+              onChange={(e) => setSppTahun(parseInt(e.target.value))}
+              className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
             >
-              <option value="2026">2026</option>
-              <option value="2025">2025</option>
+              {getYearOptions().map(y => (
+                <option key={y} value={y}>{y}</option>
+              ))}
             </select>
           </div>
         </div>

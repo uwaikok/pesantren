@@ -63,7 +63,7 @@ const getSantriList = async (req, res) => {
 
 const createSantri = async (req, res) => {
   try {
-    const { nama, email, password, noHp, alamat, namaWali, kelas, isBeasiswa } = req.body;
+    const { nama, email, password, noHp, alamat, namaWali, kelas, isBeasiswa, tanggalMasuk } = req.body;
 
     if (!nama) {
       return res.status(400).json({ message: 'Nama wajib diisi' });
@@ -99,7 +99,8 @@ const createSantri = async (req, res) => {
         alamat,
         namaWali,
         kelas,
-        isBeasiswa: isBeasiswa === true || isBeasiswa === 'true'
+        isBeasiswa: isBeasiswa === true || isBeasiswa === 'true',
+        tanggalMasuk: tanggalMasuk ? new Date(tanggalMasuk) : new Date()
       }
     });
 
@@ -123,7 +124,7 @@ const createSantri = async (req, res) => {
 const updateSantri = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nama, email, password, noHp, alamat, namaWali, kelas, isBeasiswa } = req.body;
+    const { nama, email, password, noHp, alamat, namaWali, kelas, isBeasiswa, tanggalMasuk } = req.body;
 
     const santri = await prisma.santri.findUnique({ where: { id: parseInt(id) } });
     if (!santri) {
@@ -157,7 +158,8 @@ const updateSantri = async (req, res) => {
       namaWali: namaWali !== undefined ? namaWali : santri.namaWali,
       kelas: kelas !== undefined ? kelas : santri.kelas,
       ...(req.body.status && { status: req.body.status }),
-      ...(isBeasiswa !== undefined && { isBeasiswa: isBeasiswa === true || isBeasiswa === 'true' })
+      ...(isBeasiswa !== undefined && { isBeasiswa: isBeasiswa === true || isBeasiswa === 'true' }),
+      ...(tanggalMasuk !== undefined && { tanggalMasuk: tanggalMasuk ? new Date(tanggalMasuk) : santri.tanggalMasuk })
     };
 
     if (email !== undefined) {
