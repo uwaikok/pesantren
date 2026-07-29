@@ -206,9 +206,40 @@ const markAsRead = async (req, res) => {
   }
 };
 
+const updateNotification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { judul, isi, kategori, santriId } = req.body;
+
+    const notification = await prisma.notification.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!notification) {
+      return res.status(404).json({ message: 'Notifikasi tidak ditemukan' });
+    }
+
+    const updated = await prisma.notification.update({
+      where: { id: parseInt(id) },
+      data: {
+        judul: judul !== undefined ? judul : notification.judul,
+        isi: isi !== undefined ? isi : notification.isi,
+        kategori: kategori !== undefined ? kategori : notification.kategori,
+        santriId: santriId !== undefined ? (santriId ? parseInt(santriId) : null) : notification.santriId,
+      }
+    });
+
+    res.json({ message: 'Notifikasi berhasil diperbarui', notification: updated });
+  } catch (error) {
+    console.error('Update notification error:', error);
+    res.status(500).json({ message: 'Gagal memperbarui notifikasi' });
+  }
+};
+
 module.exports = {
   getNotifications,
   createNotification,
+  updateNotification,
   deleteNotification,
   markAsRead
 };

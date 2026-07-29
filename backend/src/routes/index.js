@@ -131,8 +131,9 @@ router.get('/keuangan/santri/:santriId', verifyToken, keuanganController.getRiwa
 // --- MODUL NOTIFIKASI ---
 router.post('/notifications', verifyToken, isAdmin, notificationController.createNotification);
 router.get('/notifications', verifyToken, notificationController.getNotifications);
-router.delete('/notifications/:id', verifyToken, isAdmin, notificationController.deleteNotification);
 router.put('/notifications/read', verifyToken, notificationController.markAsRead);
+router.put('/notifications/:id', verifyToken, isAdmin, notificationController.updateNotification);
+router.delete('/notifications/:id', verifyToken, isAdmin, notificationController.deleteNotification);
 
 // --- AGGREGATE PROFILE ENDPOINT ---
 // Dapat diakses oleh admin atau santri bersangkutan

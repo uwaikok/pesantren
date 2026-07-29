@@ -14,7 +14,8 @@ import {
   Sparkles,
   Users,
   Bell,
-  Trash2
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -32,6 +33,10 @@ function Layout({ children, user, onLogout }) {
   const [isAdminNotifModalOpen, setIsAdminNotifModalOpen] = useState(false);
   const [notifForm, setNotifForm] = useState({ judul: '', isi: '', kategori: 'UMUM', santriId: '' });
   const [allSantri, setAllSantri] = useState([]);
+
+  // State untuk Modal Edit Notifikasi oleh Admin
+  const [isEditNotifModalOpen, setIsEditNotifModalOpen] = useState(false);
+  const [editNotifData, setEditNotifData] = useState({ id: null, judul: '', isi: '', kategori: 'UMUM', santriId: '' });
 
   useEffect(() => {
     if (user) {
@@ -105,6 +110,36 @@ function Layout({ children, user, onLogout }) {
       }
     } catch (err) {
       console.error('Gagal menandai semua dibaca:', err);
+    }
+  };
+
+  const handleOpenEditNotif = (n) => {
+    setEditNotifData({
+      id: n.id,
+      judul: n.judul,
+      isi: n.isi,
+      kategori: n.kategori || 'UMUM',
+      santriId: n.santriId ? String(n.santriId) : ''
+    });
+    setIsEditNotifModalOpen(true);
+    setIsNotifOpen(false);
+  };
+
+  const handleEditNotification = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put(`/notifications/${editNotifData.id}`, {
+        judul: editNotifData.judul,
+        isi: editNotifData.isi,
+        kategori: editNotifData.kategori,
+        santriId: editNotifData.santriId ? parseInt(editNotifData.santriId) : null
+      });
+      setIsEditNotifModalOpen(false);
+      setEditNotifData({ id: null, judul: '', isi: '', kategori: 'UMUM', santriId: '' });
+      fetchNotifications();
+      alert('Pemberitahuan berhasil diperbarui!');
+    } catch (err) {
+      alert(err.message || 'Gagal memperbarui pemberitahuan');
     }
   };
 
@@ -385,13 +420,22 @@ function Layout({ children, user, onLogout }) {
                             <span className="text-[8px] text-slate-400 font-medium">
                               Target: {n.santriId ? 'Santri Privat' : 'Semua Santri'}
                             </span>
-                            <button 
-                              onClick={() => handleDeleteNotification(n.id)}
-                              className="text-rose-500 hover:text-rose-700 font-bold text-[9px] flex items-center gap-0.5"
-                            >
-                              <Trash2 size={9} />
-                              Hapus
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button 
+                                onClick={() => handleOpenEditNotif(n)}
+                                className="text-blue-500 hover:text-blue-700 font-bold text-[9px] flex items-center gap-0.5"
+                              >
+                                <Pencil size={9} />
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteNotification(n.id)}
+                                className="text-rose-500 hover:text-rose-700 font-bold text-[9px] flex items-center gap-0.5"
+                              >
+                                <Trash2 size={9} />
+                                Hapus
+                              </button>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -602,15 +646,24 @@ function Layout({ children, user, onLogout }) {
                             {user.role === 'ADMIN' && typeof n.id !== 'string' && (
                               <div className="mt-2.5 flex justify-between items-center border-t border-slate-100 pt-1.5">
                                 <span className="text-[8px] text-slate-400 font-medium">
-                                  Penerima: {n.santriId ? `Santri ID ${n.santriId}` : 'Semua Santri'}
+                                  Penerima: {n.santriId ? 'Santri Privat' : 'Semua Santri'}
                                 </span>
-                                <button 
-                                  onClick={() => handleDeleteNotification(n.id)}
-                                  className="text-rose-500 hover:text-rose-700 p-1 flex items-center gap-0.5 font-bold hover:underline transition"
-                                >
-                                  <Trash2 size={10} />
-                                  <span>Hapus</span>
-                                </button>
+                                <div className="flex items-center gap-2">
+                                  <button 
+                                    onClick={() => handleOpenEditNotif(n)}
+                                    className="text-blue-500 hover:text-blue-700 p-1 flex items-center gap-0.5 font-bold hover:underline transition"
+                                  >
+                                    <Pencil size={10} />
+                                    <span>Edit</span>
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDeleteNotification(n.id)}
+                                    className="text-rose-500 hover:text-rose-700 p-1 flex items-center gap-0.5 font-bold hover:underline transition"
+                                  >
+                                    <Trash2 size={10} />
+                                    <span>Hapus</span>
+                                  </button>
+                                </div>
                               </div>
                             )}
                           </div>
@@ -734,6 +787,94 @@ function Layout({ children, user, onLogout }) {
                   className="flex-1 py-2.5 text-center font-bold bg-[#0B4A3F] hover:bg-[#083831] text-white rounded-xl shadow-sm transition"
                 >
                   Kirim Notifikasi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDIT NOTIFIKASI ADMIN */}
+      {isEditNotifModalOpen && (
+        <div className="fixed inset-0 bg-[#083831]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-[#D4AF37]/30">
+            <div className="p-5 bg-[#0B4A3F] text-white font-serif font-bold text-sm md:text-base flex justify-between items-center border-b border-[#D4AF37]/30">
+              <span className="flex items-center space-x-2">
+                <Pencil size={18} className="text-[#D4AF37]" />
+                <span>Edit Pemberitahuan</span>
+              </span>
+              <button 
+                onClick={() => setIsEditNotifModalOpen(false)}
+                className="text-emerald-200 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditNotification} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Judul Pemberitahuan</label>
+                <input
+                  type="text"
+                  required
+                  value={editNotifData.judul}
+                  onChange={(e) => setEditNotifData({ ...editNotifData, judul: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kategori</label>
+                <select
+                  value={editNotifData.kategori}
+                  onChange={(e) => setEditNotifData({ ...editNotifData, kategori: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none font-bold text-slate-700"
+                >
+                  <option value="UMUM">UMUM (Pemberitahuan Biasa)</option>
+                  <option value="UJIAN">UJIAN (Pengumuman Ujian/Akademik)</option>
+                  <option value="SPP">SPP (Pengumuman Syariah/Bulanan)</option>
+                  <option value="KEAMANAN">KEAMANAN (Pemberitahuan Disiplin/Sanksi)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Target Penerima</label>
+                <select
+                  value={editNotifData.santriId}
+                  onChange={(e) => setEditNotifData({ ...editNotifData, santriId: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none text-slate-700"
+                >
+                  <option value="">Semua Santri (Global)</option>
+                  {allSantri.map(s => (
+                    <option key={s.id} value={s.id}>{s.nama} ({s.kelas || 'Tanpa Kelas'})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Isi Pemberitahuan</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={editNotifData.isi}
+                  onChange={(e) => setEditNotifData({ ...editNotifData, isi: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsEditNotifModalOpen(false)}
+                  className="flex-1 py-2.5 text-center font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-center font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm transition"
+                >
+                  Simpan Perubahan
                 </button>
               </div>
             </form>
