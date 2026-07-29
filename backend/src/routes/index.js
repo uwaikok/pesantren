@@ -157,6 +157,8 @@ router.get('/users/:id/profile', verifyToken, async (req, res) => {
         kelas: true,
         status: true,
         fotoProfil: true,
+        isBeasiswa: true,
+        tanggalMasuk: true,
         createdAt: true,
       }
     });
@@ -188,16 +190,40 @@ router.get('/users/:id/profile', verifyToken, async (req, res) => {
       where: { santriId: userId, tahun: targetTahun },
     });
 
+    const routeGetStartMonth = (tanggalMasuk, targetTahun) => {
+      if (!tanggalMasuk) return 1;
+      const masuk = new Date(tanggalMasuk);
+      const tahunMasuk = masuk.getFullYear();
+      const bulanMasuk = masuk.getMonth() + 1;
+      if (tahunMasuk > targetTahun) return 13;
+      if (tahunMasuk === targetTahun) return bulanMasuk;
+      return 1;
+    };
+
+    const routeIsMonthDue = (m, targetTahun) => {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth() + 1;
+      if (targetTahun < currentYear) return true;
+      if (targetTahun === currentYear) return m <= currentMonth;
+      return false;
+    };
+
+    const startMonth = routeGetStartMonth(santri.tanggalMasuk, targetTahun);
     const keuangan = [];
     let totalTunggakan = 0;
+    let unpaidMonths = 0;
     const defaultAmount = 300000;
 
-    for (let m = 1; m <= 12; m++) {
+    for (let m = startMonth; m <= 12; m++) {
       const dbRecord = databasePayments.find(p => p.bulan === m);
       if (dbRecord) {
         keuangan.push(dbRecord);
         if (dbRecord.status !== 'LUNAS') {
-          totalTunggakan += dbRecord.jumlah;
+          if (routeIsMonthDue(m, targetTahun)) {
+            totalTunggakan += dbRecord.jumlah;
+            unpaidMonths++;
+          }
         }
       } else {
         keuangan.push({
@@ -209,8 +235,16 @@ router.get('/users/:id/profile', verifyToken, async (req, res) => {
           tanggalBayar: null,
           jumlah: defaultAmount,
         });
-        totalTunggakan += defaultAmount;
+        if (routeIsMonthDue(m, targetTahun)) {
+          totalTunggakan += defaultAmount;
+          unpaidMonths++;
+        }
       }
+    }
+
+    if (santri.isBeasiswa === true || santri.isBeasiswa === 'true') {
+      totalTunggakan = 0;
+      unpaidMonths = 0;
     }
 
     res.json({
@@ -220,6 +254,7 @@ router.get('/users/:id/profile', verifyToken, async (req, res) => {
       keuangan: {
         tahun: targetTahun,
         totalTunggakan,
+        unpaidMonths,
         payments: keuangan
       }
     });

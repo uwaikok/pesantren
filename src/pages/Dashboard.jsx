@@ -101,8 +101,8 @@ function Dashboard({ user }) {
         avgNilai,
         sanksiCount: profileData.keamanan.length,
         tunggakan: profileData.keuangan.totalTunggakan,
-        unpaidMonths: profileData.keuangan.payments.filter(p => p.status === 'BELUM_BAYAR').length,
-        notifications: notifData.filter(n => n.kategori === 'UMUM' || n.kategori === 'UJIAN')
+        unpaidMonths: profileData.keuangan.unpaidMonths !== undefined ? profileData.keuangan.unpaidMonths : profileData.keuangan.payments.filter(p => p.status === 'BELUM_BAYAR').length,
+        notifications: notifData
       });
     } catch (err) {
       console.error(err);

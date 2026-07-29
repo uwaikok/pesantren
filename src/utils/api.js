@@ -752,15 +752,41 @@ const request = async (method, url, data = null, params = null) => {
           const targetTahun = new Date().getFullYear();
           const payments = getMockData('mock_pembayaran').filter(p => p.santriId === targetId && p.tahun === targetTahun);
           
+          const getMockStartMonth = (tanggalMasuk, targetTahun) => {
+            if (!tanggalMasuk) return 1;
+            const masuk = new Date(tanggalMasuk);
+            const tahunMasuk = masuk.getFullYear();
+            const bulanMasuk = masuk.getMonth() + 1;
+            if (tahunMasuk > targetTahun) return 13;
+            if (tahunMasuk === targetTahun) return bulanMasuk;
+            return 1;
+          };
+
+          const getMockIsMonthDue = (m, targetTahun) => {
+            const now = new Date();
+            const currentYear = now.getFullYear();
+            const currentMonth = now.getMonth() + 1;
+            if (targetTahun < currentYear) return true;
+            if (targetTahun === currentYear) return m <= currentMonth;
+            return false;
+          };
+
+          const startMonth = getMockStartMonth(userSelect?.tanggalMasuk, targetTahun);
           const paymentsList = [];
           let totalTunggakan = 0;
-          const defaultAmount = 350000;
+          let unpaidMonths = 0;
+          const defaultAmount = 300000;
 
-          for (let m = 1; m <= 12; m++) {
+          for (let m = startMonth; m <= 12; m++) {
             const dbRecord = payments.find(p => p.bulan === m);
             if (dbRecord) {
               paymentsList.push(dbRecord);
-              if (dbRecord.status !== 'LUNAS') totalTunggakan += dbRecord.jumlah;
+              if (dbRecord.status !== 'LUNAS') {
+                if (getMockIsMonthDue(m, targetTahun)) {
+                  totalTunggakan += dbRecord.jumlah;
+                  unpaidMonths++;
+                }
+              }
             } else {
               paymentsList.push({
                 id: null,
@@ -771,8 +797,16 @@ const request = async (method, url, data = null, params = null) => {
                 tanggalBayar: null,
                 jumlah: defaultAmount
               });
-              totalTunggakan += defaultAmount;
+              if (getMockIsMonthDue(m, targetTahun)) {
+                totalTunggakan += defaultAmount;
+                unpaidMonths++;
+              }
             }
+          }
+
+          if (userSelect && (userSelect.isBeasiswa === true || userSelect.isBeasiswa === 'true')) {
+            totalTunggakan = 0;
+            unpaidMonths = 0;
           }
 
           return resolve({
@@ -782,6 +816,7 @@ const request = async (method, url, data = null, params = null) => {
             keuangan: {
               tahun: targetTahun,
               totalTunggakan,
+              unpaidMonths,
               payments: paymentsList
             }
           });
@@ -863,21 +898,51 @@ const request = async (method, url, data = null, params = null) => {
             });
 
             // Injeksi tunggakan SPP Syariah dinamis
-            const pembayaran = getMockData('mock_pembayaran').filter(p => p.santriId === currentUser.id && p.status === 'BELUM_BAYAR');
-            if (pembayaran.length > 0) {
-              const totalTunggakan = pembayaran.reduce((sum, p) => sum + p.jumlah, 0);
-              const namaBulan = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-              const listBulan = pembayaran.map(p => `${namaBulan[p.bulan]} ${p.tahun}`).join(', ');
+            const isScholar = currentUser.isBeasiswa === true || currentUser.isBeasiswa === 'true';
+            if (!isScholar) {
+              const unpaidMonths = [];
+              const masuk = currentUser.tanggalMasuk ? new Date(currentUser.tanggalMasuk) : new Date(currentUser.createdAt);
+              const startYear = masuk.getFullYear();
+              const startMonth = masuk.getMonth() + 1;
 
-              dynamicNotifs.push({
-                id: `spp-warning-${currentUser.id}`,
-                judul: "Pemberitahuan Tunggakan Syariah Bulanan",
-                isi: `Assalamu'alaikum Wr. Wb. Harap segera melunasi iuran Syariah Bulanan sebesar Rp ${totalTunggakan.toLocaleString('id-ID')} untuk bulan: ${listBulan}. Silakan lakukan pembayaran ke bendahara.`,
-                kategori: "SPP",
-                santriId: currentUser.id,
-                isRead: false,
-                createdAt: new Date().toISOString()
-              });
+              const now = new Date();
+              const currentYear = now.getFullYear();
+              const currentMonth = now.getMonth() + 1;
+
+              const namaBulan = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+              const mockPayments = getMockData('mock_pembayaran').filter(p => p.santriId === currentUser.id);
+
+              for (let y = startYear; y <= currentYear; y++) {
+                const mStart = (y === startYear) ? startMonth : 1;
+                const mEnd = (y === currentYear) ? currentMonth : 12;
+
+                for (let m = mStart; m <= mEnd; m++) {
+                  const isPaid = mockPayments.some(p => p.tahun === y && p.bulan === m && p.status === 'LUNAS');
+                  if (!isPaid) {
+                    const dbRecord = mockPayments.find(p => p.tahun === y && p.bulan === m);
+                    const amount = dbRecord ? dbRecord.jumlah : 300000;
+                    unpaidMonths.push({
+                      nama: `${namaBulan[m]} ${y}`,
+                      jumlah: amount
+                    });
+                  }
+                }
+              }
+
+              if (unpaidMonths.length > 0) {
+                const totalTunggakan = unpaidMonths.reduce((sum, p) => sum + p.jumlah, 0);
+                const listBulan = unpaidMonths.map(p => p.nama).join(', ');
+
+                dynamicNotifs.push({
+                  id: `spp-warning-${currentUser.id}`,
+                  judul: "Pemberitahuan Tagihan Syariah Bulanan",
+                  isi: `Assalamu'alaikum Wr. Wb. Harap melakukan pembayaran Syariah Bulanan sebesar Rp ${totalTunggakan.toLocaleString('id-ID')} untuk bulan: ${listBulan}. Silakan lakukan pembayaran ke bendahara.`,
+                  kategori: "SPP",
+                  santriId: currentUser.id,
+                  isRead: false,
+                  createdAt: new Date().toISOString()
+                });
+              }
             }
 
             const allNotifs = [...dynamicNotifs, ...dbNotifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
