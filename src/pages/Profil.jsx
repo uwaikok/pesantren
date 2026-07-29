@@ -1,16 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Loader2, Key, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle } from 'lucide-react';
 import api from '../utils/api';
 
 function Profil({ user, onUserUpdate }) {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // Jika tidak ada :id di URL = admin lihat profilnya sendiri
-  const isAdminSelf = !id;
-  const targetId = id ? parseInt(id) : null;
-  const isSelf = isAdminSelf;
+  // Jika tidak ada :id di URL = admin lihat profilnya sendiri (atau santri lihat profilnya sendiri)
+  const isAdminSelf = !id && user.role === 'ADMIN';
+  const targetId = id ? parseInt(id) : (user.role === 'SANTRI' ? user.id : null);
+  const isSelf = isAdminSelf || (user.role === 'SANTRI' && targetId === user.id);
 
   const [profileData, setProfileData] = useState(null);
   const [activeTab, setActiveTab] = useState('pribadi'); // 'pribadi', 'akademik', 'keamanan', 'keuangan'
@@ -227,8 +227,13 @@ function Profil({ user, onUserUpdate }) {
 
         if (onUserUpdate) onUserUpdate({ nama: result.user.nama, email: result.user.email, noHp: result.user.noHp, alamat: result.user.alamat });
       } else {
-        // Update data santri via /admin/santri/:id
-        await api.put(`/admin/santri/${targetId}`, editForm);
+        // Update data santri via /users/:id/profile
+        const result = await api.put(`/users/${targetId}/profile`, editForm);
+        
+        // Simpan token baru jika yang mengedit adalah santri itu sendiri
+        if (user.role === 'SANTRI' && result.user) {
+          if (onUserUpdate) onUserUpdate({ nama: result.user.nama, email: result.user.email, noHp: result.user.noHp, alamat: result.user.alamat });
+        }
       }
       setIsEditing(false);
       fetchProfile();
@@ -315,6 +320,12 @@ function Profil({ user, onUserUpdate }) {
 
   return (
     <div className="space-y-6">
+      {resetSuccessMessage && (
+        <div className="bg-[#DCFCE7]/90 border border-[#16A34A]/30 text-[#0B4A3F] p-4 rounded-xl text-xs font-bold transition flex items-center justify-between shadow-sm">
+          <span>✓ {resetSuccessMessage}</span>
+          <button onClick={() => setResetSuccessMessage('')} className="text-[#0B4A3F] hover:text-[#083831] font-bold">✕</button>
+        </div>
+      )}
       {/* HEADER CARD PROFIL */}
       <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37]">
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
@@ -394,6 +405,16 @@ function Profil({ user, onUserUpdate }) {
               <Edit size={14} />
               <span>{isEditing ? 'Batal Edit' : 'Edit Biodata'}</span>
             </button>
+            {user.role === 'ADMIN' && !isAdminSelf && (
+              <button
+                onClick={handleResetPasswordSantri}
+                disabled={resettingPassword}
+                className="bg-amber-100 hover:bg-amber-200 text-amber-800 px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition border border-amber-300/30 flex items-center space-x-1.5 animate-pulse"
+              >
+                <Key size={14} />
+                <span>{resettingPassword ? 'Mereset...' : 'Reset Sandi Santri'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -503,16 +524,39 @@ function Profil({ user, onUserUpdate }) {
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                         />
                       </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kelas</label>
-                        <input
-                          type="text"
-                          required
-                          value={editForm.kelas}
-                          onChange={(e) => setEditForm({ ...editForm, kelas: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
-                        />
-                      </div>
+                      {user.role === 'ADMIN' ? (
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kelas</label>
+                          <select
+                            required
+                            value={editForm.kelas}
+                            onChange={(e) => setEditForm({ ...editForm, kelas: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none font-bold text-slate-700"
+                          >
+                            <option value="">-- Pilih Kelas --</option>
+                            <option value="Imdad Putra">Imdad Putra</option>
+                            <option value="Imdad Putri">Imdad Putri</option>
+                            <option value="Ibtida 1 Putra">Ibtida 1 Putra</option>
+                            <option value="Ibtida 1 Putri">Ibtida 1 Putri</option>
+                            <option value="Ibtida 2 Putra">Ibtida 2 Putra</option>
+                            <option value="Ibtida 2 Putri">Ibtida 2 Putri</option>
+                            <option value="Ibtida 3">Ibtida 3</option>
+                            <option value="Tsanawi 1">Tsanawi 1</option>
+                            <option value="Tsanawi 2">Tsanawi 2</option>
+                            <option value="Tsanawi 3">Tsanawi 3</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kelas</label>
+                          <input
+                            type="text"
+                            disabled
+                            value={editForm.kelas}
+                            className="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-500 cursor-not-allowed outline-none font-semibold"
+                          />
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Alamat Lengkap</label>

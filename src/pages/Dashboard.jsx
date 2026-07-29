@@ -14,7 +14,8 @@ import {
   ArrowRight,
   BookOpen,
   DollarSign,
-  Sparkles
+  Sparkles,
+  Award
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -23,9 +24,14 @@ function Dashboard({ user }) {
   const [santriList, setSantriList] = useState([]);
   const [pendingUsers, setPendingUsers] = useState([]);
   const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [filterKelas, setFilterKelas] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // State untuk paginasi santri
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
   // State untuk modal edit santri
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -49,6 +55,10 @@ function Dashboard({ user }) {
     return () => window.removeEventListener('refreshData', handleRefresh);
   }, [search, filterKelas, user]);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterKelas]);
+
   const fetchAdminData = async () => {
     try {
       const statsData = await api.get('/admin/stats');
@@ -69,6 +79,7 @@ function Dashboard({ user }) {
   const fetchSantriData = async () => {
     try {
       const profileData = await api.get(`/users/${user.id}/profile`);
+      const notifData = await api.get('/notifications');
       
       // Hitung ringkasan
       const totalNilai = profileData.akademik.length;
@@ -81,7 +92,8 @@ function Dashboard({ user }) {
         avgNilai,
         sanksiCount: profileData.keamanan.length,
         tunggakan: profileData.keuangan.totalTunggakan,
-        unpaidMonths: profileData.keuangan.payments.filter(p => p.status === 'BELUM_BAYAR').length
+        unpaidMonths: profileData.keuangan.payments.filter(p => p.status === 'BELUM_BAYAR').length,
+        notifications: notifData.filter(n => n.kategori === 'UMUM' || n.kategori === 'UJIAN')
       });
     } catch (err) {
       console.error(err);
@@ -163,6 +175,19 @@ function Dashboard({ user }) {
           </div>
         </div>
 
+        {/* Notif Wajib Bayar Uang Syariah */}
+        <div className="bg-amber-50 border-l-4 border-amber-500 p-4 rounded-xl shadow-sm flex items-start space-x-3">
+          <div className="text-amber-600 mt-0.5 flex-shrink-0">
+            <AlertTriangle size={18} />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-extrabold text-xs text-amber-800 uppercase tracking-wider">Pemberitahuan Wajib Bayar Uang Syariah</h4>
+            <p className="text-slate-600 text-xs mt-1 leading-relaxed">
+              Diberitahukan kepada seluruh santri untuk wajib membayar <strong>Uang Syariah Bulanan</strong> sebesar Rp 300.000 paling lambat tanggal 10 setiap bulannya. Harap hubungi bendahara atau lakukan pembayaran ke kantor pesantren.
+            </p>
+          </div>
+        </div>
+
         {/* Widgets Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex items-center space-x-4">
@@ -215,14 +240,23 @@ function Dashboard({ user }) {
               <span>📚 Pengumuman Santri</span>
             </h2>
             <div className="space-y-3">
-              <div className="p-4 bg-[#DCFCE7]/50 border border-[#16A34A]/20 rounded-xl">
-                <span className="text-xs font-bold text-[#0B4A3F]">Ujian Akhir Semester (UAS)</span>
-                <p className="text-slate-650 text-xs mt-1 leading-relaxed">UAS semester genap tahun ajaran 2025/2026 dijadwalkan mulai pekan depan. Harap santri mempersiapkan hafalan kitab dan kebersihan administrasi Syariah.</p>
-              </div>
-              <div className="p-4 bg-[#FAF9F6] border border-slate-200/60 rounded-xl">
-                <span className="text-xs font-bold text-slate-700">Roan Kebersihan Pesantren</span>
-                <p className="text-slate-600 text-xs mt-1 leading-relaxed">Roan akbar (gotong royong) seluruh komplek pesantren akan diselenggarakan hari Ahad pagi jam 08:00 WIB.</p>
-              </div>
+              {mySummary?.notifications && mySummary.notifications.length > 0 ? (
+                mySummary.notifications.slice(0, 3).map(n => (
+                  <div key={n.id} className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
+                    <div className="flex justify-between items-center">
+                      <span className="text-xs font-bold text-[#0B4A3F]">{n.judul}</span>
+                      <span className="text-[9px] text-slate-400 font-mono">
+                        {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                      </span>
+                    </div>
+                    <p className="text-slate-600 text-xs mt-1 leading-relaxed">{n.isi}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center text-slate-400">
+                  <p className="text-xs">Tidak ada pengumuman terbaru</p>
+                </div>
+              )}
             </div>
           </div>
 
@@ -230,7 +264,7 @@ function Dashboard({ user }) {
             <div>
               <h2 className="text-base font-bold text-[#0B4A3F] font-serif mb-3">💳 Status Tagihan Keuangan</h2>
               <p className="text-slate-600 text-xs leading-relaxed">
-                Pembayaran Syariah jatuh tempo setiap tanggal 10 tiap bulannya sebesar <strong>Rp 250.000</strong>. Anda memiliki total <strong>{mySummary?.unpaidMonths} bulan</strong> tunggakan di tahun ini.
+                Pembayaran Syariah jatuh tempo setiap tanggal 10 tiap bulannya sebesar <strong>Rp 300.000</strong>. Anda memiliki total <strong>{mySummary?.unpaidMonths} bulan</strong> tunggakan di tahun ini.
               </p>
             </div>
             <div className="mt-6 flex gap-3">
@@ -285,14 +319,14 @@ function Dashboard({ user }) {
           </div>
         </div>
 
-        {/* Total Sanksi */}
+        {/* Santri Beasiswa */}
         <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
           <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">KASUS PELANGGARAN</span>
-            <h3 className="text-3xl font-extrabold mt-1 text-[#DC2626] font-serif">{stats?.totalSanksi || 0}</h3>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">SANTRI BEASISWA</span>
+            <h3 className="text-3xl font-extrabold mt-1 text-[#16A34A] font-serif">{stats?.totalBeasiswa || 0}</h3>
           </div>
-          <div className="w-12 h-12 rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center flex-shrink-0">
-            <ShieldAlert size={24} />
+          <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
+            <Award size={24} />
           </div>
         </div>
       </div>
@@ -345,17 +379,30 @@ function Dashboard({ user }) {
             <h2 className="text-base font-bold text-[#0B4A3F] font-serif">📋 Daftar Seluruh Santri</h2>
             
             {/* Search Box Rounded Full Style dengan Ikon Kaca Pembesar Hijau */}
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#0B4A3F]">
-                <Search size={14} />
-              </span>
-              <input
-                type="text"
-                placeholder="Cari santri..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] focus:bg-white rounded-full py-1.5 pl-9 pr-4 text-xs w-44 outline-none transition duration-200"
-              />
+            <div className="flex items-center space-x-2">
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#0B4A3F]">
+                  <Search size={14} />
+                </span>
+                <input
+                  type="text"
+                  placeholder="Cari santri..."
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      setSearch(searchInput);
+                    }
+                  }}
+                  className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] focus:bg-white rounded-l-full py-1.5 pl-9 pr-4 text-xs w-40 outline-none transition duration-200"
+                />
+              </div>
+              <button
+                onClick={() => setSearch(searchInput)}
+                className="bg-[#0B4A3F] hover:bg-[#083831] text-white text-xs font-bold px-3 py-1.5 rounded-r-full transition shadow-sm border border-[#0B4A3F]"
+              >
+                Cari
+              </button>
             </div>
           </div>
 
@@ -373,61 +420,130 @@ function Dashboard({ user }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {santriList.length > 0 ? (
-                  santriList.map((s) => (
-                    <tr key={s.id} className="hover:bg-slate-100/60 transition duration-150">
-                      <td className="py-3.5 px-4 font-bold text-slate-800">{s.nama}</td>
-                      <td className="py-3.5 px-4 text-slate-600 font-medium">{s.kelas || '-'}</td>
-                      <td className="py-3.5 px-4 text-slate-600">{s.namaWali || '-'}</td>
-                      <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{s.noHp}</td>
-                      {/* Pill-shape Status Badge */}
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${
-                          s.status === 'ACTIVE' 
-                            ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/30' 
-                            : 'bg-slate-100 text-slate-500 border border-slate-300'
-                        }`}>
-                          {s.status === 'ACTIVE' ? 'AKTIF' : 'TIDAK AKTIF'}
-                        </span>
-                      </td>
-                      {/* Action Icons with Soft Circle Hover & Colors */}
-                      <td className="py-3.5 px-4 text-center">
-                        <div className="flex items-center justify-center space-x-1.5">
-                          <Link 
-                            to={`/profil/${s.id}`} 
-                            title="Lihat Detail Profil"
-                            className="p-2 text-sky-600 hover:bg-sky-100/80 rounded-full transition"
-                          >
-                            <Eye size={15} />
-                          </Link>
-                          <button 
-                            onClick={() => openEditModal(s)}
-                            title="Edit Data Santri"
-                            className="p-2 text-[#16A34A] hover:bg-[#DCFCE7] rounded-full transition"
-                          >
-                            <Edit size={15} />
-                          </button>
-                          <button 
-                            onClick={() => handleDelete(s.id, s.nama)}
-                            title="Hapus Santri"
-                            className="p-2 text-[#DC2626] hover:bg-[#FEE2E2] rounded-full transition"
-                          >
-                            <Trash2 size={15} />
-                          </button>
-                        </div>
+                {(() => {
+                  const indexOfLastItem = currentPage * itemsPerPage;
+                  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+                  const currentSantriList = santriList.slice(indexOfFirstItem, indexOfLastItem);
+                  
+                  return currentSantriList.length > 0 ? (
+                    currentSantriList.map((s) => (
+                      <tr key={s.id} className="hover:bg-slate-100/60 transition duration-150">
+                        <td className="py-3.5 px-4 font-bold text-slate-800">{s.nama}</td>
+                        <td className="py-3.5 px-4 text-slate-600 font-medium">{s.kelas || '-'}</td>
+                        <td className="py-3.5 px-4 text-slate-600">{s.namaWali || '-'}</td>
+                        <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{s.noHp}</td>
+                        {/* Pill-shape Status Badge */}
+                        <td className="py-3.5 px-4">
+                          <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${
+                            s.status === 'ACTIVE' 
+                              ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/30' 
+                              : 'bg-slate-100 text-slate-500 border border-slate-300'
+                          }`}>
+                            {s.status === 'ACTIVE' ? 'AKTIF' : 'TIDAK AKTIF'}
+                          </span>
+                        </td>
+                        {/* Action Icons with Soft Circle Hover & Colors */}
+                        <td className="py-3.5 px-4 text-center">
+                          <div className="flex items-center justify-center space-x-1.5">
+                            <Link 
+                              to={`/profil/${s.id}`} 
+                              title="Lihat Detail Profil"
+                              className="p-2 text-sky-600 hover:bg-sky-100/80 rounded-full transition"
+                            >
+                              <Eye size={15} />
+                            </Link>
+                            <button 
+                              onClick={() => openEditModal(s)}
+                              title="Edit Data Santri"
+                              className="p-2 text-[#16A34A] hover:bg-[#DCFCE7] rounded-full transition"
+                            >
+                              <Edit size={15} />
+                            </button>
+                            <button 
+                              onClick={() => handleDelete(s.id, s.nama)}
+                              title="Hapus Santri"
+                              className="p-2 text-[#DC2626] hover:bg-[#FEE2E2] rounded-full transition"
+                            >
+                              <Trash2 size={15} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="6" className="py-8 text-center text-slate-400">
+                        Tidak ada data santri ditemukan.
                       </td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="6" className="py-8 text-center text-slate-400">
-                      Tidak ada data santri ditemukan.
-                    </td>
-                  </tr>
-                )}
+                  );
+                })()}
               </tbody>
             </table>
           </div>
+          {(() => {
+            const totalPages = Math.ceil(santriList.length / itemsPerPage);
+            const indexOfLastItem = currentPage * itemsPerPage;
+            const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+            
+            const getPageNumbers = () => {
+              const pages = [];
+              for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
+                  pages.push(i);
+                } else if (pages[pages.length - 1] !== '...') {
+                  pages.push('...');
+                }
+              }
+              return pages;
+            };
+
+            return totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-5 pt-4 border-t border-slate-100 text-xs">
+                <span className="text-slate-500 font-medium">
+                  Menampilkan <strong className="text-slate-800">{indexOfFirstItem + 1}</strong> - <strong className="text-slate-800">{Math.min(indexOfLastItem, santriList.length)}</strong> dari <strong className="text-slate-800">{santriList.length}</strong> santri
+                </span>
+                <div className="flex items-center space-x-1">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed select-none"
+                  >
+                    Sebelumnya
+                  </button>
+                  
+                  {getPageNumbers().map((pageNum, idx) => (
+                    pageNum === '...' ? (
+                      <span key={`ellipsis-${idx}`} className="text-slate-400 px-1.5 font-bold">...</span>
+                    ) : (
+                      <button
+                        key={pageNum}
+                        type="button"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1.5 rounded-lg font-bold border transition select-none ${
+                          currentPage === pageNum
+                            ? 'bg-[#0B4A3F] border-[#0B4A3F] text-white shadow-sm'
+                            : 'bg-white border-slate-200 text-slate-650 hover:bg-slate-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed select-none"
+                  >
+                    Berikutnya
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -478,13 +594,24 @@ function Dashboard({ user }) {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kelas</label>
-                  <input
-                    type="text"
+                  <select
                     required
                     value={editingSantri.kelas || ''}
                     onChange={(e) => setEditingSantri({ ...editingSantri, kelas: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
-                  />
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none font-bold text-slate-700"
+                  >
+                    <option value="">-- Pilih Kelas --</option>
+                    <option value="Imdad Putra">Imdad Putra</option>
+                    <option value="Imdad Putri">Imdad Putri</option>
+                    <option value="Ibtida 1 Putra">Ibtida 1 Putra</option>
+                    <option value="Ibtida 1 Putri">Ibtida 1 Putri</option>
+                    <option value="Ibtida 2 Putra">Ibtida 2 Putra</option>
+                    <option value="Ibtida 2 Putri">Ibtida 2 Putri</option>
+                    <option value="Ibtida 3">Ibtida 3</option>
+                    <option value="Tsanawi 1">Tsanawi 1</option>
+                    <option value="Tsanawi 2">Tsanawi 2</option>
+                    <option value="Tsanawi 3">Tsanawi 3</option>
+                  </select>
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Status Santri</label>
@@ -496,6 +623,37 @@ function Dashboard({ user }) {
                     <option value="ACTIVE">Aktif (ACTIVE)</option>
                     <option value="INACTIVE">Tidak Aktif (INACTIVE)</option>
                   </select>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Email (Opsional)</label>
+                  <input
+                    type="email"
+                    value={editingSantri.email || ''}
+                    onChange={(e) => setEditingSantri({ ...editingSantri, email: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Ubah Sandi (Opsional)</label>
+                  <input
+                    type="password"
+                    placeholder="Masukkan sandi baru"
+                    value={editingSantri.password || ''}
+                    onChange={(e) => setEditingSantri({ ...editingSantri, password: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
+                  />
+                </div>
+                <div className="flex items-center space-x-2 pt-4">
+                  <input
+                    type="checkbox"
+                    id="editBeasiswa"
+                    className="w-4 h-4 text-[#0B4A3F] border-slate-300 rounded focus:ring-[#0B4A3F]"
+                    checked={editingSantri.isBeasiswa || false}
+                    onChange={(e) => setEditingSantri({ ...editingSantri, isBeasiswa: e.target.checked })}
+                  />
+                  <label htmlFor="editBeasiswa" className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider cursor-pointer select-none">
+                    Penerima Beasiswa
+                  </label>
                 </div>
               </div>
               <div>

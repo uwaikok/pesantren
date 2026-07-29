@@ -101,7 +101,24 @@ const getSanksiBySantri = async (req, res) => {
 };
 
 const getMySanksi = async (req, res) => {
-  return res.status(403).json({ message: 'Fitur santri dinonaktifkan pada versi server local' });
+  try {
+    const santriId = req.user.id;
+    const { kategori, tahun } = req.query;
+
+    const whereClause = { santriId };
+    if (kategori) whereClause.kategori = kategori;
+    if (tahun) whereClause.tahun = tahun;
+
+    const riwayatSanksi = await prisma.sanksi.findMany({
+      where: whereClause,
+      orderBy: { tanggalPelanggaran: 'desc' },
+    });
+
+    res.json(riwayatSanksi);
+  } catch (error) {
+    console.error('Get my sanksi error:', error);
+    res.status(500).json({ message: 'Gagal memuat riwayat sanksi Anda' });
+  }
 };
 
 module.exports = {

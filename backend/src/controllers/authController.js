@@ -11,9 +11,24 @@ const login = async (req, res) => {
       return res.status(400).json({ message: 'Email dan password wajib diisi' });
     }
 
-    const user = await prisma.user.findUnique({ where: { email } });
+    let user = await prisma.user.findUnique({ where: { email } });
+    let role = 'ADMIN';
+    let status = 'ACTIVE';
+
+    if (!user) {
+      user = await prisma.santri.findUnique({ where: { email } });
+      role = 'SANTRI';
+      if (user) {
+        status = user.status || 'ACTIVE';
+      }
+    }
+
     if (!user) {
       return res.status(401).json({ message: 'Email atau password salah' });
+    }
+
+    if (role === 'SANTRI' && status !== 'ACTIVE') {
+      return res.status(401).json({ message: 'Akun Anda belum aktif. Silakan hubungi admin.' });
     }
 
     // Bandingkan password
@@ -28,8 +43,8 @@ const login = async (req, res) => {
         id: user.id,
         nama: user.nama,
         email: user.email,
-        role: 'ADMIN',
-        status: 'ACTIVE'
+        role: role,
+        status: status
       },
       process.env.JWT_SECRET || 'pesantren_secret_key_jwt_super_secure_123!',
       { expiresIn: '7d' }
@@ -42,8 +57,8 @@ const login = async (req, res) => {
         id: user.id,
         nama: user.nama,
         email: user.email,
-        role: 'ADMIN',
-        status: 'ACTIVE'
+        role: role,
+        status: status
       }
     });
   } catch (error) {
@@ -54,27 +69,43 @@ const login = async (req, res) => {
 
 const getMe = async (req, res) => {
   try {
-    const user = await prisma.user.findUnique({
-      where: { id: req.user.id },
-      select: {
-        id: true,
-        nama: true,
-        email: true,
-        noHp: true,
-        alamat: true,
-        fotoProfil: true
-      }
-    });
+    let user;
+    if (req.user.role === 'SANTRI') {
+      user = await prisma.santri.findUnique({
+        where: { id: req.user.id },
+        select: {
+          id: true,
+          nama: true,
+          email: true,
+          noHp: true,
+          alamat: true,
+          fotoProfil: true,
+          kelas: true,
+          status: true
+        }
+      });
+    } else {
+      user = await prisma.user.findUnique({
+        where: { id: req.user.id },
+        select: {
+          id: true,
+          nama: true,
+          email: true,
+          noHp: true,
+          alamat: true,
+          fotoProfil: true
+        }
+      });
+    }
 
     if (!user) {
       return res.status(404).json({ message: 'User tidak ditemukan' });
     }
 
-    // Add role and status dynamically for frontend compatibility
     res.json({
       ...user,
-      role: 'ADMIN',
-      status: 'ACTIVE'
+      role: req.user.role || 'ADMIN',
+      status: req.user.role === 'SANTRI' ? (user.status || 'ACTIVE') : 'ACTIVE'
     });
   } catch (error) {
     console.error('Get profile error:', error);

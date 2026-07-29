@@ -51,7 +51,7 @@ const getSantriList = async (req, res) => {
     // Map for frontend compatibility
     const mapped = santri.map(s => ({
       ...s,
-      email: '-',
+      email: s.email || '-',
     }));
 
     res.json(mapped);
@@ -63,7 +63,7 @@ const getSantriList = async (req, res) => {
 
 const createSantri = async (req, res) => {
   try {
-    const { nama, noHp, alamat, namaWali, kelas } = req.body;
+    const { nama, email, password, noHp, alamat, namaWali, kelas, isBeasiswa } = req.body;
 
     if (!nama) {
       return res.status(400).json({ message: 'Nama wajib diisi' });
@@ -76,21 +76,41 @@ const createSantri = async (req, res) => {
       }
     }
 
+    if (email) {
+      const existingUser = await prisma.user.findFirst({ where: { email } });
+      const existingSantri = await prisma.santri.findFirst({ where: { email } });
+      if (existingUser || existingSantri) {
+        return res.status(400).json({ message: 'Email sudah terdaftar oleh pengguna lain' });
+      }
+    }
+
+    let hashedPassword = null;
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      hashedPassword = await bcrypt.hash(password, 10);
+    }
+
     const newSantri = await prisma.santri.create({
       data: {
         nama,
+        email: email || null,
+        password: hashedPassword,
         noHp,
         alamat,
         namaWali,
-        kelas
+        kelas,
+        isBeasiswa: isBeasiswa === true || isBeasiswa === 'true'
       }
     });
+
+    const safeSantri = { ...newSantri };
+    delete safeSantri.password;
 
     res.status(201).json({ 
       message: 'Santri berhasil ditambahkan.', 
       user: {
-        ...newSantri,
-        email: '-',
+        ...safeSantri,
+        email: safeSantri.email || '-',
         status: 'ACTIVE'
       } 
     });
@@ -103,7 +123,7 @@ const createSantri = async (req, res) => {
 const updateSantri = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nama, noHp, alamat, namaWali, kelas } = req.body;
+    const { nama, email, password, noHp, alamat, namaWali, kelas, isBeasiswa } = req.body;
 
     const santri = await prisma.santri.findUnique({ where: { id: parseInt(id) } });
     if (!santri) {
@@ -117,23 +137,51 @@ const updateSantri = async (req, res) => {
       }
     }
 
+    if (email && email !== santri.email) {
+      const existingUser = await prisma.user.findFirst({ where: { email } });
+      const existingSantri = await prisma.santri.findFirst({
+        where: {
+          email,
+          NOT: { id: parseInt(id) }
+        }
+      });
+      if (existingUser || existingSantri) {
+        return res.status(400).json({ message: 'Email sudah terdaftar oleh pengguna lain' });
+      }
+    }
+
+    const updateData = {
+      nama: nama || santri.nama,
+      noHp: noHp !== undefined ? noHp : santri.noHp,
+      alamat: alamat !== undefined ? alamat : santri.alamat,
+      namaWali: namaWali !== undefined ? namaWali : santri.namaWali,
+      kelas: kelas !== undefined ? kelas : santri.kelas,
+      ...(req.body.status && { status: req.body.status }),
+      ...(isBeasiswa !== undefined && { isBeasiswa: isBeasiswa === true || isBeasiswa === 'true' })
+    };
+
+    if (email !== undefined) {
+      updateData.email = email || null;
+    }
+
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
     const updated = await prisma.santri.update({
       where: { id: parseInt(id) },
-      data: {
-        nama: nama || santri.nama,
-        noHp: noHp !== undefined ? noHp : santri.noHp,
-        alamat: alamat !== undefined ? alamat : santri.alamat,
-        namaWali: namaWali !== undefined ? namaWali : santri.namaWali,
-        kelas: kelas !== undefined ? kelas : santri.kelas,
-        ...(req.body.status && { status: req.body.status }),
-      },
+      data: updateData,
     });
+
+    const safeSantri = { ...updated };
+    delete safeSantri.password;
 
     res.json({ 
       message: 'Data santri berhasil diperbarui', 
       user: {
-        ...updated,
-        email: '-',
+        ...safeSantri,
+        email: safeSantri.email || '-',
       } 
     });
   } catch (error) {
@@ -165,6 +213,7 @@ const getStats = async (req, res) => {
     const activeSantri = await prisma.santri.count({ where: { status: 'ACTIVE' } });
     const inactiveSantri = totalSantri - activeSantri;
     const totalSanksi = await prisma.sanksi.count();
+    const totalBeasiswa = await prisma.santri.count({ where: { isBeasiswa: true } });
 
     // Dapatkan data pembayaran SPP bulan ini (misal bulan sekarang)
     const currentMonth = new Date().getMonth() + 1;
@@ -200,6 +249,7 @@ const getStats = async (req, res) => {
       activeSantri,
       inactiveSantri,
       totalSanksi,
+      totalBeasiswa,
       sppStats: {
         bulan: currentMonth,
         tahun: currentYear,
@@ -214,6 +264,29 @@ const getStats = async (req, res) => {
   } catch (error) {
     console.error('Get stats error:', error);
     res.status(500).json({ message: 'Gagal memuat statistik dashboard' });
+  }
+};
+
+const promoteBulk = async (req, res) => {
+  try {
+    const { studentIds, nextClass, status } = req.body;
+    if (!studentIds || !Array.isArray(studentIds)) {
+      return res.status(400).json({ message: 'studentIds harus berupa array' });
+    }
+
+    const updateData = {};
+    if (nextClass !== undefined) updateData.kelas = nextClass;
+    if (status !== undefined) updateData.status = status;
+
+    await prisma.santri.updateMany({
+      where: { id: { in: studentIds } },
+      data: updateData,
+    });
+
+    res.json({ message: 'Kenaikan kelas massal berhasil diproses' });
+  } catch (error) {
+    console.error('Bulk promote error:', error);
+    res.status(500).json({ message: 'Gagal memproses kenaikan kelas massal' });
   }
 };
 
@@ -267,7 +340,7 @@ const uploadFotoProfil = async (req, res) => {
       fotoProfil: fotoBase64,
       user: {
         ...updated,
-        email: '-',
+        email: updated.email || '-',
       } 
     });
   } catch (error) {
@@ -282,6 +355,7 @@ module.exports = {
   updateSantri,
   deleteSantri,
   getStats,
+  promoteBulk,
   uploadFotoProfil,
   upload,
 };

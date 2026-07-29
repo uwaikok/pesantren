@@ -98,6 +98,13 @@ function Login({ onLoginSuccess }) {
             <div>
               <div className="flex justify-between items-center mb-1.5">
                 <label className="block text-[11px] font-extrabold text-[#0B4A3F] uppercase tracking-wider">Kata Sandi</label>
+                <button
+                  type="button"
+                  onClick={() => alert('Lupa kata sandi? Silakan hubungi admin atau pengurus di kantor pesantren untuk mereset kata sandi Anda ke kata sandi default ("student123").')}
+                  className="text-[10px] text-[#D4AF37] hover:underline font-bold"
+                >
+                  Lupa Sandi?
+                </button>
               </div>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-400">

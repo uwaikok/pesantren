@@ -142,7 +142,24 @@ const getNilaiBySantri = async (req, res) => {
 };
 
 const getMyNilai = async (req, res) => {
-  return res.status(403).json({ message: 'Fitur santri dinonaktifkan pada versi server local' });
+  try {
+    const santriId = req.user.id;
+    const { tahunAjaran, semester } = req.query;
+
+    const whereClause = { santriId };
+    if (tahunAjaran) whereClause.tahunAjaran = tahunAjaran;
+    if (semester) whereClause.semester = semester;
+
+    const riwayatNilai = await prisma.nilai.findMany({
+      where: whereClause,
+      orderBy: { mataPelajaran: 'asc' },
+    });
+
+    res.json(riwayatNilai);
+  } catch (error) {
+    console.error('Get my nilai error:', error);
+    res.status(500).json({ message: 'Gagal memuat riwayat nilai Anda' });
+  }
 };
 
 module.exports = {

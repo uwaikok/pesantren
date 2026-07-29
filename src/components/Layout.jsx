@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -11,7 +11,10 @@ import {
   X, 
   ChevronRight,
   UserPlus,
-  Sparkles
+  Sparkles,
+  Users,
+  Bell,
+  Trash2
 } from 'lucide-react';
 import api from '../utils/api';
 
@@ -20,6 +23,111 @@ function Layout({ children, user, onLogout }) {
   const location = useLocation();
   const navigate = useNavigate();
 
+  // State untuk Notifikasi Lonceng
+  const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  
+  // State untuk Modal Pengiriman Notifikasi oleh Admin
+  const [isAdminNotifModalOpen, setIsAdminNotifModalOpen] = useState(false);
+  const [notifForm, setNotifForm] = useState({ judul: '', isi: '', kategori: 'UMUM', santriId: '' });
+  const [allSantri, setAllSantri] = useState([]);
+
+  useEffect(() => {
+    if (user) {
+      fetchNotifications();
+      if (user.role === 'ADMIN') {
+        fetchAllSantri();
+      }
+    }
+  }, [user]);
+
+  const fetchNotifications = async () => {
+    try {
+      const data = await api.get('/notifications');
+      setNotifications(data);
+      if (user.role === 'SANTRI') {
+        const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${user.id}`) || '[]');
+        const unread = data.filter(n => {
+          return !readNotifs.includes(String(n.id)) && !n.isRead;
+        });
+        setUnreadCount(unread.length);
+      } else {
+        setUnreadCount(0);
+      }
+    } catch (err) {
+      console.error('Gagal mengambil notifikasi:', err);
+    }
+  };
+
+  const fetchAllSantri = async () => {
+    try {
+      const data = await api.get('/admin/santri');
+      setAllSantri(data);
+    } catch (err) {
+      console.error('Gagal mengambil daftar santri:', err);
+    }
+  };
+
+  const handleMarkSingleRead = async (id) => {
+    try {
+      if (user.role === 'SANTRI') {
+        if (typeof id === 'number') {
+          await api.put('/notifications/read', { id });
+        }
+        const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${user.id}`) || '[]');
+        if (!readNotifs.includes(String(id))) {
+          readNotifs.push(String(id));
+        }
+        localStorage.setItem(`read_notifs_${user.id}`, JSON.stringify(readNotifs));
+        fetchNotifications();
+      }
+    } catch (err) {
+      console.error('Gagal menandai dibaca:', err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      if (user.role === 'SANTRI') {
+        await api.put('/notifications/read');
+        const allIds = notifications.map(n => String(n.id));
+        localStorage.setItem(`read_notifs_${user.id}`, JSON.stringify(allIds));
+        fetchNotifications();
+      }
+    } catch (err) {
+      console.error('Gagal menandai semua dibaca:', err);
+    }
+  };
+
+  const handleSendNotification = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/notifications', {
+        judul: notifForm.judul,
+        isi: notifForm.isi,
+        kategori: notifForm.kategori,
+        santriId: notifForm.santriId ? parseInt(notifForm.santriId) : null
+      });
+      setIsAdminNotifModalOpen(false);
+      setNotifForm({ judul: '', isi: '', kategori: 'UMUM', santriId: '' });
+      fetchNotifications();
+      alert('Notifikasi berhasil dikirim!');
+    } catch (err) {
+      alert(err.message || 'Gagal mengirim notifikasi');
+    }
+  };
+
+  const handleDeleteNotification = async (id) => {
+    if (!window.confirm('Hapus notifikasi ini dari riwayat?')) return;
+    try {
+      await api.delete(`/notifications/${id}`);
+      fetchNotifications();
+    } catch (err) {
+      alert(err.message || 'Gagal menghapus notifikasi');
+    }
+  };
+
   // Memetakan rute ke label breadcrumbs
   const getBreadcrumbs = () => {
     const path = location.pathname;
@@ -27,6 +135,8 @@ function Layout({ children, user, onLogout }) {
 
     if (path === '/pendidikan') {
       crumbs.push({ label: 'Modul Akademik & Pendidikan', path: '/pendidikan' });
+    } else if (path === '/kelas') {
+      crumbs.push({ label: 'Kelas / Rombel', path: '/kelas' });
     } else if (path === '/keamanan') {
       crumbs.push({ label: 'Modul Keamanan & Sanksi', path: '/keamanan' });
     } else if (path === '/keuangan') {
@@ -43,6 +153,7 @@ function Layout({ children, user, onLogout }) {
   const navItems = [
     { label: 'Beranda', path: '/', icon: LayoutDashboard, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Pendidikan', path: '/pendidikan', icon: BookOpen, roles: ['ADMIN', 'SANTRI'] },
+    { label: 'Kelas / Rombel', path: '/kelas', icon: Users, roles: ['ADMIN'] },
     { label: 'Keamanan', path: '/keamanan', icon: ShieldAlert, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Bendahara', path: '/keuangan', icon: DollarSign, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Profil', path: '/profil', icon: User, roles: ['ADMIN', 'SANTRI'] },
@@ -162,7 +273,112 @@ function Layout({ children, user, onLogout }) {
             <span className="text-[9px] text-[#E8C766] font-semibold">Miftahul Huda As-Syadzili</span>
           </div>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 relative">
+          {/* Ikon Lonceng Mobile */}
+          <button
+            onClick={() => setIsNotifOpen(!isNotifOpen)}
+            className="p-2 text-[#E8C766] hover:text-white hover:bg-white/10 rounded-lg transition relative"
+          >
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white rounded-full flex items-center justify-center font-bold text-[8px] animate-pulse">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Dropdown Notifikasi Mobile */}
+          {isNotifOpen && (
+            <div className="absolute right-0 top-11 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-xs text-[#1A1A1A]">
+              <div className="p-3 bg-[#0B4A3F] text-white font-bold flex items-center justify-between border-b border-[#D4AF37]/30">
+                <span className="flex items-center space-x-1 font-serif">
+                  <Bell size={12} />
+                  <span>Notifikasi SIM</span>
+                </span>
+                {user.role === 'SANTRI' && unreadCount > 0 && (
+                  <button 
+                    onClick={handleMarkAllRead} 
+                    className="text-[9px] text-emerald-200 hover:text-white font-medium underline"
+                  >
+                    Semua Dibaca
+                  </button>
+                )}
+                {user.role === 'ADMIN' && (
+                  <button 
+                    onClick={() => { setIsAdminNotifModalOpen(true); setIsNotifOpen(false); }} 
+                    className="text-[9px] bg-[#D4AF37] text-[#0B4A3F] font-bold px-1.5 py-0.5 rounded shadow-sm"
+                  >
+                    Kirim
+                  </button>
+                )}
+              </div>
+              <div className="max-h-60 overflow-y-auto divide-y divide-slate-100">
+                {notifications.length > 0 ? (
+                  notifications.map(n => {
+                    let iconBg = 'bg-slate-100 text-slate-600 border border-slate-250';
+                    let badgeLabel = 'UMUM';
+                    if (n.kategori === 'UJIAN') {
+                      iconBg = 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/20';
+                      badgeLabel = 'UJIAN';
+                    } else if (n.kategori === 'SPP') {
+                      iconBg = 'bg-amber-100 text-amber-700 border border-amber-500/20';
+                      badgeLabel = 'BULANAN';
+                    } else if (n.kategori === 'KEAMANAN') {
+                      iconBg = 'bg-rose-100 text-rose-700 border border-rose-500/20';
+                      badgeLabel = 'SANKSI';
+                    }
+
+                    const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${user.id}`) || '[]');
+                    const isRead = readNotifs.includes(String(n.id)) || n.isRead;
+
+                    return (
+                      <div key={n.id} className={`p-3 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80 font-medium' : ''}`}>
+                        <div className="flex justify-between items-start gap-2">
+                          <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide inline-block ${iconBg}`}>
+                            {badgeLabel}
+                          </span>
+                          <div className="flex items-center space-x-1.5">
+                            <span className="text-[8px] text-slate-400">
+                              {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                            </span>
+                            {!isRead && user.role === 'SANTRI' && (
+                              <button 
+                                onClick={() => handleMarkSingleRead(n.id)}
+                                className="text-[8px] text-emerald-600 hover:text-emerald-700 font-bold underline"
+                              >
+                                Dibaca
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <h4 className="font-bold text-slate-800 mt-1 leading-tight text-[10px]">{n.judul}</h4>
+                        <p className="text-slate-500 mt-1 text-[9px] leading-relaxed">{n.isi}</p>
+                        {user.role === 'ADMIN' && typeof n.id !== 'string' && (
+                          <div className="mt-2 flex justify-between items-center">
+                            <span className="text-[8px] text-slate-400 font-medium">
+                              Target: {n.santriId ? 'Santri Privat' : 'Semua Santri'}
+                            </span>
+                            <button 
+                              onClick={() => handleDeleteNotification(n.id)}
+                              className="text-rose-500 hover:text-rose-700 font-bold text-[9px] flex items-center gap-0.5"
+                            >
+                              <Trash2 size={9} />
+                              Hapus
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                ) : (
+                  <div className="p-6 text-center text-slate-400">
+                    <p className="text-xs">Tidak ada notifikasi</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="p-2 text-[#E8C766] hover:text-white hover:bg-white/10 rounded-lg transition"
@@ -275,7 +491,115 @@ function Layout({ children, user, onLogout }) {
           </div>
           
           <div className="flex items-center space-x-5">
-            <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium pl-5">
+            {/* Ikon Lonceng Desktop */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotifOpen(!isNotifOpen)}
+                className="p-2 text-slate-500 hover:text-[#0B4A3F] hover:bg-slate-100 rounded-full transition relative"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-rose-500 text-white rounded-full flex items-center justify-center font-bold text-[8px] animate-pulse">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Dropdown Notifikasi Desktop */}
+              {isNotifOpen && (
+                <div className="absolute right-0 mt-2.5 w-80 bg-white rounded-2xl shadow-2xl border border-slate-200/80 z-50 overflow-hidden text-xs text-[#1A1A1A]">
+                  <div className="p-3.5 bg-[#0B4A3F] text-white font-bold font-serif flex items-center justify-between border-b border-[#D4AF37]/30">
+                    <span className="flex items-center space-x-1.5">
+                      <Bell size={14} className="text-[#D4AF37]" />
+                      <span>Notifikasi SIM</span>
+                    </span>
+                    {user.role === 'SANTRI' && unreadCount > 0 && (
+                      <button 
+                        onClick={handleMarkAllRead} 
+                        className="text-[10px] text-emerald-250 hover:text-white font-sans font-semibold underline transition duration-150"
+                      >
+                        Tandai Semua Dibaca
+                      </button>
+                    )}
+                    {user.role === 'ADMIN' && (
+                      <button 
+                        onClick={() => { setIsAdminNotifModalOpen(true); setIsNotifOpen(false); }} 
+                        className="text-[10px] bg-[#D4AF37] hover:bg-[#E8C766] text-[#0B4A3F] font-extrabold px-2.5 py-1 rounded transition shadow-sm"
+                      >
+                        Kirim Pengumuman
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div className="max-h-72 overflow-y-auto divide-y divide-slate-100">
+                    {notifications.length > 0 ? (
+                      notifications.map(n => {
+                        let iconBg = 'bg-slate-100 text-slate-600 border border-slate-250';
+                        let badgeLabel = 'UMUM';
+                        if (n.kategori === 'UJIAN') {
+                          iconBg = 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/20';
+                          badgeLabel = 'UJIAN';
+                        } else if (n.kategori === 'SPP') {
+                          iconBg = 'bg-amber-100 text-amber-700 border border-amber-500/20';
+                          badgeLabel = 'BULANAN';
+                        } else if (n.kategori === 'KEAMANAN') {
+                          iconBg = 'bg-rose-100 text-rose-700 border border-rose-500/20';
+                          badgeLabel = 'SANKSI';
+                        }
+
+                        const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${user.id}`) || '[]');
+                        const isRead = readNotifs.includes(String(n.id)) || n.isRead;
+
+                        return (
+                          <div key={n.id} className={`p-3.5 transition-colors duration-150 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80 font-medium' : ''}`}>
+                            <div className="flex justify-between items-start gap-2">
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold tracking-wider uppercase inline-block ${iconBg}`}>
+                                {badgeLabel}
+                              </span>
+                              <div className="flex items-center space-x-2">
+                                <span className="text-[9px] text-slate-400 font-mono">
+                                  {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                </span>
+                                {!isRead && user.role === 'SANTRI' && (
+                                  <button 
+                                    onClick={() => handleMarkSingleRead(n.id)}
+                                    className="text-[9px] text-emerald-600 hover:text-emerald-700 font-bold underline transition"
+                                  >
+                                    Tandai Dibaca
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <h4 className="font-bold text-slate-800 mt-1 text-[11px] leading-tight">{n.judul}</h4>
+                            <p className="text-slate-500 mt-1 text-[10px] leading-relaxed">{n.isi}</p>
+                            {user.role === 'ADMIN' && typeof n.id !== 'string' && (
+                              <div className="mt-2.5 flex justify-between items-center border-t border-slate-100 pt-1.5">
+                                <span className="text-[8px] text-slate-400 font-medium">
+                                  Penerima: {n.santriId ? `Santri ID ${n.santriId}` : 'Semua Santri'}
+                                </span>
+                                <button 
+                                  onClick={() => handleDeleteNotification(n.id)}
+                                  className="text-rose-500 hover:text-rose-700 p-1 flex items-center gap-0.5 font-bold hover:underline transition"
+                                >
+                                  <Trash2 size={10} />
+                                  <span>Hapus</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-8 text-center text-slate-400">
+                        <p className="text-xs">Tidak ada notifikasi</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center space-x-2 text-xs text-slate-400 font-medium pl-5 border-l border-slate-200">
               <span className="font-serif text-[#0B4A3F] font-bold">Miftahul Huda As-Syadzili</span>
               <div className="w-2 h-2 rounded-full bg-[#16A34A] animate-pulse"></div>
             </div>
@@ -299,6 +623,96 @@ function Layout({ children, user, onLogout }) {
           {children}
         </main>
       </div>
+
+      {/* MODAL KIRIM NOTIFIKASI ADMIN */}
+      {isAdminNotifModalOpen && (
+        <div className="fixed inset-0 bg-[#083831]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-[#D4AF37]/30">
+            <div className="p-5 bg-[#0B4A3F] text-white font-serif font-bold text-sm md:text-base flex justify-between items-center border-b border-[#D4AF37]/30">
+              <span className="flex items-center space-x-2">
+                <Bell size={18} className="text-[#D4AF37]" />
+                <span>Kirim Pemberitahuan Baru</span>
+              </span>
+              <button 
+                onClick={() => setIsAdminNotifModalOpen(false)}
+                className="text-emerald-250 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleSendNotification} className="p-5 space-y-4 text-xs">
+              <div>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Judul Pemberitahuan</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Contoh: Jadwal Ujian Akhir Semester"
+                  value={notifForm.judul}
+                  onChange={(e) => setNotifForm({ ...notifForm, judul: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kategori</label>
+                <select
+                  value={notifForm.kategori}
+                  onChange={(e) => setNotifForm({ ...notifForm, kategori: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none font-bold text-slate-700"
+                >
+                  <option value="UMUM">UMUM (Pemberitahuan Biasa)</option>
+                  <option value="UJIAN">UJIAN (Pengumuman Ujian/Akademik)</option>
+                  <option value="SPP">SPP (Pengumuman Syariah/Bulanan)</option>
+                  <option value="KEAMANAN">KEAMANAN (Pemberitahuan Disiplin/Sanksi)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Target Penerima</label>
+                <select
+                  value={notifForm.santriId}
+                  onChange={(e) => setNotifForm({ ...notifForm, santriId: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none text-slate-700"
+                >
+                  <option value="">Semua Santri (Global)</option>
+                  {allSantri.map(s => (
+                    <option key={s.id} value={s.id}>{s.nama} ({s.kelas || 'Tanpa Kelas'})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Isi Pemberitahuan</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Tulis detail pengumuman yang ingin disampaikan..."
+                  value={notifForm.isi}
+                  onChange={(e) => setNotifForm({ ...notifForm, isi: e.target.value })}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsAdminNotifModalOpen(false)}
+                  className="flex-1 py-2.5 text-center font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl transition"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 text-center font-bold bg-[#0B4A3F] hover:bg-[#083831] text-white rounded-xl shadow-sm transition"
+                >
+                  Kirim Notifikasi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

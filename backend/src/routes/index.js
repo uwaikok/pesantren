@@ -9,6 +9,7 @@ const adminController = require('../controllers/adminController');
 const akademikController = require('../controllers/akademikController');
 const keamananController = require('../controllers/keamananController');
 const keuanganController = require('../controllers/keuanganController');
+const notificationController = require('../controllers/notificationController');
 
 // --- AUTENTIKASI ---
 router.post('/auth/login', authController.login);
@@ -100,6 +101,7 @@ router.put('/auth/profile', verifyToken, async (req, res) => {
 router.get('/admin/stats', verifyToken, isAdmin, adminController.getStats);
 router.get('/admin/santri', verifyToken, isAdmin, adminController.getSantriList);
 router.post('/admin/santri', verifyToken, isAdmin, adminController.createSantri);
+router.put('/admin/santri/promote/bulk', verifyToken, isAdmin, adminController.promoteBulk);
 router.put('/admin/santri/:id', verifyToken, isAdmin, adminController.updateSantri);
 router.delete('/admin/santri/:id', verifyToken, isAdmin, adminController.deleteSantri);
 
@@ -126,14 +128,20 @@ router.post('/keuangan', verifyToken, isAdmin, keuanganController.createOrUpdate
 router.get('/keuangan/my', verifyToken, keuanganController.getMyPembayaran);
 router.get('/keuangan/santri/:santriId', verifyToken, keuanganController.getRiwayatPembayaran);
 
+// --- MODUL NOTIFIKASI ---
+router.post('/notifications', verifyToken, isAdmin, notificationController.createNotification);
+router.get('/notifications', verifyToken, notificationController.getNotifications);
+router.delete('/notifications/:id', verifyToken, isAdmin, notificationController.deleteNotification);
+router.put('/notifications/read', verifyToken, notificationController.markAsRead);
+
 // --- AGGREGATE PROFILE ENDPOINT ---
-// Dapat diakses oleh admin
+// Dapat diakses oleh admin atau santri bersangkutan
 router.get('/users/:id/profile', verifyToken, async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
 
-    // RBAC check: Hanya admin
-    if (req.user.role !== 'ADMIN') {
+    // RBAC check: Admin atau santri bersangkutan
+    if (req.user.role !== 'ADMIN' && req.user.id !== userId) {
       return res.status(403).json({ message: 'Akses ditolak: Anda tidak berhak mengakses data profil ini' });
     }
 
@@ -142,10 +150,12 @@ router.get('/users/:id/profile', verifyToken, async (req, res) => {
       select: {
         id: true,
         nama: true,
+        email: true,
         noHp: true,
         alamat: true,
         namaWali: true,
         kelas: true,
+        status: true,
         fotoProfil: true,
         createdAt: true,
       }
@@ -157,9 +167,7 @@ router.get('/users/:id/profile', verifyToken, async (req, res) => {
 
     const user = {
       ...santri,
-      email: '-',
       role: 'SANTRI',
-      status: 'ACTIVE'
     };
 
     // Ambil Nilai Akademik
@@ -182,7 +190,7 @@ router.get('/users/:id/profile', verifyToken, async (req, res) => {
 
     const keuangan = [];
     let totalTunggakan = 0;
-    const defaultAmount = 350000;
+    const defaultAmount = 300000;
 
     for (let m = 1; m <= 12; m++) {
       const dbRecord = databasePayments.find(p => p.bulan === m);
@@ -219,6 +227,83 @@ router.get('/users/:id/profile', verifyToken, async (req, res) => {
   } catch (error) {
     console.error('Aggregate profile error:', error);
     res.status(500).json({ message: 'Gagal memuat profil lengkap santri' });
+  }
+});
+
+// Update profil santri (dapat diakses oleh admin atau santri bersangkutan)
+router.put('/users/:id/profile', verifyToken, async (req, res) => {
+  try {
+    const userId = parseInt(req.params.id);
+    const { nama, email, noHp, alamat, namaWali, password } = req.body;
+
+    // RBAC check: Admin atau santri bersangkutan
+    if (req.user.role !== 'ADMIN' && req.user.id !== userId) {
+      return res.status(403).json({ message: 'Akses ditolak: Anda tidak berhak mengubah data profil ini' });
+    }
+
+    const santri = await prisma.santri.findUnique({ where: { id: userId } });
+    if (!santri) {
+      return res.status(404).json({ message: 'Santri tidak ditemukan' });
+    }
+
+    if (noHp) {
+      const numericPhone = /^[0-9]+$/;
+      if (!numericPhone.test(noHp)) {
+        return res.status(400).json({ message: 'Nomor HP harus berupa angka' });
+      }
+    }
+
+    if (email && email !== santri.email) {
+      const existingUser = await prisma.user.findFirst({ where: { email } });
+      const existingSantri = await prisma.santri.findFirst({
+        where: {
+          email,
+          NOT: { id: userId }
+        }
+      });
+      if (existingUser || existingSantri) {
+        return res.status(400).json({ message: 'Email sudah terdaftar oleh pengguna lain' });
+      }
+    }
+
+    const updateData = {
+      nama: nama || santri.nama,
+      noHp: noHp !== undefined ? noHp : santri.noHp,
+      alamat: alamat !== undefined ? alamat : santri.alamat,
+      namaWali: namaWali !== undefined ? namaWali : santri.namaWali,
+    };
+
+    // Hanya admin yang boleh mengubah kelas, status, dan beasiswa
+    if (req.user.role === 'ADMIN') {
+      if (req.body.kelas !== undefined) updateData.kelas = req.body.kelas;
+      if (req.body.status !== undefined) updateData.status = req.body.status;
+      if (req.body.isBeasiswa !== undefined) updateData.isBeasiswa = req.body.isBeasiswa === true || req.body.isBeasiswa === 'true';
+    }
+
+    if (email !== undefined) {
+      updateData.email = email || null;
+    }
+
+    if (password) {
+      const bcrypt = require('bcryptjs');
+      updateData.password = await bcrypt.hash(password, 10);
+    }
+
+    const updated = await prisma.santri.update({
+      where: { id: userId },
+      data: updateData,
+    });
+
+    const safeSantri = { ...updated };
+    delete safeSantri.password;
+
+    res.json({
+      message: 'Profil berhasil diperbarui',
+      user: safeSantri
+    });
+  } catch (error) {
+    console.error('Update profile error:', error);
+    res.status(500).json({ message: 'Gagal memperbarui profil' });
   }
 });
 

@@ -7,10 +7,13 @@ function TambahSantri() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     nama: '',
+    email: '',
+    password: '',
     noHp: '',
     namaWali: '',
     alamat: '',
-    kelas: ''
+    kelas: '',
+    isBeasiswa: false
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -78,13 +81,24 @@ function TambahSantri() {
         
         <div>
           <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kelas</label>
-          <input 
-            type="text" 
-            placeholder="Contoh: Kelas 10-A, Tsanawi 3"
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-[#D4AF37]" 
+          <select 
+            required
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-[#D4AF37] font-bold text-slate-700" 
             value={formData.kelas} 
-            onChange={(e) => setFormData({...formData, kelas: e.target.value})} 
-          />
+            onChange={(e) => setFormData({...formData, kelas: e.target.value})}
+          >
+            <option value="">-- Pilih Kelas --</option>
+            <option value="Imdad Putra">Imdad Putra</option>
+            <option value="Imdad Putri">Imdad Putri</option>
+            <option value="Ibtida 1 Putra">Ibtida 1 Putra</option>
+            <option value="Ibtida 1 Putri">Ibtida 1 Putri</option>
+            <option value="Ibtida 2 Putra">Ibtida 2 Putra</option>
+            <option value="Ibtida 2 Putri">Ibtida 2 Putri</option>
+            <option value="Ibtida 3">Ibtida 3</option>
+            <option value="Tsanawi 1">Tsanawi 1</option>
+            <option value="Tsanawi 2">Tsanawi 2</option>
+            <option value="Tsanawi 3">Tsanawi 3</option>
+          </select>
         </div>
 
         <div>
@@ -96,6 +110,41 @@ function TambahSantri() {
             value={formData.namaWali} 
             onChange={(e) => setFormData({...formData, namaWali: e.target.value})} 
           />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Email Akses User (Opsional)</label>
+          <input 
+            type="email" 
+            placeholder="santri@email.com"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-[#D4AF37]" 
+            value={formData.email} 
+            onChange={(e) => setFormData({...formData, email: e.target.value})} 
+          />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Password Akses User (Opsional)</label>
+          <input 
+            type="password" 
+            placeholder="Masukkan kata sandi akses"
+            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-[#D4AF37]" 
+            value={formData.password} 
+            onChange={(e) => setFormData({...formData, password: e.target.value})} 
+          />
+        </div>
+
+        <div className="md:col-span-2 flex items-center space-x-2 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
+          <input 
+            type="checkbox" 
+            id="isBeasiswa"
+            className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500" 
+            checked={formData.isBeasiswa} 
+            onChange={(e) => setFormData({...formData, isBeasiswa: e.target.checked})} 
+          />
+          <label htmlFor="isBeasiswa" className="text-xs font-bold text-[#0B4A3F] select-none cursor-pointer">
+            Santri Ini Penerima Beasiswa (Bebas Biaya Syariah)
+          </label>
         </div>
 
         <div className="md:col-span-2">

@@ -9,7 +9,7 @@ const api = axios.create({
 // Interceptor untuk menyisipkan token JWT di setiap request
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('simesra_token');
+    const token = sessionStorage.getItem('simesra_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -32,6 +32,18 @@ const seedMockDatabase = () => {
         password: 'adminpassword', // Simpan plain text untuk kemudahan demo
         noHp: '081234567890',
         alamat: 'Komplek Pesantren Miftahul Huda As-Syadzili No. 1',
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        fotoProfil: null,
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: 10,
+        nama: 'ADMIN KEDUA',
+        email: 'admin2@pesantren.com',
+        password: 'admin2password',
+        noHp: '081234567891',
+        alamat: 'Komplek Pesantren Miftahul Huda As-Syadzili No. 2',
         role: 'ADMIN',
         status: 'ACTIVE',
         fotoProfil: null,
@@ -117,21 +129,34 @@ const seedMockDatabase = () => {
     ];
 
     const pembayaran = [
-      { id: 1, santriId: 2, bulan: 1, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-01-05', jumlah: 250000 },
-      { id: 2, santriId: 2, bulan: 2, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-02-04', jumlah: 250000 },
-      { id: 3, santriId: 2, bulan: 3, tahun: 2026, status: 'BELUM_BAYAR', tanggalBayar: null, jumlah: 250000 },
-      { id: 4, santriId: 2, bulan: 4, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-04-06', jumlah: 250000 },
-      { id: 5, santriId: 3, bulan: 1, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-01-08', jumlah: 250000 },
-      { id: 6, santriId: 3, bulan: 2, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-02-07', jumlah: 250000 },
-      { id: 7, santriId: 3, bulan: 3, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-03-05', jumlah: 250000 },
-      { id: 8, santriId: 3, bulan: 4, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-04-04', jumlah: 250000 },
-      { id: 9, santriId: 3, bulan: 5, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-05-02', jumlah: 250000 }
+      { id: 1, santriId: 2, bulan: 1, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-01-05', jumlah: 300000 },
+      { id: 2, santriId: 2, bulan: 2, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-02-04', jumlah: 300000 },
+      { id: 3, santriId: 2, bulan: 3, tahun: 2026, status: 'BELUM_BAYAR', tanggalBayar: null, jumlah: 300000 },
+      { id: 4, santriId: 2, bulan: 4, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-04-06', jumlah: 300000 },
+      { id: 5, santriId: 3, bulan: 1, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-01-08', jumlah: 300000 },
+      { id: 6, santriId: 3, bulan: 2, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-02-07', jumlah: 300000 },
+      { id: 7, santriId: 3, bulan: 3, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-03-05', jumlah: 300000 },
+      { id: 8, santriId: 3, bulan: 4, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-04-04', jumlah: 300000 },
+      { id: 9, santriId: 3, bulan: 5, tahun: 2026, status: 'LUNAS', tanggalBayar: '2026-05-02', jumlah: 300000 }
+    ];
+
+    const initialNotifs = [
+      {
+        id: 1,
+        judul: 'Pengumuman Ujian Semester Genap',
+        isi: 'Ujian Akhir Semester Genap dijadwalkan mulai tanggal 10 Agustus 2026. Harap seluruh santri mempersiapkan administrasi dan kartu ujian.',
+        kategori: 'UJIAN',
+        santriId: null,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      }
     ];
 
     localStorage.setItem('mock_users', JSON.stringify(users));
     localStorage.setItem('mock_nilai', JSON.stringify(nilai));
     localStorage.setItem('mock_sanksi', JSON.stringify(sanksi));
     localStorage.setItem('mock_pembayaran', JSON.stringify(pembayaran));
+    localStorage.setItem('mock_notifications', JSON.stringify(initialNotifs));
     localStorage.setItem('db_initialized_v5', 'true');
   }
 };
@@ -145,7 +170,7 @@ const saveMockData = (key, data) => localStorage.setItem(key, JSON.stringify(dat
 
 // Cek siapa user yang sedang login berdasarkan token
 const getLoggedInUser = () => {
-  const token = localStorage.getItem('simesra_token');
+  const token = sessionStorage.getItem('simesra_token');
   if (!token) return null;
   try {
     // Di demo mode, token hanyalah JSON string user
@@ -174,6 +199,7 @@ const request = async (method, url, data = null, params = null) => {
 
       // Jika murni kesalahan jaringan/offline (misal ServerDown / No Connection):
       console.warn('Koneksi ke server backend offline. Menggunakan mode cadangan...', error);
+      window.useMockDb = true;
       return request(method, url, data, params);
     }
   }
@@ -196,7 +222,7 @@ const request = async (method, url, data = null, params = null) => {
             return reject({ message: 'Akun Anda belum aktif. Silakan hubungi admin untuk aktivasi.' });
           }
           // Simpan token (di demo mode, token kita adalah detail user itu sendiri)
-          localStorage.setItem('simesra_token', JSON.stringify(found));
+          sessionStorage.setItem('simesra_token', JSON.stringify(found));
           return resolve({ message: 'Login berhasil', token: JSON.stringify(found), user: found });
         }
 
@@ -246,7 +272,7 @@ const request = async (method, url, data = null, params = null) => {
           if (!latestUser) return reject({ message: 'User tidak ditemukan' });
           // Sync token dengan data terbaru
           const userForToken = { ...latestUser };
-          localStorage.setItem('simesra_token', JSON.stringify(userForToken));
+          sessionStorage.setItem('simesra_token', JSON.stringify(userForToken));
           // Return tanpa password
           const { password, ...safeUser } = latestUser;
           return resolve(safeUser);
@@ -281,11 +307,55 @@ const request = async (method, url, data = null, params = null) => {
           users[idx].password = passwordBaru;
           saveMockData('mock_users', users);
 
-          // Buat token baru TANPA field password (aman) dan simpan ke localStorage
+          // Buat token baru TANPA field password (aman) dan simpan ke sessionStorage
           const { password: _pw, ...safeUserForToken } = users[idx];
-          localStorage.setItem('simesra_token', JSON.stringify(safeUserForToken));
+          sessionStorage.setItem('simesra_token', JSON.stringify(safeUserForToken));
 
           return resolve({ message: 'Kata sandi berhasil diperbarui. Password lama tidak berlaku lagi.' });
+        }
+
+        // 3c. ROUTING: /auth/profile (GET & PUT)
+        if (url === '/auth/profile' && method.toLowerCase() === 'get') {
+          if (!currentUser) return reject({ message: 'Token tidak valid' });
+          const users = getMockData('mock_users');
+          const latestUser = users.find(u => u.id === currentUser.id);
+          if (!latestUser) return reject({ message: 'User tidak ditemukan' });
+          const { password, ...safeUser } = latestUser;
+          return resolve({
+            user: safeUser,
+            keuangan: { tahun: new Date().getFullYear(), totalTunggakan: 0, payments: [] }
+          });
+        }
+
+        if (url === '/auth/profile' && method.toLowerCase() === 'put') {
+          if (!currentUser) return reject({ message: 'Token tidak valid' });
+          const { nama, email, password, noHp, alamat } = data;
+          const users = getMockData('mock_users');
+          const idx = users.findIndex(u => u.id === currentUser.id);
+          if (idx === -1) return reject({ message: 'User tidak ditemukan' });
+
+          if (email && email !== users[idx].email) {
+            if (users.some(u => u.email === email && u.id !== currentUser.id)) {
+              return reject({ message: 'Email sudah terdaftar oleh pengguna lain' });
+            }
+          }
+
+          if (nama) users[idx].nama = nama;
+          if (email) users[idx].email = email;
+          if (noHp !== undefined) users[idx].noHp = noHp;
+          if (alamat !== undefined) users[idx].alamat = alamat;
+          if (password) users[idx].password = password;
+
+          saveMockData('mock_users', users);
+
+          // Update token
+          const { password: _p, ...safeUser } = users[idx];
+          sessionStorage.setItem('simesra_token', JSON.stringify(safeUser));
+
+          return resolve({
+            message: 'Profil berhasil diperbarui',
+            user: { ...safeUser, role: 'ADMIN', status: 'ACTIVE' }
+          });
         }
 
         // 4. ROUTING: /admin/stats
@@ -296,7 +366,7 @@ const request = async (method, url, data = null, params = null) => {
           const pembayaran = getMockData('mock_pembayaran');
 
           const activeCount = users.filter(u => u.status === 'ACTIVE').length;
-          const pendingCount = users.filter(u => u.status === 'PENDING').length;
+          const inactiveCount = users.length - activeCount;
           
           // Hitung lunas bulan ini
           const currentMonth = new Date().getMonth() + 1;
@@ -312,11 +382,14 @@ const request = async (method, url, data = null, params = null) => {
             classes[k] = (classes[k] || 0) + 1;
           });
 
+          const totalBeasiswa = users.filter(u => u.isBeasiswa === true || u.isBeasiswa === 'true').length;
+
           return resolve({
             totalSantri: users.length,
             activeSantri: activeCount,
-            pendingSantri: pendingCount,
+            inactiveSantri: inactiveCount,
             totalSanksi: sanksi.length,
+            totalBeasiswa: totalBeasiswa,
             sppStats: {
               bulan: currentMonth,
               tahun: currentYear,
@@ -342,6 +415,54 @@ const request = async (method, url, data = null, params = null) => {
             users = users.filter(u => u.kelas === kelas);
           }
           return resolve(users);
+        }
+
+        // 5b. ROUTING: /admin/santri (POST)
+        if (url === '/admin/santri' && method.toLowerCase() === 'post') {
+          if (!currentUser || currentUser.role !== 'ADMIN') return reject({ message: 'Unauthorized' });
+          const { nama, email, password, noHp, alamat, namaWali, kelas, isBeasiswa } = data;
+          const users = getMockData('mock_users');
+          if (email && users.some(u => u.email === email)) {
+            return reject({ message: 'Email sudah terdaftar oleh pengguna lain' });
+          }
+
+          const newSantri = {
+            id: Date.now(),
+            nama,
+            email: email || null,
+            password: password || null,
+            noHp,
+            alamat,
+            namaWali,
+            kelas,
+            isBeasiswa: isBeasiswa === true || isBeasiswa === 'true',
+            role: 'SANTRI',
+            status: 'ACTIVE',
+            createdAt: new Date().toISOString()
+          };
+
+          users.push(newSantri);
+          saveMockData('mock_users', users);
+
+          return resolve({
+            message: 'Santri berhasil ditambahkan.',
+            user: newSantri
+          });
+        }
+
+        // 5c. ROUTING: /admin/santri/promote/bulk (PUT)
+        if (url === '/admin/santri/promote/bulk' && method.toLowerCase() === 'put') {
+          if (!currentUser || currentUser.role !== 'ADMIN') return reject({ message: 'Unauthorized' });
+          const { studentIds, nextClass, status } = data;
+          const users = getMockData('mock_users');
+          users.forEach(u => {
+            if (studentIds.includes(u.id)) {
+              if (nextClass !== undefined) u.kelas = nextClass;
+              if (status !== undefined) u.status = status;
+            }
+          });
+          saveMockData('mock_users', users);
+          return resolve({ message: 'Kenaikan kelas massal berhasil diproses' });
         }
 
         // 6. ROUTING: /admin/users/pending
@@ -376,7 +497,7 @@ const request = async (method, url, data = null, params = null) => {
           
           // Sinkronkan token jika user yang diedit adalah user yang sedang login
           if (currentUser.id === id) {
-            localStorage.setItem('simesra_token', JSON.stringify(users[idx]));
+            sessionStorage.setItem('simesra_token', JSON.stringify(users[idx]));
           }
           return resolve({ message: 'Data santri berhasil diperbarui', user: users[idx] });
         }
@@ -534,7 +655,7 @@ const request = async (method, url, data = null, params = null) => {
             tahun: parseInt(tahun),
             status,
             tanggalBayar: status === 'LUNAS' ? (tanggalBayar || new Date().toISOString().split('T')[0]) : null,
-            jumlah: jumlah !== undefined ? parseFloat(jumlah) : 250000
+            jumlah: jumlah !== undefined ? parseFloat(jumlah) : 300000
           };
 
           if (idx !== -1) {
@@ -646,6 +767,159 @@ const request = async (method, url, data = null, params = null) => {
               payments: paymentsList
             }
           });
+        }
+
+        // 20b. ROUTING: /users/:id/profile (PUT)
+        if (url.startsWith('/users/') && url.endsWith('/profile') && method.toLowerCase() === 'put') {
+          const targetId = parseInt(url.split('/')[2]);
+          if (currentUser.role !== 'ADMIN' && currentUser.id !== targetId) {
+            return reject({ message: 'Unauthorized' });
+          }
+
+          const users = getMockData('mock_users');
+          const idx = users.findIndex(u => u.id === targetId);
+          if (idx === -1) return reject({ message: 'User tidak ditemukan' });
+
+          const { nama, email, password, noHp, alamat, namaWali } = data;
+
+          if (email && email !== users[idx].email) {
+            if (users.some(u => u.email === email && u.id !== targetId)) {
+              return reject({ message: 'Email sudah terdaftar oleh pengguna lain' });
+            }
+          }
+
+          if (nama) users[idx].nama = nama;
+          if (email !== undefined) users[idx].email = email || null;
+          if (noHp !== undefined) users[idx].noHp = noHp;
+          if (alamat !== undefined) users[idx].alamat = alamat;
+          if (namaWali !== undefined) users[idx].namaWali = namaWali;
+          if (password) users[idx].password = password;
+
+          // Hanya admin yang boleh mengubah kelas, status, dan beasiswa
+          if (currentUser.role === 'ADMIN') {
+            if (data.kelas !== undefined) users[idx].kelas = data.kelas;
+            if (data.status !== undefined) users[idx].status = data.status;
+            if (data.isBeasiswa !== undefined) users[idx].isBeasiswa = data.isBeasiswa === true || data.isBeasiswa === 'true';
+          }
+
+          saveMockData('mock_users', users);
+
+          // Sinkronkan token jika user yang diedit adalah user yang sedang login
+          if (currentUser.id === targetId) {
+            const { password: _p, ...safeUser } = users[idx];
+            sessionStorage.setItem('simesra_token', JSON.stringify(safeUser));
+          }
+
+          const { password: _p, ...safeUser } = users[idx];
+          return resolve({
+            message: 'Profil berhasil diperbarui',
+            user: safeUser
+          });
+        }
+
+        // 21a. ROUTING: /notifications (GET)
+        if (url === '/notifications' && method.toLowerCase() === 'get') {
+          if (!currentUser) return reject({ message: 'Unauthorized' });
+          const notifs = getMockData('mock_notifications');
+          
+          if (currentUser.role === 'ADMIN') {
+            return resolve(notifs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+          } else {
+            // Get database notifications
+            const dbNotifications = notifs.filter(n => n.santriId === null || n.santriId === currentUser.id);
+
+            // Injeksi sanksi dinamis
+            const sanksi = getMockData('mock_sanksi').filter(s => s.santriId === currentUser.id);
+            const dynamicNotifs = [];
+
+            sanksi.forEach(s => {
+              dynamicNotifs.push({
+                id: `sanksi-${s.id}`,
+                judul: `Catatan Pelanggaran Baru (${s.kategori})`,
+                isi: `Tercatat pelanggaran kedisiplinan keamanan pada tanggal ${s.tanggalPelanggaran}: "${s.deskripsi}". Harap tidak mengulangi tindakan ini lagi.`,
+                kategori: "KEAMANAN",
+                santriId: currentUser.id,
+                isRead: false,
+                createdAt: s.tanggalPelanggaran
+              });
+            });
+
+            // Injeksi tunggakan SPP Syariah dinamis
+            const pembayaran = getMockData('mock_pembayaran').filter(p => p.santriId === currentUser.id && p.status === 'BELUM_BAYAR');
+            if (pembayaran.length > 0) {
+              const totalTunggakan = pembayaran.reduce((sum, p) => sum + p.jumlah, 0);
+              const namaBulan = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+              const listBulan = pembayaran.map(p => `${namaBulan[p.bulan]} ${p.tahun}`).join(', ');
+
+              dynamicNotifs.push({
+                id: `spp-warning-${currentUser.id}`,
+                judul: "Pemberitahuan Tunggakan Syariah Bulanan",
+                isi: `Assalamu'alaikum Wr. Wb. Harap segera melunasi iuran Syariah Bulanan sebesar Rp ${totalTunggakan.toLocaleString('id-ID')} untuk bulan: ${listBulan}. Silakan lakukan pembayaran ke bendahara.`,
+                kategori: "SPP",
+                santriId: currentUser.id,
+                isRead: false,
+                createdAt: new Date().toISOString()
+              });
+            }
+
+            const allNotifs = [...dynamicNotifs, ...dbNotifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            return resolve(allNotifs);
+          }
+        }
+
+        // 21b. ROUTING: /notifications (POST)
+        if (url === '/notifications' && method.toLowerCase() === 'post') {
+          if (!currentUser || currentUser.role !== 'ADMIN') return reject({ message: 'Unauthorized' });
+          const { judul, isi, kategori, santriId } = data;
+          const notifs = getMockData('mock_notifications');
+
+          const newNotif = {
+            id: Date.now(),
+            judul,
+            isi,
+            kategori,
+            santriId: santriId ? parseInt(santriId) : null,
+            isRead: false,
+            createdAt: new Date().toISOString()
+          };
+
+          notifs.push(newNotif);
+          saveMockData('mock_notifications', notifs);
+
+          return resolve({ message: 'Notifikasi berhasil dikirim', notification: newNotif });
+        }
+
+        // 21c. ROUTING: /notifications/:id (DELETE)
+        if (url.startsWith('/notifications/') && method.toLowerCase() === 'delete') {
+          if (!currentUser || currentUser.role !== 'ADMIN') return reject({ message: 'Unauthorized' });
+          const id = parseInt(url.split('/')[2]);
+          let notifs = getMockData('mock_notifications');
+          notifs = notifs.filter(n => n.id !== id);
+          saveMockData('mock_notifications', notifs);
+          return resolve({ message: 'Notifikasi berhasil dihapus' });
+        }
+
+        // 21d. ROUTING: /notifications/read (PUT)
+        if (url === '/notifications/read' && method.toLowerCase() === 'put') {
+          if (!currentUser) return reject({ message: 'Unauthorized' });
+          const { id } = data || {};
+          const notifs = getMockData('mock_notifications');
+
+          if (id) {
+            const idx = notifs.findIndex(n => n.id === id && n.santriId === currentUser.id);
+            if (idx !== -1) {
+              notifs[idx].isRead = true;
+            }
+          } else {
+            notifs.forEach(n => {
+              if (n.santriId === currentUser.id) {
+                n.isRead = true;
+              }
+            });
+          }
+
+          saveMockData('mock_notifications', notifs);
+          return resolve({ message: 'Notifikasi ditandai dibaca' });
         }
 
         // Default error

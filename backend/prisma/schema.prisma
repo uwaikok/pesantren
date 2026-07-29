@@ -24,12 +24,15 @@ model User {
 model Santri {
   id           Int          @id @default(autoincrement())
   nama         String
+  email        String?      @unique
+  password     String?
   noHp         String?
   alamat       String?
   namaWali     String?
   kelas        String?      // Hanya untuk santri, misal "Kelas 10-A", "Kelas 11-B"
   status       String       @default("ACTIVE") // "ACTIVE" atau "INACTIVE"
   fotoProfil   String?      // Path/URL foto profil yang diupload
+  isBeasiswa   Boolean      @default(false)
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
 
@@ -87,4 +90,14 @@ model Pengumuman {
   author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  judul     String
+  isi       String
+  kategori  String   // "UJIAN", "SPP", "KEAMANAN", "UMUM"
+  santriId  Int?     // ID Santri penerima (null = semua santri / global)
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

@@ -15,7 +15,7 @@ function Keuangan({ user }) {
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [payDate, setPayDate] = useState(new Date().toISOString().split('T')[0]);
-  const [payAmount, setPayAmount] = useState(350000);
+  const [payAmount, setPayAmount] = useState(300000);
   const [paySubmitting, setPaySubmitting] = useState(false);
 
   // State untuk cetak kwitansi tunggal & rekap
@@ -77,7 +77,7 @@ function Keuangan({ user }) {
   const openPaymentModal = (paymentItem) => {
     setSelectedPayment(paymentItem);
     setPayDate(paymentItem.tanggalBayar ? paymentItem.tanggalBayar.split('T')[0] : new Date().toISOString().split('T')[0]);
-    setPayAmount(paymentItem.jumlah || 350000);
+    setPayAmount(paymentItem.jumlah || 300000);
     setIsPayModalOpen(true);
   };
 
@@ -90,7 +90,7 @@ function Keuangan({ user }) {
         bulan,
         tahun: parseInt(sppTahun),
         status: 'BELUM_BAYAR',
-        jumlah: 350000
+        jumlah: 300000
       });
       fetchKeuanganData();
     } catch (err) {
@@ -106,8 +106,8 @@ function Keuangan({ user }) {
     try {
       await api.post('/keuangan', {
         santriId: parseInt(selectedSantriId),
-        bulan: selectedPayment.bulan,
-        tahun: parseInt(sppTahun),
+        bulan: parseInt(selectedPayment.bulan),
+        tahun: parseInt(selectedPayment.tahun),
         status: 'LUNAS',
         jumlah: parseFloat(payAmount),
         tanggalBayar: payDate
@@ -122,11 +122,11 @@ function Keuangan({ user }) {
     }
   };
 
-  const handlePrintReceipt = (sppItem) => {
+  const handlePrintSingle = (paymentItem) => {
     setPrintType('RECIP');
     setPrintingInvoice({
-      ...sppItem,
-      noInvoice: `INV/SYR/${sppTahun}/${sppItem.bulan.toString().padStart(2, '0')}/PP-${selectedSantriId}`
+      ...paymentItem,
+      noInvoice: `INV/SYR/${sppTahun}/${paymentItem.bulan.toString().padStart(2, '0')}/PP-${selectedSantriId}`
     });
     setTimeout(() => {
       window.print();
@@ -135,6 +135,7 @@ function Keuangan({ user }) {
 
   const handlePrintRecap = () => {
     setPrintType('RECAP');
+    setPrintingInvoice({ payments: keuanganData.payments, tahun: sppTahun });
     setTimeout(() => {
       window.print();
     }, 100);
@@ -150,6 +151,7 @@ function Keuangan({ user }) {
 
   const getTerbilang = (amount) => {
     if (amount === 350000) return 'Tiga Ratus Lima Puluh Ribu Rupiah';
+    if (amount === 300000) return 'Tiga Ratus Ribu Rupiah';
     if (amount === 250000) return 'Dua Ratus Lima Puluh Ribu Rupiah';
     return `${amount.toLocaleString('id-ID')} Rupiah`;
   };
@@ -318,7 +320,7 @@ function Keuangan({ user }) {
                     {/* Tombol Cetak Kwitansi */}
                     {isPaid && (
                       <button
-                        onClick={() => handlePrintReceipt(p)}
+                        onClick={() => handlePrintSingle(p)}
                         title="Cetak Kwitansi Bukti Bayar"
                         className="p-1.5 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-600 transition"
                       >

@@ -9,11 +9,13 @@ async function main() {
   await prisma.nilai.deleteMany({});
   await prisma.sanksi.deleteMany({});
   await prisma.pembayaran.deleteMany({});
+  await prisma.notification.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.santri.deleteMany({});
 
   // Hash password
   const adminPassword = await bcrypt.hash('adminpassword', 10);
+  const adminPassword2 = await bcrypt.hash('admin2password', 10);
 
   // 1. Buat User Admin
   const admin = await prisma.user.create({
@@ -25,7 +27,18 @@ async function main() {
       alamat: 'Komplek Pesantren Miftahul Huda As-Syadzili No. 1',
     },
   });
+
+  const admin2 = await prisma.user.create({
+    data: {
+      nama: 'ADMIN KEDUA',
+      email: 'admin2@pesantren.com',
+      password: adminPassword2,
+      noHp: '081234567891',
+      alamat: 'Komplek Pesantren Miftahul Huda As-Syadzili No. 2',
+    },
+  });
   console.log('Admin dibuat: admin@pesantren.com / adminpassword');
+  console.log('Admin kedua dibuat: admin2@pesantren.com / admin2password');
 
   // 2. Buat Santri
   const santri1 = await prisma.santri.create({
@@ -137,24 +150,36 @@ async function main() {
   // Ahmad Fauzi (Jan-Feb Lunas, Mar Belum Bayar, Apr Lunas, Mei-Des Belum Bayar)
   await prisma.pembayaran.createMany({
     data: [
-      { santriId: santri1.id, bulan: 1, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-01-05'), jumlah: 250000 },
-      { santriId: santri1.id, bulan: 2, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-02-04'), jumlah: 250000 },
-      { santriId: santri1.id, bulan: 3, tahun: 2026, status: 'BELUM_BAYAR', tanggalBayar: null, jumlah: 250000 },
-      { santriId: santri1.id, bulan: 4, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-04-06'), jumlah: 250000 },
+      { santriId: santri1.id, bulan: 1, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-01-05'), jumlah: 300000 },
+      { santriId: santri1.id, bulan: 2, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-02-04'), jumlah: 300000 },
+      { santriId: santri1.id, bulan: 3, tahun: 2026, status: 'BELUM_BAYAR', tanggalBayar: null, jumlah: 300000 },
+      { santriId: santri1.id, bulan: 4, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-04-06'), jumlah: 300000 },
     ],
   });
 
   // Siti Aisyah (Jan-Mei Lunas, Sisanya belum)
   await prisma.pembayaran.createMany({
     data: [
-      { santriId: santri2.id, bulan: 1, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-01-08'), jumlah: 250000 },
-      { santriId: santri2.id, bulan: 2, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-02-07'), jumlah: 250000 },
-      { santriId: santri2.id, bulan: 3, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-03-05'), jumlah: 250000 },
-      { santriId: santri2.id, bulan: 4, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-04-04'), jumlah: 250000 },
-      { santriId: santri2.id, bulan: 5, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-05-02'), jumlah: 250000 },
+      { santriId: santri2.id, bulan: 1, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-01-08'), jumlah: 300000 },
+      { santriId: santri2.id, bulan: 2, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-02-07'), jumlah: 300000 },
+      { santriId: santri2.id, bulan: 3, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-03-05'), jumlah: 300000 },
+      { santriId: santri2.id, bulan: 4, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-04-04'), jumlah: 300000 },
+      { santriId: santri2.id, bulan: 5, tahun: 2026, status: 'LUNAS', tanggalBayar: new Date('2026-05-02'), jumlah: 300000 },
     ],
   });
   console.log('Seeding data keuangan SPP berhasil.');
+
+  // 7. Seeding Data Notifikasi Awal
+  await prisma.notification.create({
+    data: {
+      judul: 'Pengumuman Ujian Semester Genap',
+      isi: 'Ujian Akhir Semester Genap dijadwalkan mulai tanggal 10 Agustus 2026. Harap seluruh santri mempersiapkan administrasi dan kartu ujian.',
+      kategori: 'UJIAN',
+      santriId: null,
+      isRead: false
+    }
+  });
+  console.log('Seeding data notifikasi awal berhasil.');
 
   console.log('Database seeding selesai dengan sukses!');
 }

@@ -1,29 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, Key, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Loader2, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle, Lock } from 'lucide-react';
+import { User, Mail, Phone, MapPin, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Loader2, Key, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle } from 'lucide-react';
 import api from '../utils/api';
 
 function Profil({ user, onUserUpdate }) {
   const { id } = useParams();
   const navigate = useNavigate();
-
-  // Jika tidak ada :id di URL = admin lihat profilnya sendiri
-  const isAdminSelf = !id;
-  const targetId = id ? parseInt(id) : null;
-  const isSelf = isAdminSelf;
+  
+  // Jika tidak ada :id di URL = admin lihat profilnya sendiri (atau santri lihat profilnya sendiri)
+  const isAdminSelf = !id && user.role === 'ADMIN';
+  const targetId = id ? parseInt(id) : (user.role === 'SANTRI' ? user.id : null);
+  const isSelf = isAdminSelf || (user.role === 'SANTRI' && targetId === user.id);
 
   const [profileData, setProfileData] = useState(null);
-  const [activeTab, setActiveTab] = useState('pribadi');
+  const [activeTab, setActiveTab] = useState('pribadi'); // 'pribadi', 'akademik', 'keamanan', 'keuangan'
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
+  
   // State untuk upload foto profil
   const [fotoLoading, setFotoLoading] = useState(false);
   const [fotoSuccess, setFotoSuccess] = useState('');
   const [fotoError, setFotoError] = useState('');
   const [previewFoto, setPreviewFoto] = useState(null);
   const fotoInputRef = useRef(null);
-
+  
   // State untuk form ubah password
   const [passwordForm, setPasswordForm] = useState({
     passwordLama: '',
@@ -39,6 +39,7 @@ function Profil({ user, onUserUpdate }) {
   const [editForm, setEditForm] = useState({
     nama: '',
     email: '',
+    password: '',
     noHp: '',
     namaWali: '',
     alamat: '',
@@ -61,16 +62,18 @@ function Profil({ user, onUserUpdate }) {
     setLoading(true);
     setError('');
     try {
-      // Jika admin lihat profil sendiri → endpoint khusus /auth/profile (tabel User)
-      // Jika admin lihat profil santri tertentu → /users/:id/profile (tabel Santri)
+      // Jika admin lihat profil sendiri -> endpoint khusus /auth/profile (tabel User)
+      // Jika admin lihat profil santri tertentu -> /users/:id/profile (tabel Santri)
       const data = isAdminSelf
         ? await api.get('/auth/profile')
         : await api.get(`/users/${targetId}/profile`);
-
+        
       setProfileData(data);
+      
       setEditForm({
         nama: data.user.nama,
         email: data.user.email || '',
+        password: '',
         noHp: data.user.noHp || '',
         namaWali: data.user.namaWali || '',
         alamat: data.user.alamat || '',
@@ -108,20 +111,21 @@ function Profil({ user, onUserUpdate }) {
 
     try {
       const useMock = localStorage.getItem('use_mock_db') === 'true' || window.useMockDb === true;
+      const effectiveId = id ? parseInt(id) : user.id;
 
       if (useMock) {
         const reader = new FileReader();
         reader.onload = (ev) => {
           const base64 = ev.target.result;
           const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
-          const idx = users.findIndex(u => u.id === targetId);
+          const idx = users.findIndex(u => u.id === effectiveId);
           if (idx !== -1) {
             users[idx].fotoProfil = base64;
             localStorage.setItem('mock_users', JSON.stringify(users));
-            if (targetId === user.id) {
-              const tokenUser = JSON.parse(localStorage.getItem('simesra_token') || '{}');
+            if (effectiveId === user.id) {
+              const tokenUser = JSON.parse(sessionStorage.getItem('simesra_token') || '{}');
               tokenUser.fotoProfil = base64;
-              localStorage.setItem('simesra_token', JSON.stringify(tokenUser));
+              sessionStorage.setItem('simesra_token', JSON.stringify(tokenUser));
               if (onUserUpdate) onUserUpdate({ fotoProfil: base64 });
             }
           }
@@ -137,8 +141,8 @@ function Profil({ user, onUserUpdate }) {
         const formData = new FormData();
         formData.append('foto', file);
 
-        const token = localStorage.getItem('simesra_token');
-        const response = await fetch(`/api/users/${targetId}/foto-profil`, {
+        const token = sessionStorage.getItem('simesra_token');
+        const response = await fetch(`/api/users/${effectiveId}/foto-profil`, {
           method: 'PUT',
           headers: { 'Authorization': `Bearer ${token}` },
           body: formData,
@@ -157,7 +161,7 @@ function Profil({ user, onUserUpdate }) {
         }));
         setPreviewFoto(fotoUrl);
         setFotoSuccess('Foto profil berhasil diperbarui!');
-        if (targetId === user.id && onUserUpdate) onUserUpdate({ fotoProfil: result.fotoProfil });
+        if (effectiveId === user.id && onUserUpdate) onUserUpdate({ fotoProfil: result.fotoProfil });
         setFotoLoading(false);
       }
     } catch (err) {
@@ -215,10 +219,21 @@ function Profil({ user, onUserUpdate }) {
       if (isAdminSelf) {
         // Update profil admin sendiri via /auth/profile
         const result = await api.put('/auth/profile', editForm);
-        if (onUserUpdate) onUserUpdate({ nama: result.user.nama, noHp: result.user.noHp, alamat: result.user.alamat });
+        
+        // Simpan token baru jika didapatkan dari server
+        if (result.token) {
+          sessionStorage.setItem('simesra_token', result.token);
+        }
+
+        if (onUserUpdate) onUserUpdate({ nama: result.user.nama, email: result.user.email, noHp: result.user.noHp, alamat: result.user.alamat });
       } else {
-        // Update data santri via /admin/santri/:id
-        await api.put(`/admin/santri/${targetId}`, editForm);
+        // Update data santri via /users/:id/profile
+        const result = await api.put(`/users/${targetId}/profile`, editForm);
+        
+        // Simpan token baru jika yang mengedit adalah santri itu sendiri
+        if (user.role === 'SANTRI' && result.user) {
+          if (onUserUpdate) onUserUpdate({ nama: result.user.nama, email: result.user.email, noHp: result.user.noHp, alamat: result.user.alamat });
+        }
       }
       setIsEditing(false);
       fetchProfile();
@@ -305,6 +320,12 @@ function Profil({ user, onUserUpdate }) {
 
   return (
     <div className="space-y-6">
+      {resetSuccessMessage && (
+        <div className="bg-[#DCFCE7]/90 border border-[#16A34A]/30 text-[#0B4A3F] p-4 rounded-xl text-xs font-bold transition flex items-center justify-between shadow-sm">
+          <span>✓ {resetSuccessMessage}</span>
+          <button onClick={() => setResetSuccessMessage('')} className="text-[#0B4A3F] hover:text-[#083831] font-bold">✕</button>
+        </div>
+      )}
       {/* HEADER CARD PROFIL */}
       <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37]">
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
@@ -376,7 +397,7 @@ function Profil({ user, onUserUpdate }) {
 
           {/* DUA TOMBOL AKSI UTAMA DI KANAN HEADER: EDIT BIODATA & RESET PASSWORD */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Tombol Edit Biodata — selalu tampil untuk admin */}
+            {/* Tombol Edit Biodata - selalu tampil untuk admin */}
             <button
               onClick={() => setIsEditing(!isEditing)}
               className="bg-[#DCFCE7] hover:bg-emerald-200 text-[#0B4A3F] px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition border border-[#16A34A]/30 flex items-center space-x-1.5"
@@ -384,31 +405,18 @@ function Profil({ user, onUserUpdate }) {
               <Edit size={14} />
               <span>{isEditing ? 'Batal Edit' : 'Edit Biodata'}</span>
             </button>
-
-            {/* Tombol Reset Password (Hanya muncul jika yang melihat adalah Admin DAN targetnya adalah santri) */}
-            {!isAdminSelf && (
+            {user.role === 'ADMIN' && !isAdminSelf && (
               <button
                 onClick={handleResetPasswordSantri}
                 disabled={resettingPassword}
-                className="bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition flex items-center space-x-1.5"
+                className="bg-amber-100 hover:bg-amber-200 text-amber-800 px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition border border-amber-300/30 flex items-center space-x-1.5 animate-pulse"
               >
-                {resettingPassword ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : (
-                  <Lock size={14} />
-                )}
-                <span>Reset Sandi Santri</span>
+                <Key size={14} />
+                <span>{resettingPassword ? 'Mereset...' : 'Reset Sandi Santri'}</span>
               </button>
             )}
           </div>
         </div>
-
-        {/* Notifikasi Reset Password */}
-        {resetSuccessMessage && (
-          <div className="mt-4 p-3 bg-amber-50 border-l-4 border-amber-500 text-amber-900 rounded-lg text-xs font-bold animate-pulse">
-            ✨ {resetSuccessMessage}
-          </div>
-        )}
       </div>
 
       {/* PROFIL SEBAGAI SANTRI (bukan admin sendiri) */}
@@ -516,16 +524,39 @@ function Profil({ user, onUserUpdate }) {
                           className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                         />
                       </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kelas</label>
-                        <input
-                          type="text"
-                          required
-                          value={editForm.kelas}
-                          onChange={(e) => setEditForm({ ...editForm, kelas: e.target.value })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
-                        />
-                      </div>
+                      {user.role === 'ADMIN' ? (
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kelas</label>
+                          <select
+                            required
+                            value={editForm.kelas}
+                            onChange={(e) => setEditForm({ ...editForm, kelas: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none font-bold text-slate-700"
+                          >
+                            <option value="">-- Pilih Kelas --</option>
+                            <option value="Imdad Putra">Imdad Putra</option>
+                            <option value="Imdad Putri">Imdad Putri</option>
+                            <option value="Ibtida 1 Putra">Ibtida 1 Putra</option>
+                            <option value="Ibtida 1 Putri">Ibtida 1 Putri</option>
+                            <option value="Ibtida 2 Putra">Ibtida 2 Putra</option>
+                            <option value="Ibtida 2 Putri">Ibtida 2 Putri</option>
+                            <option value="Ibtida 3">Ibtida 3</option>
+                            <option value="Tsanawi 1">Tsanawi 1</option>
+                            <option value="Tsanawi 2">Tsanawi 2</option>
+                            <option value="Tsanawi 3">Tsanawi 3</option>
+                          </select>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kelas</label>
+                          <input
+                            type="text"
+                            disabled
+                            value={editForm.kelas}
+                            className="w-full bg-slate-100 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-500 cursor-not-allowed outline-none font-semibold"
+                          />
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Alamat Lengkap</label>
@@ -877,6 +908,16 @@ function Profil({ user, onUserUpdate }) {
                       />
                     </div>
                     <div>
+                      <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kata Sandi Baru (Opsional)</label>
+                      <input
+                        type="password"
+                        placeholder="Kosongkan jika tidak diubah"
+                        value={editForm.password || ''}
+                        onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
+                      />
+                    </div>
+                    <div>
                       <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nomor Telepon HP</label>
                       <input
                         type="text"
@@ -956,24 +997,28 @@ function Profil({ user, onUserUpdate }) {
                     <p className="font-semibold text-slate-800 mt-1 leading-relaxed">{profileData.user.alamat}</p>
                   </div>
 
-                  {/* LOG AKTIVITAS TERAKHIR ADMIN (Premium Feature) */}
+                    {/* LOG AKTIVITAS SERVER ADMIN */}
                   <div className="pt-4 border-t border-slate-100">
                     <h3 className="text-xs font-bold text-[#0B4A3F] uppercase tracking-wider mb-3 flex items-center space-x-1.5">
                       <Activity size={15} className="text-[#D4AF37]" />
-                      <span>Log Aktivitas Terakhir Server</span>
+                      <span>Log Aktivitas Server</span>
                     </h3>
                     <div className="space-y-2 text-[10px]">
                       <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                        <span className="text-slate-600">🟢 Anda memverifikasi pendaftaran santri baru <strong>Ahmad Fauzi</strong></span>
-                        <span className="text-slate-400">1 jam yang lalu</span>
+                        <span className="text-slate-600">🟢 Server backend berjalan normal di <strong>localhost:5000</strong></span>
+                        <span className="text-slate-400">Aktif</span>
                       </div>
                       <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                        <span className="text-slate-600">🟡 Anda memperbarui data nilai akademik kelas <strong>Tsanawi 3</strong></span>
-                        <span className="text-slate-400">Kemarin</span>
+                        <span className="text-slate-600">🟢 Koneksi database <strong>PostgreSQL (Neon)</strong> terhubung</span>
+                        <span className="text-slate-400">Online</span>
                       </div>
                       <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                        <span className="text-slate-600">🔴 Anda mencatat sanksi disiplin sedang santri</span>
-                        <span className="text-slate-400">20/07/2026</span>
+                        <span className="text-slate-600">🟡 Sesi login admin aktif sejak <strong>{new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>
+                        <span className="text-slate-400">Hari ini</span>
+                      </div>
+                      <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
+                        <span className="text-slate-600">🔵 API endpoint <strong>/api</strong> merespons dengan baik</span>
+                        <span className="text-slate-400">200 OK</span>
                       </div>
                     </div>
                   </div>
@@ -981,50 +1026,36 @@ function Profil({ user, onUserUpdate }) {
               )}
             </div>
 
-            {/* Sisi Kanan: Form Ganti Password (Hanya muncul jika melihat profilnya sendiri) */}
+            {/* Sisi Kanan: Informasi Sistem */}
             <div className="lg:col-span-1 space-y-4">
-              {isSelf && (
-                <div className="bg-slate-50 border border-slate-200/80 p-5 rounded-2xl">
-                  <h3 className="text-xs font-bold text-[#0B4A3F] uppercase tracking-wider mb-4 flex items-center space-x-1.5">
-                    <Key size={15} className="text-[#D4AF37]" />
-                    <span>Ganti Kata Sandi</span>
-                  </h3>
-
-                  {pwdError && <p className="text-[#DC2626] text-[10px] font-semibold mb-3">⚠️ {pwdError}</p>}
-                  {pwdSuccess && <p className="text-[#16A34A] text-[10px] font-semibold mb-3">✓ {pwdSuccess}</p>}
-
-                  <form onSubmit={handleUpdatePassword} className="space-y-3">
-                    <input
-                      type="password"
-                      placeholder="Kata Sandi Lama"
-                      value={passwordForm.passwordLama}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, passwordLama: e.target.value })}
-                      className="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs outline-none focus:border-[#D4AF37]"
-                    />
-                    <input
-                      type="password"
-                      placeholder="Kata Sandi Baru"
-                      value={passwordForm.passwordBaru}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, passwordBaru: e.target.value })}
-                      className="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs outline-none focus:border-[#D4AF37]"
-                    />
-                    <input
-                      type="password"
-                      placeholder="Konfirmasi Sandi Baru"
-                      value={passwordForm.konfirmasiPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, konfirmasiPassword: e.target.value })}
-                      className="w-full bg-white border border-slate-200 rounded-xl p-2 text-xs outline-none focus:border-[#D4AF37]"
-                    />
-                    <button
-                      type="submit"
-                      disabled={pwdLoading}
-                      className="w-full bg-[#0B4A3F] hover:bg-[#083831] text-white py-2 rounded-xl font-bold text-xs transition shadow-sm"
-                    >
-                      Perbarui Sandi
-                    </button>
-                  </form>
+              <div className="bg-slate-50 border border-slate-200/80 p-5 rounded-2xl">
+                <h3 className="text-xs font-bold text-[#0B4A3F] uppercase tracking-wider mb-4 flex items-center space-x-1.5">
+                  <ShieldCheck size={15} className="text-[#D4AF37]" />
+                  <span>Status Sistem</span>
+                </h3>
+                <div className="space-y-3 text-[10px]">
+                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
+                    <span className="text-slate-600 font-medium">Backend Server</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">AKTIF</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
+                    <span className="text-slate-600 font-medium">Database</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">TERHUBUNG</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
+                    <span className="text-slate-600 font-medium">Autentikasi JWT</span>
+                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">AMAN</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
+                    <span className="text-slate-600 font-medium">Hak Akses</span>
+                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold">ADMIN PENUH</span>
+                  </div>
+                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
+                    <span className="text-slate-600 font-medium">Versi Sistem</span>
+                    <span className="text-slate-500 font-bold">v1.0.0</span>
+                  </div>
                 </div>
-              )}
+              </div>
             </div>
 
           </div>
