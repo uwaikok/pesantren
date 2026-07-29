@@ -147,6 +147,26 @@ function Dashboard({ user }) {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 space-y-4">
+        <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+          <AlertTriangle size={32} className="text-red-500" />
+        </div>
+        <div className="text-center">
+          <h3 className="font-bold text-slate-800 text-sm">Gagal Memuat Data</h3>
+          <p className="text-slate-500 text-xs mt-1">{error}</p>
+        </div>
+        <button
+          onClick={() => { setError(''); setLoading(true); if (user.role === 'ADMIN') fetchAdminData(); else fetchSantriData(); }}
+          className="bg-[#0B4A3F] hover:bg-[#083831] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition"
+        >
+          Coba Lagi
+        </button>
+      </div>
+    );
+  }
+
   // --- RENDERING DASHBOARD SANTRI ---
   if (user.role === 'SANTRI') {
     return (

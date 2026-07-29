@@ -174,8 +174,19 @@ const getLoggedInUser = () => {
   if (!token) return null;
   try {
     // Di demo mode, token hanyalah JSON string user
-    return JSON.parse(token);
+    const parsed = JSON.parse(token);
+    return parsed;
   } catch (e) {
+    // Token adalah JWT asli dari backend — decode payload tanpa verifikasi
+    try {
+      const parts = token.split('.');
+      if (parts.length === 3) {
+        const payload = JSON.parse(atob(parts[1]));
+        return payload; // { id, nama, email, role, status }
+      }
+    } catch (e2) {
+      // ignore
+    }
     return null;
   }
 };

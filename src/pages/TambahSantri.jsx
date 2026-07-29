@@ -16,6 +16,7 @@ function TambahSantri() {
     isBeasiswa: false
   });
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   
   const handleSubmit = async (e) => {
@@ -34,8 +35,11 @@ function TambahSantri() {
 
     try {
       await api.post('/admin/santri', formData);
-      alert(`Data santri ${formData.nama} berhasil ditambahkan.`);
-      navigate('/');
+      setSuccess(`Data santri ${formData.nama} berhasil ditambahkan!`);
+      // Reset form
+      setFormData({ nama: '', email: '', password: '', noHp: '', namaWali: '', alamat: '', kelas: '', isBeasiswa: false });
+      // Navigasi ke dashboard setelah jeda singkat
+      setTimeout(() => navigate('/'), 1500);
     } catch (err) {
       setError(err.message || 'Gagal menambahkan santri');
     } finally {
@@ -54,6 +58,7 @@ function TambahSantri() {
       </div>
 
       {error && <div className="bg-[#FEE2E2] text-[#DC2626] p-3.5 rounded-xl text-xs font-semibold mb-6 border border-rose-200">⚠️ {error}</div>}
+      {success && <div className="bg-[#DCFCE7] text-[#16A34A] p-3.5 rounded-xl text-xs font-semibold mb-6 border border-emerald-200">✅ {success} Mengalihkan ke beranda...</div>}
 
       <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-3xl">
         <div>

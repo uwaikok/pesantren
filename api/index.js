@@ -1,6 +1,19 @@
 import express from 'express';
 import cors from 'cors';
-import routes from '../backend/src/routes/index.js';
+import { createRequire } from 'module';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import dotenv from 'dotenv';
+
+// Load environment variables
+dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Use createRequire to load CommonJS modules from ESM context
+const require = createRequire(import.meta.url);
+const routes = require(join(__dirname, '../backend/src/routes/index.js'));
 
 const app = express();
 
@@ -10,7 +23,8 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Main Routing
 app.use('/api', routes);
