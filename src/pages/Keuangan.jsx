@@ -239,6 +239,16 @@ function Keuangan({ user }) {
         </div>
       </div>
 
+      {currentSantriDetails && (currentSantriDetails.isBeasiswa === true || currentSantriDetails.isBeasiswa === 'true') && (
+        <div className="bg-amber-50/70 border-l-4 border-amber-500 p-4 rounded-xl text-xs font-semibold text-amber-800 shadow-sm flex items-center justify-between no-print">
+          <div>
+            <p className="font-bold text-amber-900 text-sm">✨ Santri Penerima Beasiswa</p>
+            <p className="text-slate-600 mt-0.5">Santri ini dibebaskan dari kewajiban iuran Syariah Bulanan (Bebas Biaya Syariah).</p>
+          </div>
+          <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase px-3 py-1 rounded-full border border-amber-300">BEASISWA AKTIF</span>
+        </div>
+      )}
+
       {/* KARTU RINGKASAN SALDO (no-print) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
         <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#16A34A] flex items-center justify-between">

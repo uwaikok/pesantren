@@ -73,6 +73,21 @@ const getStartMonth = (tanggalMasuk, targetTahun) => {
   }
 };
 
+// Helper: cek apakah suatu bulan dalam target tahun sudah jatuh tempo (due) dibanding waktu saat ini
+const isMonthDue = (m, targetTahun) => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
+
+  if (targetTahun < currentYear) {
+    return true; // Tahun-tahun sebelumnya sudah jatuh tempo semua
+  } else if (targetTahun === currentYear) {
+    return m <= currentMonth; // Tahun berjalan jatuh tempo hanya sampai bulan berjalan saat ini
+  } else {
+    return false; // Tahun masa depan belum jatuh tempo sama sekali
+  }
+};
+
 const getRiwayatPembayaran = async (req, res) => {
   try {
     const { santriId } = req.params;
@@ -111,7 +126,10 @@ const getRiwayatPembayaran = async (req, res) => {
         if (dbRecord.status === 'LUNAS') {
           totalTerbayar += dbRecord.jumlah;
         } else {
-          totalTunggakan += dbRecord.jumlah;
+          // Hanya hitung ke tunggakan jika bulan sudah jatuh tempo
+          if (isMonthDue(m, targetTahun)) {
+            totalTunggakan += dbRecord.jumlah;
+          }
         }
       } else {
         // Jika belum ada di DB, asumsikan BELUM_BAYAR
@@ -124,8 +142,16 @@ const getRiwayatPembayaran = async (req, res) => {
           tanggalBayar: null,
           jumlah: DEFAULT_SPP_AMOUNT,
         });
-        totalTunggakan += DEFAULT_SPP_AMOUNT;
+        // Hanya hitung ke tunggakan jika bulan sudah jatuh tempo
+        if (isMonthDue(m, targetTahun)) {
+          totalTunggakan += DEFAULT_SPP_AMOUNT;
+        }
       }
+    }
+
+    // Penerima beasiswa bebas biaya syariah (tunggakan = 0)
+    if (santri.isBeasiswa === true || santri.isBeasiswa === 'true') {
+      totalTunggakan = 0;
     }
 
     res.json({
@@ -173,7 +199,10 @@ const getMyPembayaran = async (req, res) => {
         if (dbRecord.status === 'LUNAS') {
           totalTerbayar += dbRecord.jumlah;
         } else {
-          totalTunggakan += dbRecord.jumlah;
+          // Hanya hitung ke tunggakan jika bulan sudah jatuh tempo
+          if (isMonthDue(m, targetTahun)) {
+            totalTunggakan += dbRecord.jumlah;
+          }
         }
       } else {
         // Jika belum ada di DB, asumsikan BELUM_BAYAR
@@ -186,8 +215,16 @@ const getMyPembayaran = async (req, res) => {
           tanggalBayar: null,
           jumlah: DEFAULT_SPP_AMOUNT,
         });
-        totalTunggakan += DEFAULT_SPP_AMOUNT;
+        // Hanya hitung ke tunggakan jika bulan sudah jatuh tempo
+        if (isMonthDue(m, targetTahun)) {
+          totalTunggakan += DEFAULT_SPP_AMOUNT;
+        }
       }
+    }
+
+    // Penerima beasiswa bebas biaya syariah (tunggakan = 0)
+    if (santri && (santri.isBeasiswa === true || santri.isBeasiswa === 'true')) {
+      totalTunggakan = 0;
     }
 
     res.json({

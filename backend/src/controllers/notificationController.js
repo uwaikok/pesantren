@@ -37,21 +37,51 @@ const getNotifications = async (req, res) => {
 
       if (santri) {
         // 1. Notifikasi Tunggakan SPP Syariah Bulanan (Keuangan)
-        const tunggakanPayments = santri.pembayaran.filter(p => p.status === 'BELUM_BAYAR');
-        if (tunggakanPayments.length > 0) {
-          const totalTunggakan = tunggakanPayments.reduce((sum, p) => sum + p.jumlah, 0);
+        // Dikecualikan untuk penerima beasiswa
+        const isScholar = santri.isBeasiswa === true || santri.isBeasiswa === 'true';
+        if (!isScholar) {
+          const unpaidMonths = [];
+          const masuk = santri.tanggalMasuk ? new Date(santri.tanggalMasuk) : new Date(santri.createdAt);
+          const startYear = masuk.getFullYear();
+          const startMonth = masuk.getMonth() + 1;
+
+          const now = new Date();
+          const currentYear = now.getFullYear();
+          const currentMonth = now.getMonth() + 1;
+
           const namaBulan = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-          const listBulan = tunggakanPayments.map(p => `${namaBulan[p.bulan]} ${p.tahun}`).join(', ');
-          
-          dynamicNotifications.push({
-            id: `spp-warning-${userId}`,
-            judul: "Pemberitahuan Tunggakan Syariah Bulanan",
-            isi: `Assalamu'alaikum Wr. Wb. Harap segera melunasi iuran Syariah Bulanan sebesar Rp ${totalTunggakan.toLocaleString('id-ID')} untuk bulan: ${listBulan}. Silakan lakukan pembayaran ke bendahara.`,
-            kategori: "SPP",
-            santriId: userId,
-            isRead: false,
-            createdAt: new Date()
-          });
+
+          for (let y = startYear; y <= currentYear; y++) {
+            const mStart = (y === startYear) ? startMonth : 1;
+            const mEnd = (y === currentYear) ? currentMonth : 12;
+
+            for (let m = mStart; m <= mEnd; m++) {
+              const isPaid = santri.pembayaran.some(p => p.tahun === y && p.bulan === m && p.status === 'LUNAS');
+              if (!isPaid) {
+                const dbRecord = santri.pembayaran.find(p => p.tahun === y && p.bulan === m);
+                const amount = dbRecord ? dbRecord.jumlah : 300000;
+                unpaidMonths.push({
+                  nama: `${namaBulan[m]} ${y}`,
+                  jumlah: amount
+                });
+              }
+            }
+          }
+
+          if (unpaidMonths.length > 0) {
+            const totalTunggakan = unpaidMonths.reduce((sum, p) => sum + p.jumlah, 0);
+            const listBulan = unpaidMonths.map(p => p.nama).join(', ');
+            
+            dynamicNotifications.push({
+              id: `spp-warning-${userId}`,
+              judul: "Pemberitahuan Tagihan Syariah Bulanan",
+              isi: `Assalamu'alaikum Wr. Wb. Harap melakukan pembayaran Syariah Bulanan sebesar Rp ${totalTunggakan.toLocaleString('id-ID')} untuk bulan: ${listBulan}. Silakan lakukan pembayaran ke bendahara.`,
+              kategori: "SPP",
+              santriId: userId,
+              isRead: false,
+              createdAt: new Date()
+            });
+          }
         }
 
         // 2. Notifikasi Pelanggaran Sanksi (Keamanan)
