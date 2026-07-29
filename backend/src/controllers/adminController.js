@@ -31,10 +31,16 @@ const getSantriList = async (req, res) => {
     const whereClause = {};
 
     if (search) {
-      whereClause.OR = [
-        { nama: { contains: search, mode: 'insensitive' } },
-        { kelas: { contains: search, mode: 'insensitive' } }
-      ];
+      const keywords = search.trim().split(/\s+/).filter(Boolean);
+      if (keywords.length > 0) {
+        whereClause.AND = keywords.map(kw => ({
+          OR: [
+            { nama: { contains: kw, mode: 'insensitive' } },
+            { kelas: { contains: kw, mode: 'insensitive' } },
+            { namaWali: { contains: kw, mode: 'insensitive' } }
+          ]
+        }));
+      }
     }
 
     if (kelas) {

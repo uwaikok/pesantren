@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Loader2, Key, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle } from 'lucide-react';
+import { User, Mail, Phone, MapPin, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Loader2, Key, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 
 function Profil({ user, onUserUpdate }) {
@@ -33,6 +33,10 @@ function Profil({ user, onUserUpdate }) {
   const [pwdLoading, setPwdLoading] = useState(false);
   const [pwdSuccess, setPwdSuccess] = useState('');
   const [pwdError, setPwdError] = useState('');
+  const [showOldPwd, setShowOldPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
+  const [showAdminPwd, setShowAdminPwd] = useState(false);
 
   // State untuk form edit biodata
   const [isEditing, setIsEditing] = useState(false);
@@ -638,28 +642,55 @@ function Profil({ user, onUserUpdate }) {
                     {pwdSuccess && <p className="text-[#16A34A] text-xs font-semibold mb-3">✓ {pwdSuccess}</p>}
 
                     <form onSubmit={handleUpdatePassword} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <input
-                        type="password"
-                        placeholder="Kata Sandi Lama"
-                        value={passwordForm.passwordLama}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, passwordLama: e.target.value })}
-                        className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-[#D4AF37]"
-                      />
-                      <input
-                        type="password"
-                        placeholder="Kata Sandi Baru"
-                        value={passwordForm.passwordBaru}
-                        onChange={(e) => setPasswordForm({ ...passwordForm, passwordBaru: e.target.value })}
-                        className="bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-[#D4AF37]"
-                      />
-                      <div className="flex gap-2">
+                      <div className="relative">
                         <input
-                          type="password"
-                          placeholder="Konfirmasi Sandi Baru"
-                          value={passwordForm.konfirmasiPassword}
-                          onChange={(e) => setPasswordForm({ ...passwordForm, konfirmasiPassword: e.target.value })}
-                          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-[#D4AF37]"
+                          type={showOldPwd ? 'text' : 'password'}
+                          placeholder="Kata Sandi Lama"
+                          value={passwordForm.passwordLama}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, passwordLama: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-10 text-xs outline-none focus:border-[#D4AF37]"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowOldPwd(!showOldPwd)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#0B4A3F] transition"
+                        >
+                          {showOldPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                      <div className="relative">
+                        <input
+                          type={showNewPwd ? 'text' : 'password'}
+                          placeholder="Kata Sandi Baru"
+                          value={passwordForm.passwordBaru}
+                          onChange={(e) => setPasswordForm({ ...passwordForm, passwordBaru: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-10 text-xs outline-none focus:border-[#D4AF37]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPwd(!showNewPwd)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#0B4A3F] transition"
+                        >
+                          {showNewPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
+                      <div className="flex gap-2 w-full">
+                        <div className="relative flex-1">
+                          <input
+                            type={showConfirmPwd ? 'text' : 'password'}
+                            placeholder="Konfirmasi Sandi Baru"
+                            value={passwordForm.konfirmasiPassword}
+                            onChange={(e) => setPasswordForm({ ...passwordForm, konfirmasiPassword: e.target.value })}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-10 text-xs outline-none focus:border-[#D4AF37]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                            className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#0B4A3F] transition"
+                          >
+                            {showConfirmPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                          </button>
+                        </div>
                         <button
                           type="submit"
                           disabled={pwdLoading}
@@ -957,13 +988,22 @@ function Profil({ user, onUserUpdate }) {
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Kata Sandi Baru (Opsional)</label>
-                      <input
-                        type="password"
-                        placeholder="Kosongkan jika tidak diubah"
-                        value={editForm.password || ''}
-                        onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
-                      />
+                      <div className="relative">
+                        <input
+                          type={showAdminPwd ? 'text' : 'password'}
+                          placeholder="Kosongkan jika tidak diubah"
+                          value={editForm.password || ''}
+                          onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-10 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowAdminPwd(!showAdminPwd)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#0B4A3F] transition"
+                        >
+                          {showAdminPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nomor Telepon HP</label>

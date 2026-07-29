@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { UserPlus, Check } from 'lucide-react';
+import { UserPlus, Check, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
 
 function TambahSantri() {
@@ -18,6 +18,7 @@ function TambahSantri() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -39,7 +40,11 @@ function TambahSantri() {
       setFormData({ nama: '', email: '', password: '', noHp: '', namaWali: '', alamat: '', kelas: '', isBeasiswa: false });
       setTimeout(() => navigate('/'), 1500);
     } catch (err) {
-      setError(err.message || 'Gagal menambahkan santri');
+      if (err.message && err.message.toLowerCase().includes('email')) {
+        setError('Email ini sudah digunakan. Harap ganti dengan alamat email lain agar tidak ada penggandaan akun karena 1 email hanya untuk 1 user.');
+      } else {
+        setError(err.message || 'Gagal menambahkan santri');
+      }
     } finally {
       setLoading(false);
     }
@@ -128,13 +133,22 @@ function TambahSantri() {
 
         <div>
           <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Password Akses User (Opsional)</label>
-          <input 
-            type="password" 
-            placeholder="Masukkan kata sandi akses"
-            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs outline-none focus:border-[#D4AF37]" 
-            value={formData.password} 
-            onChange={(e) => setFormData({...formData, password: e.target.value})} 
-          />
+          <div className="relative">
+            <input 
+              type={showPassword ? 'text' : 'password'} 
+              placeholder="Masukkan kata sandi akses"
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-10 text-xs outline-none focus:border-[#D4AF37]" 
+              value={formData.password} 
+              onChange={(e) => setFormData({...formData, password: e.target.value})} 
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#0B4A3F] transition"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
         </div>
 
         <div className="md:col-span-2 flex items-center space-x-2 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">

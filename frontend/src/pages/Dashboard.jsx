@@ -8,6 +8,7 @@ import {
   Search, 
   Check, 
   Eye, 
+  EyeOff,
   Trash2, 
   Edit, 
   AlertTriangle,
@@ -36,6 +37,7 @@ function Dashboard({ user }) {
   // State untuk modal edit santri
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingSantri, setEditingSantri] = useState(null);
+  const [showEditPassword, setShowEditPassword] = useState(false);
 
   // State untuk data santri (jika login sebagai Santri)
   const [mySummary, setMySummary] = useState(null);
@@ -378,15 +380,33 @@ function Dashboard({ user }) {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-2 border-b border-slate-100">
             <h2 className="text-base font-bold text-[#0B4A3F] font-serif">📋 Daftar Seluruh Santri</h2>
             
-            {/* Search Box Rounded Full Style dengan Ikon Kaca Pembesar Hijau */}
+            {/* Search Box & Class Filter */}
             <div className="flex items-center space-x-2">
+              <select
+                value={filterKelas}
+                onChange={(e) => setFilterKelas(e.target.value)}
+                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] focus:bg-white rounded-full py-1.5 px-3 text-xs outline-none text-slate-700 font-bold cursor-pointer transition duration-150"
+              >
+                <option value="">Semua Kelas</option>
+                <option value="Imdad Putra">Imdad Putra</option>
+                <option value="Imdad Putri">Imdad Putri</option>
+                <option value="Ibtida 1 Putra">Ibtida 1 Putra</option>
+                <option value="Ibtida 1 Putri">Ibtida 1 Putri</option>
+                <option value="Ibtida 2 Putra">Ibtida 2 Putra</option>
+                <option value="Ibtida 2 Putri">Ibtida 2 Putri</option>
+                <option value="Ibtida 3">Ibtida 3</option>
+                <option value="Tsanawi 1">Tsanawi 1</option>
+                <option value="Tsanawi 2">Tsanawi 2</option>
+                <option value="Tsanawi 3">Tsanawi 3</option>
+              </select>
+
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#0B4A3F]">
                   <Search size={14} />
                 </span>
                 <input
                   type="text"
-                  placeholder="Cari santri..."
+                  placeholder="Cari nama/kelas..."
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -394,7 +414,7 @@ function Dashboard({ user }) {
                       setSearch(searchInput);
                     }
                   }}
-                  className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] focus:bg-white rounded-l-full py-1.5 pl-9 pr-4 text-xs w-40 outline-none transition duration-200"
+                  className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] focus:bg-white rounded-l-full py-1.5 pl-9 pr-4 text-xs w-36 outline-none transition duration-200"
                 />
               </div>
               <button
@@ -635,13 +655,22 @@ function Dashboard({ user }) {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Ubah Sandi (Opsional)</label>
-                  <input
-                    type="password"
-                    placeholder="Masukkan sandi baru"
-                    value={editingSantri.password || ''}
-                    onChange={(e) => setEditingSantri({ ...editingSantri, password: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showEditPassword ? 'text' : 'password'}
+                      placeholder="Masukkan sandi baru"
+                      value={editingSantri.password || ''}
+                      onChange={(e) => setEditingSantri({ ...editingSantri, password: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pr-10 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowEditPassword(!showEditPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-[#0B4A3F] transition"
+                    >
+                      {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center space-x-2 pt-4">
                   <input

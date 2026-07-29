@@ -1,19 +1,13 @@
-import express from 'express';
-import cors from 'cors';
-import { createRequire } from 'module';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-import dotenv from 'dotenv';
+const express = require('express');
+const cors = require('cors');
+const path = require('path');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (locally from backend/.env, on Vercel from env vars)
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config({ path: path.join(__dirname, '../backend/.env') });
+}
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-// Use createRequire to load CommonJS modules from ESM context
-const require = createRequire(import.meta.url);
-const routes = require(join(__dirname, '../backend/src/routes/index.js'));
+const routes = require('../backend/src/routes/index.js');
 
 const app = express();
 
@@ -26,11 +20,14 @@ app.use(cors({
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// Serve uploaded files (won't persist on Vercel serverless, but needed for local dev)
+app.use('/uploads', express.static(path.join(__dirname, '../backend/uploads')));
+
 // Main Routing
 app.use('/api', routes);
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', message: 'Server SIM Pesantren berjalan dengan baik' });
+  res.json({ status: 'OK', message: 'Server SIM Pesantren berjalan dengan baik', env: process.env.NODE_ENV });
 });
 
 app.use((err, req, res, next) => {
@@ -38,4 +35,4 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Terjadi kesalahan internal pada server' });
 });
 
-export default app;
+module.exports = app;

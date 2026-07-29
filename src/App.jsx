@@ -63,38 +63,16 @@ function App() {
         />
 
         {/* Private Routes wrapped in Layout */}
-        <Route 
-          path="/" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Dashboard user={user} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/pendidikan" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Pendidikan user={user} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/keamanan" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Keamanan user={user} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/keuangan" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Keuangan user={user} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/profil" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Profil user={user} onUserUpdate={handleUserUpdate} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/profil/:id" 
-          element={user ? <Layout user={user} onLogout={handleLogout}><Profil user={user} onUserUpdate={handleUserUpdate} /></Layout> : <Navigate to="/login" replace />} 
-        />
-        <Route 
-          path="/tambah-santri" 
-          element={user && user.role === 'ADMIN' ? <Layout user={user} onLogout={handleLogout}><TambahSantri /></Layout> : <Navigate to="/" replace />} 
-        />
-        <Route 
-          path="/kelas" 
-          element={user && user.role === 'ADMIN' ? <Layout user={user} onLogout={handleLogout}><KelasRombel user={user} /></Layout> : <Navigate to="/" replace />} 
-        />
+        <Route element={user ? <Layout user={user} onLogout={handleLogout} /> : <Navigate to="/login" replace />}>
+          <Route path="/" element={<Dashboard user={user} />} />
+          <Route path="/pendidikan" element={<Pendidikan user={user} />} />
+          <Route path="/keamanan" element={<Keamanan user={user} />} />
+          <Route path="/keuangan" element={<Keuangan user={user} />} />
+          <Route path="/profil" element={<Profil user={user} onUserUpdate={handleUserUpdate} />} />
+          <Route path="/profil/:id" element={<Profil user={user} onUserUpdate={handleUserUpdate} />} />
+          <Route path="/tambah-santri" element={user && user.role === 'ADMIN' ? <TambahSantri /> : <Navigate to="/" replace />} />
+          <Route path="/kelas" element={user && user.role === 'ADMIN' ? <KelasRombel user={user} /> : <Navigate to="/" replace />} />
+        </Route>
 
         {/* Fallback Redirect */}
         <Route path="*" element={<Navigate to="/" replace />} />

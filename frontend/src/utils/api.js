@@ -209,9 +209,8 @@ const request = async (method, url, data = null, params = null) => {
       if (error.response) {
         return Promise.reject(error.response.data || { message: 'Terjadi kesalahan pada server' });
       }
-      console.warn('Koneksi ke server backend offline. Menggunakan mode cadangan...', error);
-      window.useMockDb = true;
-      return request(method, url, data, params);
+      console.error('Koneksi ke server backend gagal:', error);
+      return Promise.reject({ message: 'Gagal terhubung ke server backend. Pastikan server lokal Anda sudah berjalan.' });
     }
   }
 
@@ -417,10 +416,17 @@ const request = async (method, url, data = null, params = null) => {
           let users = getMockData('mock_users').filter(u => u.role === 'SANTRI');
           const { search, kelas } = params || {};
           if (search) {
-            users = users.filter(u => 
-              u.nama.toLowerCase().includes(search.toLowerCase()) || 
-              (u.kelas && u.kelas.toLowerCase().includes(search.toLowerCase()))
-            );
+            const keywords = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+            if (keywords.length > 0) {
+              users = users.filter(u => {
+                return keywords.every(kw => {
+                  const nameMatch = u.nama.toLowerCase().includes(kw);
+                  const classMatch = u.kelas ? u.kelas.toLowerCase().includes(kw) : false;
+                  const waliMatch = u.namaWali ? u.namaWali.toLowerCase().includes(kw) : false;
+                  return nameMatch || classMatch || waliMatch;
+                });
+              });
+            }
           }
           if (kelas) {
             users = users.filter(u => u.kelas === kelas);
@@ -799,6 +805,8 @@ const request = async (method, url, data = null, params = null) => {
             }
           }
 
+           const santriBefore = { ...users[idx] };
+
           if (nama) users[idx].nama = nama;
           if (email !== undefined) users[idx].email = email || null;
           if (noHp !== undefined) users[idx].noHp = noHp;
@@ -814,6 +822,28 @@ const request = async (method, url, data = null, params = null) => {
           }
 
           saveMockData('mock_users', users);
+
+          // Deteksi field yang diubah untuk notifikasi admin (kecuali password)
+          const changedFields = [];
+          if (nama && nama !== santriBefore.nama) changedFields.push('Nama');
+          if (alamat !== undefined && alamat !== santriBefore.alamat) changedFields.push('Alamat');
+          if (noHp !== undefined && noHp !== santriBefore.noHp) changedFields.push('No HP');
+          if (email !== undefined && email !== santriBefore.email) changedFields.push('Email');
+          if (namaWali !== undefined && namaWali !== santriBefore.namaWali) changedFields.push('Wali');
+
+          if (changedFields.length > 0 && currentUser.role !== 'ADMIN') {
+            const notifs = getMockData('mock_notifications');
+            notifs.push({
+              id: Date.now(),
+              judul: `Perubahan Profil Santri: ${users[idx].nama}`,
+              isi: `Santri ${users[idx].nama} (Kelas: ${users[idx].kelas || '-'}) telah mengubah ${changedFields.join(', ')}.`,
+              kategori: 'UMUM',
+              santriId: null,
+              isRead: false,
+              createdAt: new Date().toISOString()
+            });
+            saveMockData('mock_notifications', notifs);
+          }
 
           // Sinkronkan token jika user yang diedit adalah user yang sedang login
           if (currentUser.id === targetId) {

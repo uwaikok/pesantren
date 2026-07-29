@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   BookOpen, 
@@ -167,6 +167,21 @@ function Layout({ children, user, onLogout }) {
   const filteredNavItems = navItems.filter(item => item.roles.includes(user?.role));
   const isTambahSantriActive = location.pathname === '/tambah-santri';
 
+  // Perubahan profil untuk notifikasi Admin
+  const profileChangeNotifs = notifications.filter(n => n.judul && n.judul.includes('Perubahan Profil'));
+  const readAdminNotifs = JSON.parse(localStorage.getItem(`read_notifs_admin_${user?.id}`) || '[]');
+  const unreadProfileNotifs = profileChangeNotifs.filter(n => !readAdminNotifs.includes(String(n.id)));
+  const unreadProfileNotifsCount = unreadProfileNotifs.length;
+
+  const handleMarkAdminNotifRead = (id) => {
+    const readAdminNotifs = JSON.parse(localStorage.getItem(`read_notifs_admin_${user?.id}`) || '[]');
+    if (!readAdminNotifs.includes(String(id))) {
+      readAdminNotifs.push(String(id));
+      localStorage.setItem(`read_notifs_admin_${user?.id}`, JSON.stringify(readAdminNotifs));
+      fetchNotifications();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[#F5F5F0] flex flex-col md:flex-row text-[#1A1A1A]">
       {/* SIDEBAR - DESKTOP */}
@@ -251,6 +266,59 @@ function Layout({ children, user, onLogout }) {
             </div>
           )}
         </nav>
+
+        {/* Pemberitahuan Perubahan Profil Santri di Sidebar Admin */}
+        {user?.role === 'ADMIN' && (
+          <div className="mx-4 mb-4 p-3.5 bg-[#083831]/60 rounded-xl border border-white/10 text-xs flex-shrink-0">
+            <h3 className="font-extrabold text-[10px] text-[#E8C766] uppercase tracking-wider mb-2 flex items-center justify-between">
+              <span className="flex items-center space-x-1.5">
+                <Bell size={12} className="text-[#D4AF37]" />
+                <span>Pemberitahuan Profil</span>
+              </span>
+              {unreadProfileNotifsCount > 0 && (
+                <span className="bg-rose-500 text-white rounded-full px-1.5 py-0.5 text-[8px] font-bold animate-pulse">
+                  {unreadProfileNotifsCount}
+                </span>
+              )}
+            </h3>
+            <div className="space-y-2 max-h-36 overflow-y-auto custom-scrollbar pr-0.5">
+              {profileChangeNotifs.length > 0 ? (
+                profileChangeNotifs.map(n => {
+                  const isRead = readAdminNotifs.includes(String(n.id));
+                  return (
+                    <div 
+                      key={n.id} 
+                      className={`p-2 rounded-lg border transition-all relative group ${
+                        !isRead 
+                          ? 'bg-[#0B4A3F] border-[#D4AF37]/35 text-white' 
+                          : 'bg-[#0B4A3F]/30 border-white/5 text-emerald-200/70'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start gap-1 pr-3">
+                        <p className="font-bold text-[9px] leading-tight">{n.judul.replace('Perubahan Profil Santri: ', '')}</p>
+                        {!isRead && (
+                          <button 
+                            onClick={() => handleMarkAdminNotifRead(n.id)}
+                            className="text-[#E8C766] hover:text-white font-bold text-[9px] absolute top-1.5 right-1.5 transition"
+                            title="Tandai dibaca"
+                          >
+                            ✕
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[9px] mt-1 leading-snug">{n.isi}</p>
+                      <span className="text-[7.5px] text-emerald-300/60 block mt-1 font-mono">
+                        {new Date(n.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})} WIB
+                      </span>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="text-[9px] text-emerald-200/50 italic text-center py-3">Tidak ada riwayat aktivitas</p>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Logout Button */}
         <div className="p-4 border-t border-white/10 bg-[#083831]">
@@ -620,7 +688,7 @@ function Layout({ children, user, onLogout }) {
 
         {/* MAIN CONTAINER */}
         <main className="flex-1 p-4 md:p-8 overflow-y-auto">
-          {children}
+          {children || <Outlet />}
         </main>
       </div>
 
