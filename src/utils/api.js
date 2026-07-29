@@ -164,6 +164,11 @@ const seedMockDatabase = () => {
 // Panggil inisialisasi database localstorage
 seedMockDatabase();
 
+// PENTING: Bersihkan flag mock DB yang tersimpan dari sesi sebelumnya
+// agar aplikasi selalu coba backend nyata terlebih dahulu setiap kali halaman dibuka
+localStorage.removeItem('use_mock_db');
+window.useMockDb = false;
+
 // Helper get database dari localStorage
 const getMockData = (key) => JSON.parse(localStorage.getItem(key) || '[]');
 const saveMockData = (key, data) => localStorage.setItem(key, JSON.stringify(data));
@@ -193,22 +198,24 @@ const getLoggedInUser = () => {
 
 // Buat wrapper request API
 const request = async (method, url, data = null, params = null) => {
-  // Cek apakah server mati / kita menggunakan mock db
-  const useMock = localStorage.getItem('use_mock_db') === 'true' || window.useMockDb === true;
+  // Hanya gunakan window.useMockDb (in-memory) — TIDAK dari localStorage
+  // Ini memastikan setiap refresh halaman, app selalu coba backend nyata dulu
+  const useMock = window.useMockDb === true;
 
   if (!useMock) {
     try {
       // Coba panggil server backend asli
       const response = await api({ method, url, data, params });
+      // Jika berhasil — pastikan mock mode OFF
+      window.useMockDb = false;
       return response.data;
     } catch (error) {
-      // Jika error dari backend berupa HTTP status 400, 401, 403, 404, 422, dsb (artinya server online dan merespon):
-      // Kembalikan pesan error dari server tersebut!
+      // Jika error dari backend berupa HTTP status (server online, ada error logika):
       if (error.response) {
         return Promise.reject(error.response.data || { message: 'Terjadi kesalahan pada server' });
       }
 
-      // Jika murni kesalahan jaringan/offline (misal ServerDown / No Connection):
+      // Jika murni jaringan mati / backend tidak bisa dicapai:
       console.warn('Koneksi ke server backend offline. Menggunakan mode cadangan...', error);
       window.useMockDb = true;
       return request(method, url, data, params);
