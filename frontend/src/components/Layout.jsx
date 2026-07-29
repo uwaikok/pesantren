@@ -52,8 +52,12 @@ function Layout({ children, user, onLogout }) {
           return !readNotifs.includes(String(n.id)) && !n.isRead;
         });
         setUnreadCount(unread.length);
-      } else {
-        setUnreadCount(0);
+      } else if (user.role === 'ADMIN') {
+        const readAdminNotifs = JSON.parse(localStorage.getItem(`read_notifs_admin_${user.id}`) || '[]');
+        const unread = data.filter(n => {
+          return !readAdminNotifs.includes(String(n.id));
+        });
+        setUnreadCount(unread.length);
       }
     } catch (err) {
       console.error('Gagal mengambil notifikasi:', err);
@@ -93,6 +97,10 @@ function Layout({ children, user, onLogout }) {
         await api.put('/notifications/read');
         const allIds = notifications.map(n => String(n.id));
         localStorage.setItem(`read_notifs_${user.id}`, JSON.stringify(allIds));
+        fetchNotifications();
+      } else if (user.role === 'ADMIN') {
+        const allIds = notifications.map(n => String(n.id));
+        localStorage.setItem(`read_notifs_admin_${user.id}`, JSON.stringify(allIds));
         fetchNotifications();
       }
     } catch (err) {
@@ -145,6 +153,8 @@ function Layout({ children, user, onLogout }) {
       crumbs.push({ label: 'Profil Akun', path: '/profil' });
     } else if (path === '/tambah-santri') {
       crumbs.push({ label: 'Tambah Santri Baru', path: '/tambah-santri' });
+    } else if (path === '/kirim-pemberitahuan') {
+      crumbs.push({ label: 'Kirim Pemberitahuan', path: '/kirim-pemberitahuan' });
     }
 
     return crumbs;
@@ -156,6 +166,7 @@ function Layout({ children, user, onLogout }) {
     { label: 'Kelas / Rombel', path: '/kelas', icon: Users, roles: ['ADMIN'] },
     { label: 'Keamanan', path: '/keamanan', icon: ShieldAlert, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Bendahara', path: '/keuangan', icon: DollarSign, roles: ['ADMIN', 'SANTRI'] },
+    { label: 'Kirim Pemberitahuan', path: '/kirim-pemberitahuan', icon: Bell, roles: ['ADMIN'] },
     { label: 'Profil', path: '/profil', icon: User, roles: ['ADMIN', 'SANTRI'] },
   ];
 
@@ -267,58 +278,7 @@ function Layout({ children, user, onLogout }) {
           )}
         </nav>
 
-        {/* Pemberitahuan Perubahan Profil Santri di Sidebar Admin */}
-        {user?.role === 'ADMIN' && (
-          <div className="mx-4 mb-4 p-3.5 bg-[#083831]/60 rounded-xl border border-white/10 text-xs flex-shrink-0">
-            <h3 className="font-extrabold text-[10px] text-[#E8C766] uppercase tracking-wider mb-2 flex items-center justify-between">
-              <span className="flex items-center space-x-1.5">
-                <Bell size={12} className="text-[#D4AF37]" />
-                <span>Pemberitahuan Profil</span>
-              </span>
-              {unreadProfileNotifsCount > 0 && (
-                <span className="bg-rose-500 text-white rounded-full px-1.5 py-0.5 text-[8px] font-bold animate-pulse">
-                  {unreadProfileNotifsCount}
-                </span>
-              )}
-            </h3>
-            <div className="space-y-2 max-h-36 overflow-y-auto custom-scrollbar pr-0.5">
-              {profileChangeNotifs.length > 0 ? (
-                profileChangeNotifs.map(n => {
-                  const isRead = readAdminNotifs.includes(String(n.id));
-                  return (
-                    <div 
-                      key={n.id} 
-                      className={`p-2 rounded-lg border transition-all relative group ${
-                        !isRead 
-                          ? 'bg-[#0B4A3F] border-[#D4AF37]/35 text-white' 
-                          : 'bg-[#0B4A3F]/30 border-white/5 text-emerald-200/70'
-                      }`}
-                    >
-                      <div className="flex justify-between items-start gap-1 pr-3">
-                        <p className="font-bold text-[9px] leading-tight">{n.judul.replace('Perubahan Profil Santri: ', '')}</p>
-                        {!isRead && (
-                          <button 
-                            onClick={() => handleMarkAdminNotifRead(n.id)}
-                            className="text-[#E8C766] hover:text-white font-bold text-[9px] absolute top-1.5 right-1.5 transition"
-                            title="Tandai dibaca"
-                          >
-                            ✕
-                          </button>
-                        )}
-                      </div>
-                      <p className="text-[9px] mt-1 leading-snug">{n.isi}</p>
-                      <span className="text-[7.5px] text-emerald-300/60 block mt-1 font-mono">
-                        {new Date(n.createdAt).toLocaleTimeString('id-ID', {hour: '2-digit', minute: '2-digit'})} WIB
-                      </span>
-                    </div>
-                  );
-                })
-              ) : (
-                <p className="text-[9px] text-emerald-200/50 italic text-center py-3">Tidak ada riwayat aktivitas</p>
-              )}
-            </div>
-          </div>
-        )}
+
 
         {/* Logout Button */}
         <div className="p-4 border-t border-white/10 bg-[#083831]">
@@ -363,20 +323,12 @@ function Layout({ children, user, onLogout }) {
                   <Bell size={12} />
                   <span>Notifikasi SIM</span>
                 </span>
-                {user.role === 'SANTRI' && unreadCount > 0 && (
+                {unreadCount > 0 && (
                   <button 
                     onClick={handleMarkAllRead} 
-                    className="text-[9px] text-emerald-200 hover:text-white font-medium underline"
+                    className="text-[9px] text-emerald-250 hover:text-white font-medium underline"
                   >
                     Semua Dibaca
-                  </button>
-                )}
-                {user.role === 'ADMIN' && (
-                  <button 
-                    onClick={() => { setIsAdminNotifModalOpen(true); setIsNotifOpen(false); }} 
-                    className="text-[9px] bg-[#D4AF37] text-[#0B4A3F] font-bold px-1.5 py-0.5 rounded shadow-sm"
-                  >
-                    Kirim
                   </button>
                 )}
               </div>
@@ -396,8 +348,10 @@ function Layout({ children, user, onLogout }) {
                       badgeLabel = 'SANKSI';
                     }
 
-                    const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${user.id}`) || '[]');
-                    const isRead = readNotifs.includes(String(n.id)) || n.isRead;
+                    const readNotifs = user.role === 'ADMIN'
+                      ? JSON.parse(localStorage.getItem(`read_notifs_admin_${user.id}`) || '[]')
+                      : JSON.parse(localStorage.getItem(`read_notifs_${user.id}`) || '[]');
+                    const isRead = readNotifs.includes(String(n.id)) || (user.role === 'SANTRI' && n.isRead);
 
                     return (
                       <div key={n.id} className={`p-3 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80 font-medium' : ''}`}>
@@ -409,9 +363,15 @@ function Layout({ children, user, onLogout }) {
                             <span className="text-[8px] text-slate-400">
                               {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                             </span>
-                            {!isRead && user.role === 'SANTRI' && (
+                            {!isRead && (
                               <button 
-                                onClick={() => handleMarkSingleRead(n.id)}
+                                onClick={() => {
+                                  if (user.role === 'SANTRI') {
+                                    handleMarkSingleRead(n.id);
+                                  } else {
+                                    handleMarkAdminNotifRead(n.id);
+                                  }
+                                }}
                                 className="text-[8px] text-emerald-600 hover:text-emerald-700 font-bold underline"
                               >
                                 Dibaca
@@ -581,20 +541,12 @@ function Layout({ children, user, onLogout }) {
                       <Bell size={14} className="text-[#D4AF37]" />
                       <span>Notifikasi SIM</span>
                     </span>
-                    {user.role === 'SANTRI' && unreadCount > 0 && (
+                    {unreadCount > 0 && (
                       <button 
                         onClick={handleMarkAllRead} 
                         className="text-[10px] text-emerald-250 hover:text-white font-sans font-semibold underline transition duration-150"
                       >
                         Tandai Semua Dibaca
-                      </button>
-                    )}
-                    {user.role === 'ADMIN' && (
-                      <button 
-                        onClick={() => { setIsAdminNotifModalOpen(true); setIsNotifOpen(false); }} 
-                        className="text-[10px] bg-[#D4AF37] hover:bg-[#E8C766] text-[#0B4A3F] font-extrabold px-2.5 py-1 rounded transition shadow-sm"
-                      >
-                        Kirim Pengumuman
                       </button>
                     )}
                   </div>
@@ -615,8 +567,10 @@ function Layout({ children, user, onLogout }) {
                           badgeLabel = 'SANKSI';
                         }
 
-                        const readNotifs = JSON.parse(localStorage.getItem(`read_notifs_${user.id}`) || '[]');
-                        const isRead = readNotifs.includes(String(n.id)) || n.isRead;
+                        const readNotifs = user.role === 'ADMIN'
+                          ? JSON.parse(localStorage.getItem(`read_notifs_admin_${user.id}`) || '[]')
+                          : JSON.parse(localStorage.getItem(`read_notifs_${user.id}`) || '[]');
+                        const isRead = readNotifs.includes(String(n.id)) || (user.role === 'SANTRI' && n.isRead);
 
                         return (
                           <div key={n.id} className={`p-3.5 transition-colors duration-150 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80 font-medium' : ''}`}>
@@ -628,9 +582,15 @@ function Layout({ children, user, onLogout }) {
                                 <span className="text-[9px] text-slate-400 font-mono">
                                   {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                                 </span>
-                                {!isRead && user.role === 'SANTRI' && (
+                                {!isRead && (
                                   <button 
-                                    onClick={() => handleMarkSingleRead(n.id)}
+                                    onClick={() => {
+                                      if (user.role === 'SANTRI') {
+                                        handleMarkSingleRead(n.id);
+                                      } else {
+                                        handleMarkAdminNotifRead(n.id);
+                                      }
+                                    }}
                                     className="text-[9px] text-emerald-600 hover:text-emerald-700 font-bold underline transition"
                                   >
                                     Tandai Dibaca

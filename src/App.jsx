@@ -12,6 +12,7 @@ import Keuangan from './pages/Keuangan';
 import Profil from './pages/Profil';
 import TambahSantri from './pages/TambahSantri';
 import KelasRombel from './pages/KelasRombel';
+import KirimPemberitahuan from './pages/KirimPemberitahuan';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -72,6 +73,7 @@ function App() {
           <Route path="/profil/:id" element={<Profil user={user} onUserUpdate={handleUserUpdate} />} />
           <Route path="/tambah-santri" element={user && user.role === 'ADMIN' ? <TambahSantri /> : <Navigate to="/" replace />} />
           <Route path="/kelas" element={user && user.role === 'ADMIN' ? <KelasRombel user={user} /> : <Navigate to="/" replace />} />
+          <Route path="/kirim-pemberitahuan" element={user && user.role === 'ADMIN' ? <KirimPemberitahuan /> : <Navigate to="/" replace />} />
         </Route>
 
         {/* Fallback Redirect */}
