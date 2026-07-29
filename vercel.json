@@ -5,12 +5,12 @@
   "outputDirectory": "dist",
   "framework": "vite",
   "functions": {
-    "api/index.js": {
+    "api/index.cjs": {
       "maxDuration": 30
     }
   },
   "rewrites": [
-    { "source": "/api/:path*", "destination": "/api/index.js" },
+    { "source": "/api/:path*", "destination": "/api/index.cjs" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
   ],
   "headers": [

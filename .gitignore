@@ -28,3 +28,6 @@ backend/uploads/*
 # OS files
 Thumbs.db
 .DS_Store
+
+.vercel
+.env*
