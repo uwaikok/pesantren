@@ -100,7 +100,7 @@ function Login({ onLoginSuccess }) {
                 <label className="block text-[11px] font-extrabold text-[#0B4A3F] uppercase tracking-wider">Kata Sandi</label>
                 <button
                   type="button"
-                  onClick={() => alert('Lupa kata sandi? Silakan hubungi admin atau pengurus di kantor pesantren untuk mereset kata sandi Anda ke kata sandi default ("student123").')}
+                  onClick={() => alert('Lupa kata sandi? Silakan hubungi admin atau pengurus di kantor pesantren untuk mereset kata sandi Anda ke kata sandi default ("santri123").')}
                   className="text-[10px] text-[#D4AF37] hover:underline font-bold"
                 >
                   Lupa Sandi?

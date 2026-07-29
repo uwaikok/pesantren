@@ -249,7 +249,7 @@ function Profil({ user, onUserUpdate }) {
     setResettingPassword(true);
     setResetSuccessMessage('');
     try {
-      const defaultPassword = 'student123';
+      const defaultPassword = 'santri123';
       
       const useMock = localStorage.getItem('use_mock_db') === 'true' || window.useMockDb === true;
       if (useMock) {
