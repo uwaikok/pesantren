@@ -26,7 +26,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../backend/uploads')));
 // Main Routing
 app.use('/api', routes);
 
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Server SIM Pesantren berjalan dengan baik', env: process.env.NODE_ENV });
 });
 
