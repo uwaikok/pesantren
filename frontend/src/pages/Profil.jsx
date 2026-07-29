@@ -690,7 +690,7 @@ function Profil({ user, onUserUpdate }) {
                     <div className="p-3 bg-emerald-100 text-[#0B4A3F] rounded-xl"><Award size={20} /></div>
                     <div>
                       <p className="text-[9px] font-bold text-slate-400 uppercase">Mata Pelajaran Diikuti</p>
-                      <h4 className="text-base font-bold text-slate-800">{profileData.akademik ? profileData.akademik.length : 0} Mata Kuliah</h4>
+                      <h4 className="text-base font-bold text-slate-800">{profileData.akademik ? profileData.akademik.length : 0} Pelajaran Pesantren</h4>
                     </div>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3">
