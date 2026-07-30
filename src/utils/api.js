@@ -873,15 +873,29 @@ const request = async (method, url, data = null, params = null) => {
 
           if (changedFields.length > 0 && currentUser.role !== 'ADMIN') {
             const notifs = getMockData('mock_notifications');
+            
+            // 1. Notifikasi untuk santri yang bersangkutan (hanya dia yang melihat)
             notifs.push({
               id: Date.now(),
-              judul: `Perubahan Profil Santri: ${users[idx].nama}`,
-              isi: `Santri ${users[idx].nama} (Kelas: ${users[idx].kelas || '-'}) telah mengubah ${changedFields.join(', ')}.`,
+              judul: 'Profil Anda Berhasil Diperbarui',
+              isi: `Anda telah berhasil mengubah ${changedFields.join(', ')} pada profil Anda.`,
               kategori: 'UMUM',
-              santriId: null,
+              santriId: targetId,
               isRead: false,
               createdAt: new Date().toISOString()
             });
+
+            // 2. Notifikasi khusus admin (santriId: -1 sebagai penanda notifikasi admin-only)
+            notifs.push({
+              id: Date.now() + 1,
+              judul: `Perubahan Profil Santri: ${users[idx].nama}`,
+              isi: `Santri ${users[idx].nama} (Kelas: ${users[idx].kelas || '-'}) telah mengubah ${changedFields.join(', ')}.`,
+              kategori: 'UMUM',
+              santriId: -1,
+              isRead: false,
+              createdAt: new Date().toISOString()
+            });
+
             saveMockData('mock_notifications', notifs);
           }
 

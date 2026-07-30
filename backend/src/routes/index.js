@@ -330,7 +330,7 @@ router.put('/users/:id/profile', verifyToken, async (req, res) => {
       data: updateData,
     });
 
-    // Deteksi field yang diubah untuk notifikasi admin (kecuali password)
+    // Deteksi field yang diubah untuk notifikasi (kecuali password)
     const changedFields = [];
     if (nama && nama !== santri.nama) changedFields.push('Nama');
     if (alamat !== undefined && alamat !== santri.alamat) changedFields.push('Alamat');
@@ -339,12 +339,23 @@ router.put('/users/:id/profile', verifyToken, async (req, res) => {
     if (namaWali !== undefined && namaWali !== santri.namaWali) changedFields.push('Wali');
 
     if (changedFields.length > 0 && req.user.role !== 'ADMIN') {
+      // Notifikasi untuk santri yang bersangkutan (hanya dia yang melihat)
+      await prisma.notification.create({
+        data: {
+          judul: 'Profil Anda Berhasil Diperbarui',
+          isi: `Anda telah berhasil mengubah ${changedFields.join(', ')} pada profil Anda.`,
+          kategori: 'UMUM',
+          santriId: userId,
+        }
+      });
+
+      // Notifikasi khusus admin (santriId: -1 sebagai penanda notifikasi admin-only)
       await prisma.notification.create({
         data: {
           judul: `Perubahan Profil Santri: ${santri.nama}`,
           isi: `Santri ${santri.nama} (Kelas: ${santri.kelas || '-'}) telah mengubah ${changedFields.join(', ')}.`,
           kategori: 'UMUM',
-          santriId: null,
+          santriId: -1,
         }
       });
     }
