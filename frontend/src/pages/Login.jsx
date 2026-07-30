@@ -24,8 +24,8 @@ function Login({ onLoginSuccess }) {
     try {
       const response = await api.post('/auth/login', { email, password });
       
-      // Simpan token ke sessionStorage
-      sessionStorage.setItem('simesra_token', response.token);
+      // Simpan token ke localStorage
+      localStorage.setItem('simesra_token', response.token);
       
       // Panggil callback sukses
       onLoginSuccess();

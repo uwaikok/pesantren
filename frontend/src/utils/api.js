@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Konfigurasi base Axios
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || '/api',
   timeout: 15000,
 });
 
@@ -10,7 +10,7 @@ const api = axios.create({
 // Interceptor untuk menyisipkan token JWT di setiap request
 api.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('simesra_token');
+    const token = localStorage.getItem('simesra_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -175,7 +175,7 @@ const saveMockData = (key, data) => localStorage.setItem(key, JSON.stringify(dat
 
 // Cek siapa user yang sedang login berdasarkan token
 const getLoggedInUser = () => {
-  const token = sessionStorage.getItem('simesra_token');
+  const token = localStorage.getItem('simesra_token');
   if (!token) return null;
   try {
     // Di demo mode, token hanyalah JSON string user
@@ -233,7 +233,7 @@ const request = async (method, url, data = null, params = null) => {
             return reject({ message: 'Akun Anda belum aktif. Silakan hubungi admin untuk aktivasi.' });
           }
           // Simpan token (di demo mode, token kita adalah detail user itu sendiri)
-          sessionStorage.setItem('simesra_token', JSON.stringify(found));
+          localStorage.setItem('simesra_token', JSON.stringify(found));
           return resolve({ message: 'Login berhasil', token: JSON.stringify(found), user: found });
         }
 
@@ -283,7 +283,7 @@ const request = async (method, url, data = null, params = null) => {
           if (!latestUser) return reject({ message: 'User tidak ditemukan' });
           // Sync token dengan data terbaru
           const userForToken = { ...latestUser };
-          sessionStorage.setItem('simesra_token', JSON.stringify(userForToken));
+          localStorage.setItem('simesra_token', JSON.stringify(userForToken));
           // Return tanpa password
           const { password, ...safeUser } = latestUser;
           return resolve(safeUser);
@@ -318,9 +318,9 @@ const request = async (method, url, data = null, params = null) => {
           users[idx].password = passwordBaru;
           saveMockData('mock_users', users);
 
-          // Buat token baru TANPA field password (aman) dan simpan ke sessionStorage
+          // Buat token baru TANPA field password (aman) dan simpan ke localStorage
           const { password: _pw, ...safeUserForToken } = users[idx];
-          sessionStorage.setItem('simesra_token', JSON.stringify(safeUserForToken));
+          localStorage.setItem('simesra_token', JSON.stringify(safeUserForToken));
 
           return resolve({ message: 'Kata sandi berhasil diperbarui. Password lama tidak berlaku lagi.' });
         }
@@ -361,7 +361,7 @@ const request = async (method, url, data = null, params = null) => {
 
           // Update token
           const { password: _p, ...safeUser } = users[idx];
-          sessionStorage.setItem('simesra_token', JSON.stringify(safeUser));
+          localStorage.setItem('simesra_token', JSON.stringify(safeUser));
 
           return resolve({
             message: 'Profil berhasil diperbarui',
@@ -515,7 +515,7 @@ const request = async (method, url, data = null, params = null) => {
           
           // Sinkronkan token jika user yang diedit adalah user yang sedang login
           if (currentUser.id === id) {
-            sessionStorage.setItem('simesra_token', JSON.stringify(users[idx]));
+            localStorage.setItem('simesra_token', JSON.stringify(users[idx]));
           }
           return resolve({ message: 'Data santri berhasil diperbarui', user: users[idx] });
         }
@@ -863,7 +863,7 @@ const request = async (method, url, data = null, params = null) => {
           // Sinkronkan token jika user yang diedit adalah user yang sedang login
           if (currentUser.id === targetId) {
             const { password: _p, ...safeUser } = users[idx];
-            sessionStorage.setItem('simesra_token', JSON.stringify(safeUser));
+            localStorage.setItem('simesra_token', JSON.stringify(safeUser));
           }
 
           const { password: _p, ...safeUser } = users[idx];

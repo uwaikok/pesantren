@@ -37,7 +37,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('simesra_token');
+    localStorage.removeItem('simesra_token');
     setUser(null);
   };
 

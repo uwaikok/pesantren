@@ -303,7 +303,8 @@ const uploadFotoProfil = async (req, res) => {
     const { id } = req.params;
     const targetId = parseInt(id);
 
-    if (req.user.role !== 'ADMIN') {
+    // RBAC check: Harus ADMIN atau Santri bersangkutan yang mengupdate fotonya sendiri
+    if (req.user.role !== 'ADMIN' && (req.user.role !== 'SANTRI' || req.user.id !== targetId)) {
       return res.status(403).json({ message: 'Akses ditolak' });
     }
 
@@ -314,8 +315,8 @@ const uploadFotoProfil = async (req, res) => {
     // Convert file buffer ke Base64 data URL
     const fotoBase64 = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
 
-    // Cek apakah targetId adalah admin yang sedang login
-    if (targetId === req.user.id) {
+    // 1. Jika ADMIN mengedit foto profilnya sendiri (disimpan di tabel User)
+    if (req.user.role === 'ADMIN' && targetId === req.user.id) {
       const updatedUser = await prisma.user.update({
         where: { id: targetId },
         data: { fotoProfil: fotoBase64 },
@@ -332,6 +333,7 @@ const uploadFotoProfil = async (req, res) => {
       });
     }
 
+    // 2. Selain itu, yang di-update adalah tabel Santri (admin edit santri, atau santri edit fotonya sendiri)
     const santri = await prisma.santri.findUnique({ where: { id: targetId } });
     if (!santri) {
       return res.status(404).json({ message: 'Santri tidak ditemukan' });
@@ -340,7 +342,7 @@ const uploadFotoProfil = async (req, res) => {
     const updated = await prisma.santri.update({
       where: { id: targetId },
       data: { fotoProfil: fotoBase64 },
-      select: { id: true, nama: true, fotoProfil: true }
+      select: { id: true, nama: true, email: true, fotoProfil: true }
     });
 
     res.json({ 
@@ -349,6 +351,8 @@ const uploadFotoProfil = async (req, res) => {
       user: {
         ...updated,
         email: updated.email || '-',
+        role: 'SANTRI',
+        status: santri.status
       } 
     });
   } catch (error) {

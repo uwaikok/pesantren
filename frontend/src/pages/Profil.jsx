@@ -127,9 +127,9 @@ function Profil({ user, onUserUpdate }) {
             users[idx].fotoProfil = base64;
             localStorage.setItem('mock_users', JSON.stringify(users));
             if (effectiveId === user.id) {
-              const tokenUser = JSON.parse(sessionStorage.getItem('simesra_token') || '{}');
+              const tokenUser = JSON.parse(localStorage.getItem('simesra_token') || '{}');
               tokenUser.fotoProfil = base64;
-              sessionStorage.setItem('simesra_token', JSON.stringify(tokenUser));
+              localStorage.setItem('simesra_token', JSON.stringify(tokenUser));
               if (onUserUpdate) onUserUpdate({ fotoProfil: base64 });
             }
           }
@@ -145,25 +145,17 @@ function Profil({ user, onUserUpdate }) {
         const formData = new FormData();
         formData.append('foto', file);
 
-        const token = sessionStorage.getItem('simesra_token');
-        const response = await fetch(`/api/users/${effectiveId}/foto-profil`, {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData,
+        const result = await api.put(`/users/${effectiveId}/foto-profil`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         });
 
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.message || 'Gagal mengupload foto');
-        }
-
-        const result = await response.json();
-        const fotoUrl = `/uploads/foto-profil/${result.fotoProfil?.split('/').pop() || ''}`;
         setProfileData(prev => ({
           ...prev,
           user: { ...prev.user, fotoProfil: result.fotoProfil }
         }));
-        setPreviewFoto(fotoUrl);
+        setPreviewFoto(result.fotoProfil);
         setFotoSuccess('Foto profil berhasil diperbarui!');
         if (effectiveId === user.id && onUserUpdate) onUserUpdate({ fotoProfil: result.fotoProfil });
         setFotoLoading(false);
@@ -226,7 +218,7 @@ function Profil({ user, onUserUpdate }) {
         
         // Simpan token baru jika didapatkan dari server
         if (result.token) {
-          sessionStorage.setItem('simesra_token', result.token);
+          localStorage.setItem('simesra_token', result.token);
         }
 
         if (onUserUpdate) onUserUpdate({ nama: result.user.nama, email: result.user.email, noHp: result.user.noHp, alamat: result.user.alamat });
