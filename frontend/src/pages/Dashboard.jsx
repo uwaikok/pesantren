@@ -21,6 +21,17 @@ import {
 import api from '../utils/api';
 
 function Dashboard({ user }) {
+  const formatDateForInput = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      return d.toISOString().split('T')[0];
+    } catch (e) {
+      return '';
+    }
+  };
+
   const [stats, setStats] = useState(null);
   const [santriList, setSantriList] = useState([]);
   const [pendingUsers, setPendingUsers] = useState([]);
@@ -286,6 +297,21 @@ function Dashboard({ user }) {
   // --- RENDERING DASHBOARD ADMIN ---
   return (
     <div className="space-y-6">
+      {/* Welcome Banner Admin */}
+      <div className="bg-gradient-to-r from-[#0B4A3F] via-[#083831] to-[#041e1a] text-white rounded-2xl p-6 md:p-8 shadow-xl relative overflow-hidden border border-[#D4AF37]/30">
+        <div className="absolute top-0 right-0 translate-x-12 -translate-y-12 w-64 h-64 bg-[#D4AF37]/15 rounded-full blur-2xl pointer-events-none"></div>
+        <div className="relative z-10">
+          <span className="bg-[#D4AF37]/20 border border-[#D4AF37]/40 text-[#E8C766] text-xs px-3.5 py-1 rounded-full font-bold uppercase tracking-wider inline-flex items-center space-x-1.5">
+            <Sparkles size={12} className="text-[#E8C766]" />
+            <span>Assalamu'alaikum Wr. Wb. • Portal Utama</span>
+          </span>
+          <h1 className="text-2xl md:text-3xl font-bold font-serif mt-3 text-white">Selamat Datang, {user.nama}</h1>
+          <p className="text-emerald-100/90 text-xs md:text-sm mt-1.5 max-w-2xl leading-relaxed">
+            Anda masuk sebagai Administrator. Kelola seluruh data santri, konfigurasi kelas/rombel, monitoring keuangan Syariah, and sanksi kedisiplinan secara efisien melalui panel kontrol ini.
+          </p>
+        </div>
+      </div>
+
       {/* Stats Grid dengan Border Top Emas Tipis & Soft Circle Background Icon */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Santri */}
@@ -367,10 +393,10 @@ function Dashboard({ user }) {
             )}
           </div>
 
-          <div className="mt-8 p-4 bg-[#DCFCE7]/40 rounded-xl border border-[#16A34A]/20 text-xs">
-            <h4 className="font-bold text-[#0B4A3F] mb-1">💡 Informasi Sistem:</h4>
-            <p className="text-[11px] text-slate-650 leading-relaxed">
-              Data terhubung langsung dengan database. Kelola mata pelajaran, sanksi, dan keuangan Syariah santri melalui menu sidebar.
+          <div className="mt-8 p-4 bg-[#0B4A3F]/5 rounded-xl border border-[#0B4A3F]/15 text-xs">
+            <h4 className="font-bold text-[#0B4A3F] mb-1">⚙️ Status Layanan SIM:</h4>
+            <p className="text-[11px] text-slate-600 leading-relaxed font-semibold">
+              Sistem berjalan dengan normal. Seluruh data disinkronkan langsung secara real-time ke database cloud. Lakukan backup data secara berkala demi keamanan informasi.
             </p>
           </div>
         </div>
@@ -671,6 +697,16 @@ function Dashboard({ user }) {
                       {showEditPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Tanggal Masuk</label>
+                  <input
+                    type="date"
+                    required
+                    value={formatDateForInput(editingSantri.tanggalMasuk)}
+                    onChange={(e) => setEditingSantri({ ...editingSantri, tanggalMasuk: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none text-slate-700"
+                  />
                 </div>
                 <div className="flex items-center space-x-2 pt-4">
                   <input
