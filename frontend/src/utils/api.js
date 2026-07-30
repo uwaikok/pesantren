@@ -3,8 +3,9 @@ import axios from 'axios';
 // Konfigurasi base Axios
 const api = axios.create({
   baseURL: '/api',
-  timeout: 5000,
+  timeout: 15000,
 });
+
 
 // Interceptor untuk menyisipkan token JWT di setiap request
 api.interceptors.request.use(

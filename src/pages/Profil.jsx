@@ -53,6 +53,11 @@ function Profil({ user, onUserUpdate }) {
   // State untuk Reset Password dialog (hanya untuk admin mereset password santri)
   const [resettingPassword, setResettingPassword] = useState(false);
   const [resetSuccessMessage, setResetSuccessMessage] = useState('');
+  
+  // State untuk simpan biodata
+  const [savingBiodata, setSavingBiodata] = useState(false);
+  const [saveBiodataError, setSaveBiodataError] = useState('');
+  const [saveBiodataSuccess, setSaveBiodataSuccess] = useState('');
 
   useEffect(() => {
     if (!isAdminSelf && !targetId) {
@@ -219,6 +224,9 @@ function Profil({ user, onUserUpdate }) {
 
   const handleSaveBiodata = async (e) => {
     e.preventDefault();
+    setSavingBiodata(true);
+    setSaveBiodataError('');
+    setSaveBiodataSuccess('');
     try {
       if (isAdminSelf) {
         // Update profil admin sendiri via /auth/profile
@@ -239,10 +247,13 @@ function Profil({ user, onUserUpdate }) {
           if (onUserUpdate) onUserUpdate({ nama: result.user.nama, email: result.user.email, noHp: result.user.noHp, alamat: result.user.alamat });
         }
       }
+      setSaveBiodataSuccess('Profil berhasil diperbarui!');
       setIsEditing(false);
       fetchProfile();
     } catch (err) {
-      alert(err.message || 'Gagal memperbarui biodata');
+      setSaveBiodataError(err.message || 'Gagal memperbarui biodata');
+    } finally {
+      setSavingBiodata(false);
     }
   };
 
@@ -572,11 +583,21 @@ function Profil({ user, onUserUpdate }) {
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none resize-none"
                       ></textarea>
                     </div>
+                    {saveBiodataError && (
+                      <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 font-semibold text-[11px]">
+                        ⚠️ {saveBiodataError}
+                      </div>
+                    )}
                     <button
                       type="submit"
-                      className="bg-[#0B4A3F] hover:bg-[#083831] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md"
+                      disabled={savingBiodata}
+                      className="bg-[#0B4A3F] hover:bg-[#083831] disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md flex items-center space-x-2"
                     >
-                      Simpan Perubahan
+                      {savingBiodata ? (
+                        <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span>Menyimpan...</span></>
+                      ) : (
+                        <span>Simpan Perubahan</span>
+                      )}
                     </button>
                   </form>
                 ) : (
@@ -1026,11 +1047,21 @@ function Profil({ user, onUserUpdate }) {
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none resize-none"
                     ></textarea>
                   </div>
+                  {saveBiodataError && (
+                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 font-semibold text-[11px]">
+                      ⚠️ {saveBiodataError}
+                    </div>
+                  )}
                   <button
                     type="submit"
-                    className="bg-[#0B4A3F] hover:bg-[#083831] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md"
+                    disabled={savingBiodata}
+                    className="bg-[#0B4A3F] hover:bg-[#083831] disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md flex items-center space-x-2"
                   >
-                    Simpan Profil Admin
+                    {savingBiodata ? (
+                      <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span>Menyimpan...</span></>
+                    ) : (
+                      <span>Simpan Profil Admin</span>
+                    )}
                   </button>
                 </form>
               ) : (

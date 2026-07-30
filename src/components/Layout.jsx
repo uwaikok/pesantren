@@ -34,6 +34,10 @@ function Layout({ children, user, onLogout }) {
   const [notifForm, setNotifForm] = useState({ judul: '', isi: '', kategori: 'UMUM', santriId: '' });
   const [allSantri, setAllSantri] = useState([]);
 
+  // State untuk Hapus Notifikasi Inline
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+  const [isDeletingNotif, setIsDeletingNotif] = useState(false);
+
   // State untuk Modal Edit Notifikasi oleh Admin
   const [isEditNotifModalOpen, setIsEditNotifModalOpen] = useState(false);
   const [editNotifData, setEditNotifData] = useState({ id: null, judul: '', isi: '', kategori: 'UMUM', santriId: '' });
@@ -162,12 +166,15 @@ function Layout({ children, user, onLogout }) {
   };
 
   const handleDeleteNotification = async (id) => {
-    if (!window.confirm('Hapus notifikasi ini dari riwayat?')) return;
+    setIsDeletingNotif(true);
     try {
       await api.delete(`/notifications/${id}`);
       fetchNotifications();
+      setConfirmDeleteId(null);
     } catch (err) {
       alert(err.message || 'Gagal menghapus notifikasi');
+    } finally {
+      setIsDeletingNotif(false);
     }
   };
 
@@ -428,13 +435,33 @@ function Layout({ children, user, onLogout }) {
                                 <Pencil size={9} />
                                 Edit
                               </button>
-                              <button 
-                                onClick={() => handleDeleteNotification(n.id)}
-                                className="text-rose-500 hover:text-rose-700 font-bold text-[9px] flex items-center gap-0.5"
-                              >
-                                <Trash2 size={9} />
-                                Hapus
-                              </button>
+                              {confirmDeleteId === n.id ? (
+                                <div className="flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                  <span className="text-[8px] text-rose-600 font-bold">Yakin hapus?</span>
+                                  <button 
+                                    onClick={() => handleDeleteNotification(n.id)}
+                                    disabled={isDeletingNotif}
+                                    className="text-[9px] text-rose-700 font-bold hover:underline ml-1"
+                                  >
+                                    {isDeletingNotif ? '...' : 'Ya'}
+                                  </button>
+                                  <button 
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    disabled={isDeletingNotif}
+                                    className="text-[9px] text-slate-500 font-bold hover:underline ml-1"
+                                  >
+                                    Batal
+                                  </button>
+                                </div>
+                              ) : (
+                                <button 
+                                  onClick={() => setConfirmDeleteId(n.id)}
+                                  className="text-rose-500 hover:text-rose-700 font-bold text-[9px] flex items-center gap-0.5"
+                                >
+                                  <Trash2 size={9} />
+                                  Hapus
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}
@@ -656,13 +683,34 @@ function Layout({ children, user, onLogout }) {
                                     <Pencil size={10} />
                                     <span>Edit</span>
                                   </button>
-                                  <button 
-                                    onClick={() => handleDeleteNotification(n.id)}
-                                    className="text-rose-500 hover:text-rose-700 p-1 flex items-center gap-0.5 font-bold hover:underline transition"
-                                  >
-                                    <Trash2 size={10} />
-                                    <span>Hapus</span>
-                                  </button>
+                                  {confirmDeleteId === n.id ? (
+                                    <div className="flex items-center gap-1.5 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200">
+                                      <span className="text-[9px] text-rose-700 font-bold">Yakin hapus?</span>
+                                      <button 
+                                        onClick={() => handleDeleteNotification(n.id)}
+                                        disabled={isDeletingNotif}
+                                        className="text-[10px] text-rose-700 font-bold hover:underline px-1"
+                                      >
+                                        {isDeletingNotif ? '...' : 'Ya'}
+                                      </button>
+                                      <span className="text-rose-300">|</span>
+                                      <button 
+                                        onClick={() => setConfirmDeleteId(null)}
+                                        disabled={isDeletingNotif}
+                                        className="text-[10px] text-slate-500 font-bold hover:underline px-1"
+                                      >
+                                        Batal
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button 
+                                      onClick={() => setConfirmDeleteId(n.id)}
+                                      className="text-rose-500 hover:text-rose-700 p-1 flex items-center gap-0.5 font-bold hover:underline transition"
+                                    >
+                                      <Trash2 size={10} />
+                                      <span>Hapus</span>
+                                    </button>
+                                  )}
                                 </div>
                               </div>
                             )}
