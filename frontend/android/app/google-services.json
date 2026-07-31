@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "584951605803",
+    "project_id": "sim-pesantren",
+    "storage_bucket": "sim-pesantren.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:584951605803:android:42565422ee2406ec94d86e",
+        "android_client_info": {
+          "package_name": "com.simesra.pesantren"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBvYbcQRP5Czo-NaWzZ8Yw56zOGEwuEqK4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

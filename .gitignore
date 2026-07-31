@@ -11,6 +11,9 @@ frontend/dist/
 .env
 backend/.env
 
+# Firebase Service Account Key (RAHASIA - jangan di-push ke GitHub!)
+backend/firebase-admin.json
+
 # Database SQLite local
 backend/prisma/*.db
 backend/prisma/*.db-journal
@@ -31,3 +34,5 @@ Thumbs.db
 
 .vercel
 .env*
+
+firebase_env_value.txt

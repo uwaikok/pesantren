@@ -1,5 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const admin = require('../firebase');
+
 
 const getNotifications = async (req, res) => {
   try {
@@ -141,6 +143,27 @@ const createNotification = async (req, res) => {
         isRead: false
       }
     });
+
+    // Kirim notifikasi push ke Firebase jika ini pengumuman global (santriId null)
+    if (!santriId) {
+      try {
+        await admin.messaging().send({
+          topic: 'global_announcements',
+          notification: {
+            title: judul,
+            body: isi
+          },
+          data: {
+            kategori: kategori,
+            click_action: 'FLUTTER_NOTIFICATION_CLICK'
+          }
+        });
+        console.log('Firebase Push Notification sent successfully to global_announcements');
+      } catch (fcmError) {
+        console.error('Error sending Firebase Push Notification:', fcmError);
+        // Kita tidak mereturn error agar proses database tetap sukses meskipun push gagal
+      }
+    }
 
     res.status(201).json({
       message: 'Notifikasi berhasil dikirim',
