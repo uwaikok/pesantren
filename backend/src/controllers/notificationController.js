@@ -20,16 +20,9 @@ const getNotifications = async (req, res) => {
       // Notifikasi admin-only (santriId: -1) TIDAK ditampilkan ke santri
       const dbNotifications = await prisma.notification.findMany({
         where: {
-          AND: [
-            {
-              OR: [
-                { santriId: null },
-                { santriId: userId }
-              ]
-            },
-            {
-              NOT: { santriId: -1 }
-            }
+          OR: [
+            { santriId: null },
+            { santriId: userId }
           ]
         },
         orderBy: { createdAt: 'desc' }
