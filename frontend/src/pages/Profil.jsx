@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Loader2, Key, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
+import { confirmDialog, alertDialog } from '../utils/dialog';
 
 function Profil({ user, onUserUpdate }) {
   const { id } = useParams();
@@ -234,13 +235,13 @@ function Profil({ user, onUserUpdate }) {
       setIsEditing(false);
       fetchProfile();
     } catch (err) {
-      alert(err.message || 'Gagal memperbarui biodata');
+      alertDialog(err.message || 'Gagal memperbarui biodata', 'Gagal');
     }
   };
 
   // Pemicu reset password santri oleh admin
   const handleResetPasswordSantri = async () => {
-    if (!window.confirm(`Apakah Anda yakin ingin mereset kata sandi santri "${profileData.user.nama}" menjadi default?`)) return;
+    if (!await confirmDialog(`Apakah Anda yakin ingin mereset kata sandi santri "${profileData.user.nama}" menjadi default?`)) return;
     
     setResettingPassword(true);
     setResetSuccessMessage('');
@@ -260,7 +261,7 @@ function Profil({ user, onUserUpdate }) {
       
       setResetSuccessMessage(`Kata sandi ${profileData.user.nama} berhasil direset menjadi: ${defaultPassword}`);
     } catch (err) {
-      alert(err.message || 'Gagal mereset kata sandi');
+      alertDialog(err.message || 'Gagal mereset kata sandi', 'Gagal');
     } finally {
       setResettingPassword(false);
     }

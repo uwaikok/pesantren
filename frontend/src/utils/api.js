@@ -1,8 +1,43 @@
 import axios from 'axios';
 
+// ============================================================
+// KONFIGURASI URL API
+// - Di browser web (dev): pakai proxy /api → localhost:5000
+// - Di Android APK (Capacitor native): pakai URL Vercel langsung
+//   karena APK tidak bisa pakai path relatif '/api'
+// ============================================================
+const isCapacitorNative = () => {
+  if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    return true;
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const protocol = window.location.protocol;
+    if (protocol === 'capacitor:' || protocol === 'file:') {
+      return true;
+    }
+    const hostname = window.location.hostname;
+    if ((protocol === 'https:' || protocol === 'http:') && hostname === 'localhost' && !import.meta.env.DEV) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// URL backend Vercel production (untuk APK Android)
+const VERCEL_API_URL = 'https://pesantren-chi.vercel.app/api';
+
+// Tentukan baseURL:
+// - Native (APK Android): pakai Vercel URL langsung
+// - Browser web: pakai env var atau '/api' (di-proxy oleh Vite/Vercel)
+const BASE_URL = isCapacitorNative()
+  ? VERCEL_API_URL
+  : (import.meta.env.VITE_API_URL || '/api');
+
+console.log('[SIM Pesantren] API Base URL:', BASE_URL, '| Native:', isCapacitorNative());
+
 // Konfigurasi base Axios
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  baseURL: BASE_URL,
   timeout: 15000,
 });
 
@@ -165,9 +200,11 @@ const seedMockDatabase = () => {
 // Panggil inisialisasi database localstorage
 seedMockDatabase();
 
-// PENTING: Bersihkan flag mock DB yang tersimpan dari sesi sebelumnya
+// Mode selalu menggunakan real backend (Vercel/Neon)
+// Mock mode hanya diaktifkan manual jika diperlukan
 localStorage.removeItem('use_mock_db');
 window.useMockDb = false;
+console.log('[SIM Pesantren] Mode: ONLINE — Terhubung ke backend Vercel + Neon DB');
 
 // Helper get database dari localStorage
 const getMockData = (key) => JSON.parse(localStorage.getItem(key) || '[]');
@@ -197,21 +234,23 @@ const getLoggedInUser = () => {
 };
 
 // Buat wrapper request API
-const request = async (method, url, data = null, params = null) => {
-  // Hanya gunakan window.useMockDb (in-memory) — TIDAK dari localStorage
+const request = async (method, url, data = null, params = null, headers = null) => {
   const useMock = window.useMockDb === true;
 
   if (!useMock) {
     try {
-      const response = await api({ method, url, data, params });
-      window.useMockDb = false;
+      const config = { method, url, data, params };
+      if (headers) config.headers = headers;
+      const response = await api(config);
       return response.data;
     } catch (error) {
       if (error.response) {
+        // HTTP error dari server (4xx, 5xx)
         return Promise.reject(error.response.data || { message: 'Terjadi kesalahan pada server' });
       }
-      console.error('Koneksi ke server backend gagal:', error);
-      return Promise.reject({ message: 'Gagal terhubung ke server backend. Pastikan server lokal Anda sudah berjalan.' });
+      // Network error — tidak bisa konek ke backend
+      console.error('[SIM Pesantren] Gagal terhubung ke backend:', error.message);
+      return Promise.reject({ message: 'Gagal terhubung ke server. Periksa koneksi internet Anda.' });
     }
   }
 
@@ -990,7 +1029,7 @@ const request = async (method, url, data = null, params = null) => {
 
 export default {
   get: (url, config) => request('get', url, null, config?.params),
-  post: (url, data) => request('post', url, data),
-  put: (url, data) => request('put', url, data),
+  post: (url, data, config) => request('post', url, data, null, config?.headers),
+  put: (url, data, config) => request('put', url, data, null, config?.headers),
   delete: (url) => request('delete', url),
 };

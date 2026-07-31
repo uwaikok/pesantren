@@ -18,6 +18,7 @@ import {
   Pencil
 } from 'lucide-react';
 import api from '../utils/api';
+import { alertDialog } from '../utils/dialog';
 
 function Layout({ children, user, onLogout }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -141,9 +142,9 @@ function Layout({ children, user, onLogout }) {
       setIsEditNotifModalOpen(false);
       setEditNotifData({ id: null, judul: '', isi: '', kategori: 'UMUM', santriId: '' });
       fetchNotifications();
-      alert('Pemberitahuan berhasil diperbarui!');
+      alertDialog('Pemberitahuan berhasil diperbarui!', 'Berhasil');
     } catch (err) {
-      alert(err.message || 'Gagal memperbarui pemberitahuan');
+      alertDialog(err.message || 'Gagal memperbarui pemberitahuan', 'Gagal');
     }
   };
 
@@ -159,9 +160,9 @@ function Layout({ children, user, onLogout }) {
       setIsAdminNotifModalOpen(false);
       setNotifForm({ judul: '', isi: '', kategori: 'UMUM', santriId: '' });
       fetchNotifications();
-      alert('Notifikasi berhasil dikirim!');
+      alertDialog('Notifikasi berhasil dikirim!', 'Berhasil');
     } catch (err) {
-      alert(err.message || 'Gagal mengirim notifikasi');
+      alertDialog(err.message || 'Gagal mengirim notifikasi', 'Gagal');
     }
   };
 
@@ -172,7 +173,7 @@ function Layout({ children, user, onLogout }) {
       fetchNotifications();
       setConfirmDeleteId(null);
     } catch (err) {
-      alert(err.message || 'Gagal menghapus notifikasi');
+      alertDialog(err.message || 'Gagal menghapus notifikasi', 'Gagal');
     } finally {
       setIsDeletingNotif(false);
     }

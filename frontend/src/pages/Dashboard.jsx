@@ -16,9 +16,12 @@ import {
   BookOpen,
   DollarSign,
   Sparkles,
-  Award
+  Award,
+  Database,
+  RefreshCw
 } from 'lucide-react';
 import api from '../utils/api';
+import { confirmDialog, alertDialog } from '../utils/dialog';
 
 function Dashboard({ user }) {
   const formatDateForInput = (dateStr) => {
@@ -40,6 +43,8 @@ function Dashboard({ user }) {
   const [filterKelas, setFilterKelas] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [migrating, setMigrating] = useState(false);
+  const [migrateStatus, setMigrateStatus] = useState('');
 
   // State untuk paginasi santri
   const [currentPage, setCurrentPage] = useState(1);
@@ -117,22 +122,22 @@ function Dashboard({ user }) {
   };
 
   const handleVerify = async (id, nama) => {
-    if (!window.confirm(`Aktifkan akun santri ${nama}?`)) return;
+    if (!await confirmDialog(`Aktifkan akun santri ${nama}?`)) return;
     try {
       await api.put(`/admin/users/${id}/verify`);
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Gagal mengaktifkan akun');
+      alertDialog(err.message || 'Gagal mengaktifkan akun', 'Gagal');
     }
   };
 
   const handleDelete = async (id, nama) => {
-    if (!window.confirm(`PERINGATAN: Menghapus data santri "${nama}" akan menghapus seluruh data nilai, sanksi, dan keuangan Syariah yang bersangkutan. Lanjutkan?`)) return;
+    if (!await confirmDialog(`PERINGATAN: Menghapus data santri "${nama}" akan menghapus seluruh data nilai, sanksi, dan keuangan Syariah yang bersangkutan. Lanjutkan?`)) return;
     try {
       await api.delete(`/admin/santri/${id}`);
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Gagal menghapus santri');
+      alertDialog(err.message || 'Gagal menghapus santri', 'Gagal');
     }
   };
 
@@ -148,7 +153,101 @@ function Dashboard({ user }) {
       setIsEditModalOpen(false);
       fetchAdminData();
     } catch (err) {
-      alert(err.message || 'Gagal memperbarui data santri');
+      alertDialog(err.message || 'Gagal memperbarui data santri', 'Gagal');
+    }
+  };
+
+  const handleMigrateOfflineData = async () => {
+    const localUsers = JSON.parse(localStorage.getItem('mock_users') || '[]');
+    const localNilai = JSON.parse(localStorage.getItem('mock_nilai') || '[]');
+    const localSanksi = JSON.parse(localStorage.getItem('mock_sanksi') || '[]');
+    const localPembayaran = JSON.parse(localStorage.getItem('mock_pembayaran') || '[]');
+
+    const offlineSantri = localUsers.filter(u => u.role === 'SANTRI');
+
+    if (offlineSantri.length === 0) {
+      alertDialog('Tidak ada data santri offline (demo) yang ditemukan di penyimpanan lokal browser/aplikasi ini.', 'Informasi');
+      return;
+    }
+
+    const confirmed = await confirmDialog(
+      `Ditemukan ${offlineSantri.length} data santri offline (serta nilai/sanksi/SPP terkait). Apakah Anda yakin ingin memigrasikan seluruh data tersebut ke database online Vercel + Neon?`
+    );
+    if (!confirmed) return;
+
+    setMigrating(true);
+    setMigrateStatus('Memulai migrasi...');
+
+    try {
+      let migratedCount = 0;
+      for (let i = 0; i < offlineSantri.length; i++) {
+        const s = offlineSantri[i];
+        setMigrateStatus(`Mengunggah santri (${i + 1}/${offlineSantri.length}): ${s.nama}...`);
+
+        // Buat santri di backend
+        const santriPayload = {
+          nama: s.nama,
+          email: s.email || `${s.nama.toLowerCase().replace(/\s+/g, '')}@pesantren.com`,
+          password: s.password || 'santri123',
+          noHp: s.noHp || '',
+          alamat: s.alamat || '',
+          namaWali: s.namaWali || '',
+          kelas: s.kelas || '',
+          isBeasiswa: s.isBeasiswa || false
+        };
+
+        const newSantri = await api.post('/admin/santri', santriPayload);
+        const newId = newSantri.id;
+
+        // Migrasi Nilai
+        const scores = localNilai.filter(n => n.santriId === s.id);
+        for (const n of scores) {
+          await api.post('/akademik', {
+            santriId: newId,
+            mataPelajaran: n.mataPelajaran,
+            nilaiUts: n.nilaiUts,
+            nilaiUas: n.nilaiUas,
+            semester: n.semester,
+            tahunAjaran: n.tahunAjaran
+          });
+        }
+
+        // Migrasi Sanksi
+        const violations = localSanksi.filter(sk => sk.santriId === s.id);
+        for (const sk of violations) {
+          await api.post('/keamanan', {
+            santriId: newId,
+            tanggalPelanggaran: sk.tanggalPelanggaran,
+            tahun: sk.tahun,
+            deskripsi: sk.deskripsi,
+            kategori: sk.kategori
+          });
+        }
+
+        // Migrasi SPP/Pembayaran
+        const payments = localPembayaran.filter(p => p.santriId === s.id);
+        for (const p of payments) {
+          await api.post('/keuangan', {
+            santriId: newId,
+            bulan: p.bulan,
+            tahun: p.tahun,
+            status: p.status,
+            jumlah: p.jumlah,
+            tanggalBayar: p.tanggalBayar
+          });
+        }
+
+        migratedCount++;
+      }
+
+      setMigrateStatus('');
+      alertDialog(`Berhasil memigrasikan ${migratedCount} data santri beserta seluruh nilai, sanksi, dan keuangan terkait ke database online Vercel + Neon!`, 'Migrasi Sukses');
+      fetchAdminData();
+    } catch (err) {
+      console.error('Migration error:', err);
+      alertDialog('Gagal memproses migrasi: ' + (err.message || err), 'Gagal Migrasi');
+    } finally {
+      setMigrating(false);
     }
   };
 
@@ -309,6 +408,23 @@ function Dashboard({ user }) {
           <p className="text-emerald-100/90 text-xs md:text-sm mt-1.5 max-w-2xl leading-relaxed">
             Anda masuk sebagai Administrator. Kelola seluruh data santri, konfigurasi kelas/rombel, monitoring keuangan Syariah, and sanksi kedisiplinan secara efisien melalui panel kontrol ini.
           </p>
+          
+          {migrating ? (
+            <div className="mt-4 p-3 bg-white/10 border border-white/20 rounded-xl flex items-center space-x-3 text-xs text-white max-w-md">
+              <RefreshCw size={16} className="animate-spin text-[#E8C766]" />
+              <span>{migrateStatus}</span>
+            </div>
+          ) : (
+            localStorage.getItem('mock_users') && JSON.parse(localStorage.getItem('mock_users') || '[]').filter(u => u.role === 'SANTRI').length > 0 && (
+              <button
+                onClick={handleMigrateOfflineData}
+                className="mt-4 px-4 py-2 bg-[#D4AF37] hover:bg-[#E8C766] text-[#0B4A3F] font-bold text-xs rounded-xl shadow-md transition-all duration-200 flex items-center space-x-2 active:scale-95"
+              >
+                <Database size={14} />
+                <span>Migrasikan Data Offline ({JSON.parse(localStorage.getItem('mock_users') || '[]').filter(u => u.role === 'SANTRI').length} Santri)</span>
+              </button>
+            )
+          )}
         </div>
       </div>
 

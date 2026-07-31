@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, BookOpen, ShieldCheck } from 'lucide-react';
 import api from '../utils/api';
+import { alertDialog } from '../utils/dialog';
 
 function Login({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
@@ -100,7 +101,7 @@ function Login({ onLoginSuccess }) {
                 <label className="block text-[11px] font-extrabold text-[#0B4A3F] uppercase tracking-wider">Kata Sandi</label>
                 <button
                   type="button"
-                  onClick={() => alert('Lupa kata sandi? Silakan hubungi admin atau pengurus di kantor pesantren untuk mereset kata sandi Anda ke kata sandi default ("santri123").')}
+                  onClick={() => alertDialog('Lupa kata sandi? Silakan hubungi admin atau pengurus di kantor pesantren untuk mereset kata sandi Anda ke kata sandi default ("santri123").', 'Lupa Kata Sandi')}
                   className="text-[10px] text-[#D4AF37] hover:underline font-bold"
                 >
                   Lupa Sandi?

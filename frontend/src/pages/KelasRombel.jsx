@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Users, GraduationCap, ChevronRight, AlertCircle, ArrowUpCircle, CheckCircle } from 'lucide-react';
 import api from '../utils/api';
+import { confirmDialog } from '../utils/dialog';
 
 const CLASS_ORDER = [
   'Imdad Putra',
@@ -65,7 +66,7 @@ function KelasRombel() {
       ? 'Santri akan diluluskan dan dinonaktifkan dari daftar aktif. Lanjutkan?'
       : `Promosikan santri ke kelas ${next}?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    if (!await confirmDialog(confirmMsg)) return;
 
     try {
       setError('');
@@ -93,7 +94,7 @@ function KelasRombel() {
       ? `Apakah Anda yakin ingin meluluskan (menonaktifkan) seluruh santri (${classStudents.length} orang) di kelas ${className}?`
       : `Apakah Anda yakin ingin menaikkan seluruh santri (${classStudents.length} orang) dari kelas ${className} ke ${next}?`;
 
-    if (!window.confirm(confirmMsg)) return;
+    if (!await confirmDialog(confirmMsg)) return;
 
     try {
       setError('');

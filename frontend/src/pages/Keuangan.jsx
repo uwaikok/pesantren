@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Printer, CheckCircle, XCircle, RotateCcw, Calendar, X } from 'lucide-react';
 import api from '../utils/api';
+import { confirmDialog, alertDialog } from '../utils/dialog';
 
 function Keuangan({ user }) {
   const [santriList, setSantriList] = useState([]);
@@ -82,7 +83,7 @@ function Keuangan({ user }) {
   };
 
   const handleCancelPayment = async (bulan) => {
-    if (!window.confirm(`Batalkan status Lunas syariah bulan ${getNamaBulan(bulan)} ${sppTahun} menjadi BELUM BAYAR?`)) return;
+    if (!await confirmDialog(`Batalkan status Lunas syariah bulan ${getNamaBulan(bulan)} ${sppTahun} menjadi BELUM BAYAR?`)) return;
 
     try {
       await api.post('/keuangan', {
@@ -94,7 +95,7 @@ function Keuangan({ user }) {
       });
       fetchKeuanganData();
     } catch (err) {
-      alert(err.message || 'Gagal membatalkan pembayaran');
+      alertDialog(err.message || 'Gagal membatalkan pembayaran', 'Gagal');
     }
   };
 
@@ -116,7 +117,7 @@ function Keuangan({ user }) {
       setIsPayModalOpen(false);
       fetchKeuanganData();
     } catch (err) {
-      alert(err.message || 'Gagal menyimpan pembayaran');
+      alertDialog(err.message || 'Gagal menyimpan pembayaran', 'Gagal');
     } finally {
       setPaySubmitting(false);
     }

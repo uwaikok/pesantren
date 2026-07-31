@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Plus, Edit, Trash2, Calendar, Search, Filter, ShieldCheck } from 'lucide-react';
 import api from '../utils/api';
+import { confirmDialog, alertDialog } from '../utils/dialog';
 
 function Keamanan({ user }) {
   const [santriList, setSantriList] = useState([]);
@@ -103,7 +104,7 @@ function Keamanan({ user }) {
     const { tanggalPelanggaran, tahun, deskripsi, kategori } = formSanksi;
 
     if (!tanggalPelanggaran || !tahun || !deskripsi || !kategori) {
-      alert('Semua field pelanggaran wajib diisi');
+      alertDialog('Semua field pelanggaran wajib diisi', 'Validasi');
       return;
     }
 
@@ -124,17 +125,17 @@ function Keamanan({ user }) {
       setIsModalOpen(false);
       fetchSanksiData();
     } catch (err) {
-      alert(err.message || 'Gagal menyimpan catatan pelanggaran');
+      alertDialog(err.message || 'Gagal menyimpan catatan pelanggaran', 'Gagal');
     }
   };
 
   const handleDeleteSanksi = async (id) => {
-    if (!window.confirm('Hapus catatan pelanggaran ini?')) return;
+    if (!await confirmDialog('Hapus catatan pelanggaran ini?')) return;
     try {
       await api.delete(`/keamanan/${id}`);
       fetchSanksiData();
     } catch (err) {
-      alert(err.message || 'Gagal menghapus catatan');
+      alertDialog(err.message || 'Gagal menghapus catatan', 'Gagal');
     }
   };
 

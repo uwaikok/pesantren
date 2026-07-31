@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Plus, Edit, Trash2, Printer, Calendar, GraduationCap, Sparkles } from 'lucide-react';
 import api from '../utils/api';
+import { confirmDialog, alertDialog } from '../utils/dialog';
 
 function Pendidikan({ user }) {
   const [santriList, setSantriList] = useState([]);
@@ -107,11 +108,11 @@ function Pendidikan({ user }) {
     const { mataPelajaran, nilaiUts, nilaiUas } = formNilai;
 
     if (!mataPelajaran) {
-      alert('Mata pelajaran wajib diisi');
+      alertDialog('Mata pelajaran wajib diisi', 'Validasi');
       return;
     }
     if (nilaiUts === '' && nilaiUas === '') {
-      alert('Minimal salah satu nilai (UTS atau UAS) harus diisi');
+      alertDialog('Minimal salah satu nilai (UTS atau UAS) harus diisi', 'Validasi');
       return;
     }
 
@@ -161,7 +162,7 @@ function Pendidikan({ user }) {
       setExistingEntry(null);
       fetchNilaiData();
     } catch (err) {
-      alert(err.message || 'Gagal menyimpan nilai');
+      alertDialog(err.message || 'Gagal menyimpan nilai', 'Gagal');
     }
   };
 
@@ -188,12 +189,12 @@ function Pendidikan({ user }) {
   };
 
   const handleDeleteNilai = async (id) => {
-    if (!window.confirm('Hapus entri nilai ini?')) return;
+    if (!await confirmDialog('Hapus entri nilai ini?')) return;
     try {
       await api.delete(`/akademik/${id}`);
       fetchNilaiData();
     } catch (err) {
-      alert(err.message || 'Gagal menghapus nilai');
+      alertDialog(err.message || 'Gagal menghapus nilai', 'Gagal');
     }
   };
 
