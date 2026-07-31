@@ -188,6 +188,36 @@ const deleteNotification = async (req, res) => {
       return res.status(404).json({ message: 'Notifikasi tidak ditemukan' });
     }
 
+    // Jika yang dihapus adalah notifikasi admin tentang perubahan profil santri,
+    // cari dan hapus juga notifikasi pasangannya di sisi santri (dibuat di waktu yang sama)
+    if (notification.santriId === -1 && notification.judul && notification.judul.startsWith('Perubahan Profil Santri:')) {
+      try {
+        const timeLimitStart = new Date(new Date(notification.createdAt).getTime() - 10000); // 10 detik sebelum
+        const timeLimitEnd = new Date(new Date(notification.createdAt).getTime() + 10000);   // 10 detik sesudah
+        
+        const relatedNotif = await prisma.notification.findFirst({
+          where: {
+            judul: 'Profil Anda Berhasil Diperbarui',
+            createdAt: {
+              gte: timeLimitStart,
+              lte: timeLimitEnd
+            },
+            santriId: {
+              notIn: [null, -1] // bukan global dan bukan admin
+            }
+          }
+        });
+
+        if (relatedNotif) {
+          await prisma.notification.delete({
+            where: { id: relatedNotif.id }
+          });
+        }
+      } catch (innerError) {
+        console.error('Gagal menghapus notifikasi santri terkait:', innerError);
+      }
+    }
+
     await prisma.notification.delete({
       where: { id: parseInt(id) }
     });
