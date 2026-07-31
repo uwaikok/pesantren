@@ -50,6 +50,15 @@ function Layout({ children, user, onLogout }) {
         fetchAllSantri();
       }
     }
+
+    // Saat user klik notifikasi HP dan app kembali ke foreground, refresh notifikasi
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        fetchNotifications();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user]);
 
   const fetchNotifications = async () => {

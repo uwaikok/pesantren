@@ -111,7 +111,8 @@ function Dashboard({ user }) {
         sanksiCount: profileData.keamanan.length,
         tunggakan: profileData.keuangan.totalTunggakan,
         unpaidMonths: profileData.keuangan.payments.filter(p => p.status === 'BELUM_BAYAR').length,
-        notifications: notifData.filter(n => n.kategori === 'UMUM' || n.kategori === 'UJIAN')
+        // Tampilkan semua notifikasi dari DB (dari admin), bukan hanya UMUM & UJIAN
+        notifications: notifData.filter(n => typeof n.id === 'number')
       });
     } catch (err) {
       console.error(err);
