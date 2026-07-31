@@ -40,7 +40,7 @@
         <!-- Metadata FCM: gunakan channel dengan suara (IMPORTANCE_HIGH) saat app tertutup -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="as_syadzili_channel" />
+            android:value="as_syadzili_channel_v5" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@mipmap/ic_launcher" />

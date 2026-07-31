@@ -740,7 +740,7 @@ const request = async (method, url, data = null, params = null, headers = null) 
           const paymentsList = [];
           let totalTunggakan = 0;
           let totalTerbayar = 0;
-          const defaultAmount = 350000;
+          const defaultAmount = 300000; // Harus sama dengan backend DEFAULT_SPP_AMOUNT
 
           for (let m = 1; m <= 12; m++) {
             const dbRecord = pembayaran.find(p => p.bulan === m);
@@ -793,7 +793,7 @@ const request = async (method, url, data = null, params = null, headers = null) 
           
           const paymentsList = [];
           let totalTunggakan = 0;
-          const defaultAmount = 350000;
+          const defaultAmount = 300000; // Harus sama dengan backend DEFAULT_SPP_AMOUNT
 
           for (let m = 1; m <= 12; m++) {
             const dbRecord = payments.find(p => p.bulan === m);

@@ -34,6 +34,13 @@ public class MainActivity extends BridgeActivity {
                     }
                 });
 
+        // Request runtime permission for push notifications on Android 13+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 101);
+            }
+        }
+
         // Tangani intent jika aplikasi dijalankan/dibuka pertama kali dari klik notifikasi
         handleNotificationIntent(getIntent());
     }
