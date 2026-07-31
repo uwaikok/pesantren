@@ -33,6 +33,44 @@ public class MainActivity extends BridgeActivity {
                         Log.e(TAG, "Gagal subscribe ke topik global_announcements", task.getException());
                     }
                 });
+
+        // Tangani intent jika aplikasi dijalankan/dibuka pertama kali dari klik notifikasi
+        handleNotificationIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(android.content.Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // Tangani intent jika aplikasi di-resume dari background via klik notifikasi
+        handleNotificationIntent(intent);
+    }
+
+    private void handleNotificationIntent(android.content.Intent intent) {
+        if (intent != null && intent.getBooleanExtra("open_notifications", false)) {
+            Log.d(TAG, "Menerima intent klik notifikasi. Mengirim event ke WebView...");
+            
+            // Simpan flag ke sessionStorage agar bisa dibaca meski event terlewat
+            // Coba kirim event beberapa kali dengan delay berbeda agar pasti diterima
+            android.os.Handler handler = new android.os.Handler(android.os.Looper.getMainLooper());
+            
+            Runnable dispatchEvent = () -> {
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    getBridge().getWebView().evaluateJavascript(
+                        "(function() {" +
+                        "  sessionStorage.setItem('openNotificationsOnLoad', 'true');" +
+                        "  window.dispatchEvent(new CustomEvent('openNotifications'));" +
+                        "})()",
+                        null
+                    );
+                }
+            };
+            
+            // Coba dispatch event di 0.8s, 1.5s, dan 3s setelah app terbuka
+            handler.postDelayed(dispatchEvent, 800);
+            handler.postDelayed(dispatchEvent, 1500);
+            handler.postDelayed(dispatchEvent, 3000);
+        }
     }
 
     private void createNotificationChannel() {

@@ -57,8 +57,32 @@ function Layout({ children, user, onLogout }) {
         fetchNotifications();
       }
     };
+
+    // Buka dropdown lonceng ketika dipicu oleh klik notifikasi dari Android
+    const handleOpenNotifEvent = () => {
+      fetchNotifications(); // Refresh data notifikasi
+      setIsNotifOpen(true); // Buka dropdown
+      navigate('/');        // Navigasi ke halaman beranda
+    };
+
+    // Cek sessionStorage: jika ada flag dari Android (kasus app baru terbuka)
+    if (sessionStorage.getItem('openNotificationsOnLoad') === 'true') {
+      sessionStorage.removeItem('openNotificationsOnLoad');
+      // Delay singkat agar React sudah render sempurna
+      setTimeout(() => {
+        fetchNotifications();
+        setIsNotifOpen(true);
+        navigate('/');
+      }, 500);
+    }
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('openNotifications', handleOpenNotifEvent);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('openNotifications', handleOpenNotifEvent);
+    };
   }, [user]);
 
   const fetchNotifications = async () => {
