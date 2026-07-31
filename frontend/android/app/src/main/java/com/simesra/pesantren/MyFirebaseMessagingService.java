@@ -17,7 +17,7 @@ import com.google.firebase.messaging.RemoteMessage;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
-    private static final String CHANNEL_ID = "as_syadzili_channel_v4";
+    private static final String CHANNEL_ID = "as_syadzili_channel_v5";
     private static final String CHANNEL_NAME = "AS-SYADZILI Notifikasi";
 
     @Override
@@ -75,20 +75,36 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
                         .setStyle(new NotificationCompat.BigTextStyle().bigText(messageBody))
                         .setAutoCancel(true)
                         .setSound(defaultSoundUri)
+                        .setVibrate(new long[]{0, 400, 100, 400})
                         .setPriority(NotificationCompat.PRIORITY_HIGH)
+                        .setDefaults(NotificationCompat.DEFAULT_ALL)
                         .setContentIntent(pendingIntent);
 
         NotificationManager notificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
 
         // Buat Notification Channel untuk Android 8.0 ke atas
+        // PENTING: Channel harus dibuat di sini (bukan hanya di MainActivity) karena FCM
+        // dapat memanggil onMessageReceived saat app tertutup, sebelum MainActivity berjalan
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     CHANNEL_NAME,
                     NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription("Notifikasi dari AS-SYADZILI Pesantren");
+            channel.setDescription("Notifikasi resmi dari Pesantren Miftahul Huda As-Syadzili");
+            channel.enableVibration(true);
+            channel.setVibrationPattern(new long[]{0, 400, 100, 400});
+            channel.setShowBadge(true);
+
+            // Wajib set suara di sini agar channel punya suara sejak pertama kali dibuat
+            Uri soundUri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
+            android.media.AudioAttributes audioAttr = new android.media.AudioAttributes.Builder()
+                    .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                    .build();
+            channel.setSound(soundUri, audioAttr);
+
             notificationManager.createNotificationChannel(channel);
         }
 

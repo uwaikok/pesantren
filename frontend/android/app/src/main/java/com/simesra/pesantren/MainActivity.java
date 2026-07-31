@@ -15,7 +15,7 @@ import com.google.firebase.messaging.FirebaseMessaging;
 public class MainActivity extends BridgeActivity {
 
     private static final String TAG = "MainActivity";
-    public static final String CHANNEL_ID = "as_syadzili_channel_v4"; // Gunakan v4 agar OS mendefinisikan ulang channel baru dengan suara
+    public static final String CHANNEL_ID = "as_syadzili_channel_v5"; // v5: channel baru dengan suara & getaran lengkap
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
