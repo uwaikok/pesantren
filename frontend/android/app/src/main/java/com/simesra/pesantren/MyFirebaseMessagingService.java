@@ -92,6 +92,9 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
             notificationManager.createNotificationChannel(channel);
         }
 
-        notificationManager.notify(0, notificationBuilder.build());
+        // Gunakan ID unik berdasarkan waktu agar setiap notif muncul sebagai heads-up baru
+        // (bukan menimpa notif lama yang sudah ada di tray)
+        int notifId = (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
+        notificationManager.notify(notifId, notificationBuilder.build());
     }
 }

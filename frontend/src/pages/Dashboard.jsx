@@ -465,6 +465,66 @@ function Dashboard({ user }) {
             </div>
           </div>
         </div>
+
+        {/* MODAL DETAIL PENGUMUMAN (DASHBOARD SANTRI) */}
+        {dashSelectedNotif && (
+          <div
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+            onClick={() => setDashSelectedNotif(null)}
+          >
+            <div
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-y-auto"
+              onClick={e => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className={`sticky top-0 px-5 py-4 rounded-t-2xl flex items-center justify-between ${
+                dashSelectedNotif.kategori === 'SPP' ? 'bg-gradient-to-r from-amber-600 to-amber-800' :
+                dashSelectedNotif.kategori === 'KEAMANAN' ? 'bg-gradient-to-r from-rose-600 to-rose-800' :
+                dashSelectedNotif.kategori === 'UJIAN' ? 'bg-gradient-to-r from-emerald-700 to-emerald-900' :
+                'bg-gradient-to-r from-[#0B4A3F] to-[#083831]'
+              } text-white`}>
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">
+                    {dashSelectedNotif.kategori === 'SPP' ? '💳' :
+                     dashSelectedNotif.kategori === 'KEAMANAN' ? '🛡️' :
+                     dashSelectedNotif.kategori === 'UJIAN' ? '📚' : '📢'}
+                  </span>
+                  <div>
+                    <p className="text-[9px] font-extrabold uppercase tracking-wider opacity-80">
+                      {dashSelectedNotif.kategori === 'SPP' ? 'SYARIAH / BULANAN' :
+                       dashSelectedNotif.kategori === 'KEAMANAN' ? 'KEAMANAN / SANKSI' :
+                       dashSelectedNotif.kategori === 'UJIAN' ? 'UJIAN / AKADEMIK' : 'PENGUMUMAN UMUM'}
+                    </p>
+                    <p className="font-bold text-sm leading-tight">{dashSelectedNotif.judul}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setDashSelectedNotif(null)}
+                  className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white font-bold text-sm transition ml-2 flex-shrink-0"
+                >✕</button>
+              </div>
+              {/* Body */}
+              <div className="p-5 space-y-4">
+                <p className="text-[10px] text-slate-400 font-mono">
+                  {new Date(dashSelectedNotif.createdAt).toLocaleDateString('id-ID', {
+                    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                  })}
+                </p>
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{dashSelectedNotif.isi}</p>
+                </div>
+              </div>
+              <div className="px-5 pb-5">
+                <button
+                  onClick={() => setDashSelectedNotif(null)}
+                  className="w-full bg-[#0B4A3F] hover:bg-[#083831] text-white font-bold text-sm py-3 rounded-xl transition shadow-sm"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -989,53 +1049,6 @@ function Dashboard({ user }) {
               <button 
                 onClick={() => setDetailModal({ isOpen: false, type: '', title: '', data: [], loading: false })}
                 className="bg-[#0B4A3F] hover:bg-[#083831] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm"
-              >
-                Tutup
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* MODAL DETAIL PENGUMUMAN (DASHBOARD SANTRI) */}
-      {dashSelectedNotif && (
-        <div 
-          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
-          onClick={() => setDashSelectedNotif(null)}
-        >
-          <div 
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="sticky top-0 bg-gradient-to-r from-[#0B4A3F] to-[#16A34A] text-white px-5 py-4 rounded-t-2xl flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <span className="text-lg">📢</span>
-                <span className="font-bold text-sm">Pengumuman</span>
-              </div>
-              <button onClick={() => setDashSelectedNotif(null)} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-sm font-bold transition">✕</button>
-            </div>
-            {/* Body */}
-            <div className="p-5">
-              <div className="flex items-center gap-2 mb-3">
-                <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-full ${
-                  dashSelectedNotif.kategori === 'SPP' ? 'bg-amber-100 text-amber-700' :
-                  dashSelectedNotif.kategori === 'KEAMANAN' ? 'bg-rose-100 text-rose-700' :
-                  dashSelectedNotif.kategori === 'UJIAN' ? 'bg-emerald-100 text-emerald-700' :
-                  'bg-slate-100 text-slate-600'
-                }`}>
-                  {dashSelectedNotif.kategori === 'SPP' ? 'SYARIAH' : dashSelectedNotif.kategori || 'UMUM'}
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono">
-                  {new Date(dashSelectedNotif.createdAt).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
-              </div>
-              <h3 className="text-base font-bold text-[#0B4A3F] mb-3 leading-snug">{dashSelectedNotif.judul}</h3>
-              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{dashSelectedNotif.isi}</p>
-            </div>
-            <div className="px-5 pb-5">
-              <button
-                onClick={() => setDashSelectedNotif(null)}
-                className="w-full bg-[#0B4A3F] hover:bg-[#083831] text-white font-bold text-sm py-2.5 rounded-xl transition shadow-sm"
               >
                 Tutup
               </button>
