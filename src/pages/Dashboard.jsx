@@ -302,43 +302,43 @@ function Dashboard({ user }) {
 
         {/* Widgets Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
-              <Users size={22} />
+          <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
+              <Users size={20} />
             </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Kelas Santri</p>
-              <h3 className="text-base font-extrabold text-[#0B4A3F] mt-0.5">{mySummary?.user.kelas || 'Belum Set'}</h3>
-            </div>
-          </div>
-
-          <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0">
-              <BookOpen size={22} />
-            </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rata-Rata Nilai</p>
-              <h3 className="text-base font-extrabold text-[#0B4A3F] mt-0.5">{mySummary?.avgNilai} / 100</h3>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Kelas Santri</p>
+              <h3 className="text-sm sm:text-base font-extrabold text-[#0B4A3F] mt-0.5 break-words">{mySummary?.user.kelas || 'Belum Set'}</h3>
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center flex-shrink-0">
-              <ShieldAlert size={22} />
+          <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0">
+              <BookOpen size={20} />
             </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total Pelanggaran</p>
-              <h3 className="text-base font-extrabold text-slate-800 mt-0.5">{mySummary?.sanksiCount} Pelanggaran</h3>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Rata-Rata Nilai</p>
+              <h3 className="text-sm sm:text-base font-extrabold text-[#0B4A3F] mt-0.5 break-words">{mySummary?.avgNilai} / 100</h3>
             </div>
           </div>
 
-          <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex items-center space-x-4">
-            <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#0B4A3F] flex items-center justify-center flex-shrink-0">
-              <DollarSign size={22} />
+          <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#FEE2E2] text-[#DC2626] flex items-center justify-center flex-shrink-0">
+              <ShieldAlert size={20} />
             </div>
-            <div>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tunggakan Syariah</p>
-              <h3 className={`text-base font-extrabold mt-0.5 ${mySummary?.tunggakan > 0 ? 'text-[#DC2626]' : 'text-[#16A34A]'}`}>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Total Pelanggaran</p>
+              <h3 className="text-sm sm:text-base font-extrabold text-slate-800 mt-0.5 break-words">{mySummary?.sanksiCount} Pelanggaran</h3>
+            </div>
+          </div>
+
+          <div className="bg-white p-3.5 sm:p-5 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37] card-hover flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#0B4A3F] flex items-center justify-center flex-shrink-0">
+              <DollarSign size={20} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] text-slate-400 font-bold uppercase tracking-wider truncate">Tunggakan Syariah</p>
+              <h3 className={`text-sm sm:text-base font-extrabold mt-0.5 break-words ${mySummary?.tunggakan > 0 ? 'text-[#DC2626]' : 'text-[#16A34A]'}`}>
                 {mySummary?.tunggakan > 0 ? `Rp ${mySummary.tunggakan.toLocaleString('id-ID')}` : 'Lunas'}
               </h3>
             </div>
@@ -416,46 +416,46 @@ function Dashboard({ user }) {
       {/* Stats Grid dengan Border Top Emas Tipis & Soft Circle Background Icon */}
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Santri */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">TOTAL SANTRI TERDAFTAR</span>
-            <h3 className="text-3xl font-extrabold mt-1 text-[#0B4A3F] font-serif">{stats?.totalSantri || 0}</h3>
+        <div className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
+          <div className="order-2 sm:order-1 min-w-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">TOTAL SANTRI TERDAFTAR</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-[#0B4A3F] font-serif">{stats?.totalSantri || 0}</h3>
           </div>
-          <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
-            <Users size={24} />
+          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
+            <Users size={20} />
           </div>
         </div>
 
         {/* Santri Aktif */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">SANTRI STATUS AKTIF</span>
-            <h3 className="text-3xl font-extrabold mt-1 text-[#0B4A3F] font-serif">{stats?.activeSantri || 0}</h3>
+        <div className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
+          <div className="order-2 sm:order-1 min-w-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">SANTRI STATUS AKTIF</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-[#0B4A3F] font-serif">{stats?.activeSantri || 0}</h3>
           </div>
-          <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#0B4A3F] flex items-center justify-center flex-shrink-0">
-            <UserCheck size={24} />
+          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#0B4A3F] flex items-center justify-center flex-shrink-0">
+            <UserCheck size={20} />
           </div>
         </div>
 
         {/* Santri Tidak Aktif */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">STATUS TIDAK AKTIF</span>
-            <h3 className="text-3xl font-extrabold mt-1 text-[#D97706] font-serif">{stats?.inactiveSantri || 0}</h3>
+        <div className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
+          <div className="order-2 sm:order-1 min-w-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">STATUS TIDAK AKTIF</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-[#D97706] font-serif">{stats?.inactiveSantri || 0}</h3>
           </div>
-          <div className="w-12 h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0">
-            <UserPlus size={24} />
+          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0">
+            <UserPlus size={20} />
           </div>
         </div>
 
         {/* Santri Beasiswa */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-5 rounded-2xl shadow-soft card-hover flex items-center justify-between">
-          <div>
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">SANTRI BEASISWA</span>
-            <h3 className="text-3xl font-extrabold mt-1 text-[#16A34A] font-serif">{stats?.totalBeasiswa || 0}</h3>
+        <div className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
+          <div className="order-2 sm:order-1 min-w-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">SANTRI BEASISWA</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-[#16A34A] font-serif">{stats?.totalBeasiswa || 0}</h3>
           </div>
-          <div className="w-12 h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
-            <Award size={24} />
+          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
+            <Award size={20} />
           </div>
         </div>
       </div>
