@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AS-SYADZILI</string>
+    <string name="title_activity_main">AS-SYADZILI</string>
+    <string name="package_name">com.simesra.pesantren</string>
+    <string name="custom_url_scheme">com.simesra.pesantren</string>
+</resources>
