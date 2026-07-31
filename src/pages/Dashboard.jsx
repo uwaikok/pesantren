@@ -498,22 +498,6 @@ function Dashboard({ user }) {
           </div>
         </div>
 
-        {/* Santri Tidak Aktif - tampilkan DULU sebelum beasiswa */}
-        <div 
-          onClick={() => handleCardClick('INACTIVE')}
-          className="bg-white border-t-3 border-t-rose-500 p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
-          title="Klik untuk melihat daftar nama santri tidak aktif"
-        >
-          <div className="order-2 sm:order-1 min-w-0">
-            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">STATUS TIDAK AKTIF</span>
-            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-rose-600 font-serif">{stats?.inactiveSantri || 0}</h3>
-            <span className="text-[8px] text-rose-400 font-semibold">Klik untuk lihat daftar</span>
-          </div>
-          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
-            <UserX size={20} />
-          </div>
-        </div>
-
         {/* Santri Beasiswa */}
         <div 
           onClick={() => handleCardClick('BEASISWA')}
@@ -527,6 +511,22 @@ function Dashboard({ user }) {
           </div>
           <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
             <Award size={20} />
+          </div>
+        </div>
+
+        {/* Santri Tidak Aktif */}
+        <div 
+          onClick={() => handleCardClick('INACTIVE')}
+          className="bg-white border-t-3 border-t-rose-500 p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          title="Klik untuk melihat daftar nama santri tidak aktif"
+        >
+          <div className="order-2 sm:order-1 min-w-0">
+            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">STATUS TIDAK AKTIF</span>
+            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-rose-600 font-serif">{stats?.inactiveSantri || 0}</h3>
+            <span className="text-[8px] text-rose-400 font-semibold">Klik untuk lihat daftar</span>
+          </div>
+          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+            <UserX size={20} />
           </div>
         </div>
       </div>

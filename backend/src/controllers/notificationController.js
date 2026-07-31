@@ -90,7 +90,7 @@ const getNotifications = async (req, res) => {
               kategori: "SPP",
               santriId: userId,
               isRead: false,
-              createdAt: new Date()
+              createdAt: new Date(now.getFullYear(), now.getMonth(), 1)
             });
           }
         }

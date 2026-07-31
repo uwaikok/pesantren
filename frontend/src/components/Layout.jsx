@@ -110,12 +110,18 @@ function Layout({ children, user, onLogout }) {
       }, 500);
     }
 
+    const handleRefreshNotifs = () => {
+      fetchNotifications();
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('openNotifications', handleOpenNotifEvent);
+    window.addEventListener('refreshNotifications', handleRefreshNotifs);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('openNotifications', handleOpenNotifEvent);
+      window.removeEventListener('refreshNotifications', handleRefreshNotifs);
     };
   }, [user]);
 
@@ -209,6 +215,7 @@ function Layout({ children, user, onLogout }) {
       setIsEditNotifModalOpen(false);
       setEditNotifData({ id: null, judul: '', isi: '', kategori: 'UMUM', santriId: '' });
       fetchNotifications();
+      window.dispatchEvent(new CustomEvent('refreshNotifications'));
       alertDialog('Pemberitahuan berhasil diperbarui!', 'Berhasil');
     } catch (err) {
       alertDialog(err.message || 'Gagal memperbarui pemberitahuan', 'Gagal');
@@ -227,6 +234,7 @@ function Layout({ children, user, onLogout }) {
       setIsAdminNotifModalOpen(false);
       setNotifForm({ judul: '', isi: '', kategori: 'UMUM', santriId: '' });
       fetchNotifications();
+      window.dispatchEvent(new CustomEvent('refreshNotifications'));
       alertDialog('Notifikasi berhasil dikirim!', 'Berhasil');
     } catch (err) {
       alertDialog(err.message || 'Gagal mengirim notifikasi', 'Gagal');
@@ -238,7 +246,9 @@ function Layout({ children, user, onLogout }) {
     try {
       await api.delete(`/notifications/${id}`);
       fetchNotifications();
+      window.dispatchEvent(new CustomEvent('refreshNotifications'));
       setConfirmDeleteId(null);
+      alertDialog('Pemberitahuan berhasil dihapus!', 'Berhasil');
     } catch (err) {
       alertDialog(err.message || 'Gagal menghapus notifikasi', 'Gagal');
     } finally {

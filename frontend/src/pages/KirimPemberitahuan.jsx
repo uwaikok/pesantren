@@ -71,6 +71,12 @@ function KirimPemberitahuan() {
         isi: ''
       });
       fetchNotifications();
+      window.dispatchEvent(new CustomEvent('refreshNotifications'));
+      
+      // Auto-clear success message after 4 seconds
+      setTimeout(() => {
+        setSuccess('');
+      }, 4000);
     } catch (err) {
       setError(err.message || 'Gagal menyimpan pemberitahuan');
     } finally {
@@ -110,8 +116,9 @@ function KirimPemberitahuan() {
 
     try {
       await api.delete(`/notifications/${id}`);
-      setSuccess('Pemberitahuan berhasil dihapus!');
       fetchNotifications();
+      window.dispatchEvent(new CustomEvent('refreshNotifications'));
+      alertDialog('Pemberitahuan berhasil dihapus!', 'Berhasil');
       if (editingNotifId === id) {
         handleCancelEdit();
       }
