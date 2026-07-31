@@ -18,7 +18,8 @@ import {
   Sparkles,
   Award,
   Database,
-  RefreshCw
+  RefreshCw,
+  UserX
 } from 'lucide-react';
 import api from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
@@ -58,6 +59,24 @@ function Dashboard({ user }) {
   // State untuk data santri (jika login sebagai Santri)
   const [mySummary, setMySummary] = useState(null);
 
+  // State untuk modal list santri beasiswa/tidak aktif
+  const [detailModal, setDetailModal] = useState({ isOpen: false, type: '', title: '', data: [], loading: false });
+
+  const handleCardClick = async (type) => {
+    setDetailModal({ isOpen: true, type, title: type === 'BEASISWA' ? 'Daftar Santri Penerima Beasiswa' : 'Daftar Santri Tidak Aktif', data: [], loading: true });
+    try {
+      const list = await api.get('/admin/santri');
+      const filtered = type === 'BEASISWA'
+        ? list.filter(s => s.isBeasiswa === true || s.isBeasiswa === 'true')
+        : list.filter(s => s.status === 'INACTIVE');
+      setDetailModal(prev => ({ ...prev, data: filtered, loading: false }));
+    } catch (err) {
+      console.error(err);
+      setDetailModal(prev => ({ ...prev, loading: false }));
+      alertDialog('Gagal memuat daftar santri', 'Error');
+    }
+  };
+
   useEffect(() => {
     if (user.role === 'ADMIN') {
       fetchAdminData();
@@ -69,8 +88,22 @@ function Dashboard({ user }) {
       if (user.role === 'ADMIN') fetchAdminData();
       else fetchSantriData();
     };
+
+    // Auto-refresh ketika app aktif kembali dari background (misal diklik dari panel notifikasi)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        if (user.role === 'ADMIN') fetchAdminData();
+        else fetchSantriData();
+      }
+    };
+
     window.addEventListener('refreshData', handleRefresh);
-    return () => window.removeEventListener('refreshData', handleRefresh);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('refreshData', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [search, filterKelas, user]);
 
   useEffect(() => {
@@ -111,7 +144,8 @@ function Dashboard({ user }) {
         sanksiCount: profileData.keamanan.length,
         tunggakan: profileData.keuangan.totalTunggakan,
         unpaidMonths: profileData.keuangan.payments.filter(p => p.status === 'BELUM_BAYAR').length,
-        notifications: notifData.filter(n => n.kategori === 'UMUM' || n.kategori === 'UJIAN')
+        // Tampilkan SEMUA notifikasi: dari admin (DB) + dinamis (SPP/Sanksi dari backend)
+        notifications: notifData
       });
     } catch (err) {
       console.error(err);
@@ -347,25 +381,52 @@ function Dashboard({ user }) {
 
         {/* Quick info alerts */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Pengumuman Santri - menampilkan SEMUA notifikasi (admin + dinamis SPP/Sanksi) */}
           <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80">
-            <h2 className="text-base font-bold text-[#0B4A3F] font-serif mb-4 flex items-center space-x-2">
-              <span>📚 Pengumuman Santri</span>
+            <h2 className="text-base font-bold text-[#0B4A3F] font-serif mb-4 flex items-center justify-between">
+              <span>📚 Pengumuman & Pemberitahuan</span>
+              {mySummary?.notifications && mySummary.notifications.length > 3 && (
+                <span className="text-[9px] text-slate-400 font-sans font-medium">{mySummary.notifications.length} total</span>
+              )}
             </h2>
-            <div className="space-y-3">
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-1">
               {mySummary?.notifications && mySummary.notifications.length > 0 ? (
-                mySummary.notifications.slice(0, 3).map(n => (
-                  <div key={n.id} className="p-4 bg-slate-50 border border-slate-200/80 rounded-xl">
-                    <div className="flex justify-between items-center">
-                      <span className="text-xs font-bold text-[#0B4A3F]">{n.judul}</span>
-                      <span className="text-[9px] text-slate-400 font-mono">
-                        {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                      </span>
+                mySummary.notifications.map(n => {
+                  let borderColor = 'border-slate-200/80';
+                  let dotColor = 'bg-slate-400';
+                  let badgeColor = 'bg-slate-100 text-slate-600';
+                  let badgeLabel = 'UMUM';
+                  if (n.kategori === 'SPP') {
+                    borderColor = 'border-amber-200';
+                    dotColor = 'bg-amber-500';
+                    badgeColor = 'bg-amber-100 text-amber-700';
+                    badgeLabel = 'SYARIAH';
+                  } else if (n.kategori === 'KEAMANAN') {
+                    borderColor = 'border-rose-200';
+                    dotColor = 'bg-rose-500';
+                    badgeColor = 'bg-rose-100 text-rose-700';
+                    badgeLabel = 'SANKSI';
+                  } else if (n.kategori === 'UJIAN') {
+                    borderColor = 'border-emerald-200';
+                    dotColor = 'bg-emerald-500';
+                    badgeColor = 'bg-emerald-100 text-emerald-700';
+                    badgeLabel = 'UJIAN';
+                  }
+                  return (
+                    <div key={n.id} className={`p-3.5 bg-slate-50 border ${borderColor} rounded-xl`}>
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-[8px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded ${badgeColor}`}>{badgeLabel}</span>
+                        <span className="text-[8px] text-slate-400 font-mono">
+                          {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </span>
+                      </div>
+                      <h4 className="text-xs font-bold text-[#0B4A3F]">{n.judul}</h4>
+                      <p className="text-slate-600 text-[10px] mt-1 leading-relaxed">{n.isi}</p>
                     </div>
-                    <p className="text-slate-600 text-xs mt-1 leading-relaxed">{n.isi}</p>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl text-center text-slate-400">
+                <div className="p-6 bg-slate-50 border border-slate-100 rounded-xl text-center text-slate-400">
                   <p className="text-xs">Tidak ada pengumuman terbaru</p>
                 </div>
               )}
@@ -437,22 +498,32 @@ function Dashboard({ user }) {
           </div>
         </div>
 
-        {/* Santri Tidak Aktif */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
+        {/* Santri Tidak Aktif - tampilkan DULU sebelum beasiswa */}
+        <div 
+          onClick={() => handleCardClick('INACTIVE')}
+          className="bg-white border-t-3 border-t-rose-500 p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          title="Klik untuk melihat daftar nama santri tidak aktif"
+        >
           <div className="order-2 sm:order-1 min-w-0">
             <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">STATUS TIDAK AKTIF</span>
-            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-[#D97706] font-serif">{stats?.inactiveSantri || 0}</h3>
+            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-rose-600 font-serif">{stats?.inactiveSantri || 0}</h3>
+            <span className="text-[8px] text-rose-400 font-semibold">Klik untuk lihat daftar</span>
           </div>
-          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#FEF3C7] text-[#D97706] flex items-center justify-center flex-shrink-0">
-            <UserPlus size={20} />
+          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
+            <UserX size={20} />
           </div>
         </div>
 
         {/* Santri Beasiswa */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
+        <div 
+          onClick={() => handleCardClick('BEASISWA')}
+          className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          title="Klik untuk melihat daftar nama santri beasiswa"
+        >
           <div className="order-2 sm:order-1 min-w-0">
             <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">SANTRI BEASISWA</span>
             <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-[#16A34A] font-serif">{stats?.totalBeasiswa || 0}</h3>
+            <span className="text-[8px] text-emerald-400 font-semibold">Klik untuk lihat daftar</span>
           </div>
           <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
             <Award size={20} />
@@ -848,6 +919,65 @@ function Dashboard({ user }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* DETAIL MODAL UNTUK BEASISWA / TIDAK AKTIF */}
+      {detailModal.isOpen && (
+        <div className="fixed inset-0 bg-[#083831]/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden border border-[#D4AF37]/30 flex flex-col max-h-[80vh]">
+            <div className="p-5 bg-[#0B4A3F] text-white font-serif font-bold text-sm md:text-base flex justify-between items-center border-b border-[#D4AF37]/30">
+              <span className="flex items-center space-x-2">
+                {detailModal.type === 'BEASISWA' ? <Award size={18} className="text-[#D4AF37]" /> : <UserX size={18} className="text-[#D4AF37]" />}
+                <span>{detailModal.title}</span>
+              </span>
+              <button 
+                onClick={() => setDetailModal({ isOpen: false, type: '', title: '', data: [], loading: false })}
+                className="text-emerald-200 hover:text-white font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 text-xs">
+              {detailModal.loading ? (
+                <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                  <div className="w-8 h-8 border-4 border-[#0B4A3F] border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-slate-400 font-semibold">Memuat daftar santri...</span>
+                </div>
+              ) : detailModal.data.length > 0 ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-3 font-extrabold text-slate-700 border-b border-slate-200 pb-2.5 mb-2.5 uppercase tracking-wider text-[10px]">
+                    <span>Nama Santri</span>
+                    <span>Kelas</span>
+                    <span>Wali / No HP</span>
+                  </div>
+                  <div className="divide-y divide-slate-100 max-h-96 overflow-y-auto pr-1">
+                    {detailModal.data.map((s, idx) => (
+                      <div key={s.id || idx} className="grid grid-cols-3 py-3 text-slate-650 font-medium hover:bg-slate-50 px-1 rounded transition duration-150">
+                        <span className="font-bold text-[#0B4A3F]">{s.nama}</span>
+                        <span>{s.kelas || '-'}</span>
+                        <span className="text-slate-500 font-mono text-[10px]">{s.namaWali || '-'} ({s.noHp || '-'})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12 text-slate-400 font-bold">
+                  Tidak ada data santri ditemukan.
+                </div>
+              )}
+            </div>
+            
+            <div className="p-4 bg-slate-50 border-t border-slate-150 flex justify-end">
+              <button 
+                onClick={() => setDetailModal({ isOpen: false, type: '', title: '', data: [], loading: false })}
+                className="bg-[#0B4A3F] hover:bg-[#083831] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
       )}

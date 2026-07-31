@@ -43,6 +43,21 @@ function Layout({ children, user, onLogout }) {
   const [isEditNotifModalOpen, setIsEditNotifModalOpen] = useState(false);
   const [editNotifData, setEditNotifData] = useState({ id: null, judul: '', isi: '', kategori: 'UMUM', santriId: '' });
 
+  // State untuk Modal Detail Pengumuman (saat notif diklik)
+  const [selectedNotif, setSelectedNotif] = useState(null);
+
+  // Buka modal detail pengumuman
+  const handleOpenNotifDetail = (notif) => {
+    setSelectedNotif(notif);
+    setIsNotifOpen(false); // Tutup dropdown dulu
+    // Auto mark as read
+    if (user.role === 'SANTRI') {
+      handleMarkSingleRead(notif.id);
+    } else if (user.role === 'ADMIN') {
+      handleMarkAdminNotifRead(notif.id);
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchNotifications();
@@ -59,20 +74,39 @@ function Layout({ children, user, onLogout }) {
     };
 
     // Buka dropdown lonceng ketika dipicu oleh klik notifikasi dari Android
-    const handleOpenNotifEvent = () => {
-      fetchNotifications(); // Refresh data notifikasi
-      setIsNotifOpen(true); // Buka dropdown
+    const handleOpenNotifEvent = async () => {
       navigate('/');        // Navigasi ke halaman beranda
+      try {
+        const data = await api.get('/notifications');
+        setNotifications(data);
+        // Otomatis buka notifikasi terbaru dalam modal
+        if (data && data.length > 0) {
+          setSelectedNotif(data[0]); // Tampilkan notifikasi terbaru
+        } else {
+          setIsNotifOpen(true); // Fallback: buka dropdown
+        }
+      } catch {
+        setIsNotifOpen(true); // Fallback jika gagal fetch
+      }
     };
 
     // Cek sessionStorage: jika ada flag dari Android (kasus app baru terbuka)
     if (sessionStorage.getItem('openNotificationsOnLoad') === 'true') {
       sessionStorage.removeItem('openNotificationsOnLoad');
       // Delay singkat agar React sudah render sempurna
-      setTimeout(() => {
-        fetchNotifications();
-        setIsNotifOpen(true);
+      setTimeout(async () => {
         navigate('/');
+        try {
+          const data = await api.get('/notifications');
+          setNotifications(data);
+          if (data && data.length > 0) {
+            setSelectedNotif(data[0]);
+          } else {
+            setIsNotifOpen(true);
+          }
+        } catch {
+          setIsNotifOpen(true);
+        }
       }, 500);
     }
 
@@ -430,7 +464,11 @@ function Layout({ children, user, onLogout }) {
                     const isRead = readNotifs.includes(String(n.id)) || (user.role === 'SANTRI' && n.isRead);
 
                     return (
-                      <div key={n.id} className={`p-3 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80 font-medium' : ''}`}>
+                      <div
+                        key={n.id}
+                        onClick={() => handleOpenNotifDetail(n)}
+                        className={`p-3 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80 font-medium' : ''}`}
+                      >
                         <div className="flex justify-between items-start gap-2">
                           <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide inline-block ${iconBg}`}>
                             {badgeLabel}
@@ -440,66 +478,13 @@ function Layout({ children, user, onLogout }) {
                               {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                             </span>
                             {!isRead && (
-                              <button 
-                                onClick={() => {
-                                  if (user.role === 'SANTRI') {
-                                    handleMarkSingleRead(n.id);
-                                  } else {
-                                    handleMarkAdminNotifRead(n.id);
-                                  }
-                                }}
-                                className="text-[8px] text-emerald-600 hover:text-emerald-700 font-bold underline"
-                              >
-                                Dibaca
-                              </button>
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block flex-shrink-0" />
                             )}
                           </div>
                         </div>
                         <h4 className="font-bold text-slate-800 mt-1 leading-tight text-[10px]">{n.judul}</h4>
-                        <p className="text-slate-500 mt-1 text-[9px] leading-relaxed">{n.isi}</p>
-                        {user.role === 'ADMIN' && typeof n.id !== 'string' && (
-                          <div className="mt-2 flex justify-between items-center">
-                            <span className="text-[8px] text-slate-400 font-medium">
-                              Target: {n.santriId ? 'Santri Privat' : 'Semua Santri'}
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <button 
-                                onClick={() => handleOpenEditNotif(n)}
-                                className="text-blue-500 hover:text-blue-700 font-bold text-[9px] flex items-center gap-0.5"
-                              >
-                                <Pencil size={9} />
-                                Edit
-                              </button>
-                              {confirmDeleteId === n.id ? (
-                                <div className="flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                                  <span className="text-[8px] text-rose-600 font-bold">Yakin hapus?</span>
-                                  <button 
-                                    onClick={() => handleDeleteNotification(n.id)}
-                                    disabled={isDeletingNotif}
-                                    className="text-[9px] text-rose-700 font-bold hover:underline ml-1"
-                                  >
-                                    {isDeletingNotif ? '...' : 'Ya'}
-                                  </button>
-                                  <button 
-                                    onClick={() => setConfirmDeleteId(null)}
-                                    disabled={isDeletingNotif}
-                                    className="text-[9px] text-slate-500 font-bold hover:underline ml-1"
-                                  >
-                                    Batal
-                                  </button>
-                                </div>
-                              ) : (
-                                <button 
-                                  onClick={() => setConfirmDeleteId(n.id)}
-                                  className="text-rose-500 hover:text-rose-700 font-bold text-[9px] flex items-center gap-0.5"
-                                >
-                                  <Trash2 size={9} />
-                                  Hapus
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                        <p className="text-slate-500 mt-0.5 text-[9px] leading-relaxed line-clamp-2">{n.isi}</p>
+                        <p className="text-[8px] text-emerald-600 font-bold mt-1">Tap untuk baca selengkapnya →</p>
                       </div>
                     );
                   })
@@ -678,7 +663,11 @@ function Layout({ children, user, onLogout }) {
                         const isRead = readNotifs.includes(String(n.id)) || (user.role === 'SANTRI' && n.isRead);
 
                         return (
-                          <div key={n.id} className={`p-3.5 transition-colors duration-150 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80 font-medium' : ''}`}>
+                          <div
+                            key={n.id}
+                            onClick={() => handleOpenNotifDetail(n)}
+                            className={`p-3.5 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80' : ''}`}
+                          >
                             <div className="flex justify-between items-start gap-2">
                               <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold tracking-wider uppercase inline-block ${iconBg}`}>
                                 {badgeLabel}
@@ -688,67 +677,13 @@ function Layout({ children, user, onLogout }) {
                                   {new Date(n.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                                 </span>
                                 {!isRead && (
-                                  <button 
-                                    onClick={() => {
-                                      if (user.role === 'SANTRI') {
-                                        handleMarkSingleRead(n.id);
-                                      } else {
-                                        handleMarkAdminNotifRead(n.id);
-                                      }
-                                    }}
-                                    className="text-[9px] text-emerald-600 hover:text-emerald-700 font-bold underline transition"
-                                  >
-                                    Tandai Dibaca
-                                  </button>
+                                  <span className="w-2 h-2 rounded-full bg-rose-500 inline-block flex-shrink-0" />
                                 )}
                               </div>
                             </div>
                             <h4 className="font-bold text-slate-800 mt-1 text-[11px] leading-tight">{n.judul}</h4>
-                            <p className="text-slate-500 mt-1 text-[10px] leading-relaxed">{n.isi}</p>
-                            {user.role === 'ADMIN' && typeof n.id !== 'string' && (
-                              <div className="mt-2.5 flex justify-between items-center border-t border-slate-100 pt-1.5">
-                                <span className="text-[8px] text-slate-400 font-medium">
-                                  Penerima: {n.santriId ? 'Santri Privat' : 'Semua Santri'}
-                                </span>
-                                <div className="flex items-center gap-2">
-                                  <button 
-                                    onClick={() => handleOpenEditNotif(n)}
-                                    className="text-blue-500 hover:text-blue-700 p-1 flex items-center gap-0.5 font-bold hover:underline transition"
-                                  >
-                                    <Pencil size={10} />
-                                    <span>Edit</span>
-                                  </button>
-                                  {confirmDeleteId === n.id ? (
-                                    <div className="flex items-center gap-1.5 bg-rose-50 px-2 py-1 rounded-lg border border-rose-200">
-                                      <span className="text-[9px] text-rose-700 font-bold">Yakin hapus?</span>
-                                      <button 
-                                        onClick={() => handleDeleteNotification(n.id)}
-                                        disabled={isDeletingNotif}
-                                        className="text-[10px] text-rose-700 font-bold hover:underline px-1"
-                                      >
-                                        {isDeletingNotif ? '...' : 'Ya'}
-                                      </button>
-                                      <span className="text-rose-300">|</span>
-                                      <button 
-                                        onClick={() => setConfirmDeleteId(null)}
-                                        disabled={isDeletingNotif}
-                                        className="text-[10px] text-slate-500 font-bold hover:underline px-1"
-                                      >
-                                        Batal
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button 
-                                      onClick={() => setConfirmDeleteId(n.id)}
-                                      className="text-rose-500 hover:text-rose-700 p-1 flex items-center gap-0.5 font-bold hover:underline transition"
-                                    >
-                                      <Trash2 size={10} />
-                                      <span>Hapus</span>
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            )}
+                            <p className="text-slate-500 mt-1 text-[10px] leading-relaxed line-clamp-2">{n.isi}</p>
+                            <p className="text-[9px] text-emerald-600 font-bold mt-1">Klik untuk baca selengkapnya →</p>
                           </div>
                         );
                       })
@@ -961,6 +896,98 @@ function Layout({ children, user, onLogout }) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* MODAL DETAIL PENGUMUMAN - muncul saat notifikasi diklik (web maupun Android) */}
+      {selectedNotif && (
+        <div
+          className="fixed inset-0 bg-[#083831]/70 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+          onClick={() => setSelectedNotif(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden border border-[#D4AF37]/30 animate-fade-in"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header modal berdasarkan kategori */}
+            {(() => {
+              const kat = selectedNotif.kategori;
+              let headerGradient = 'from-[#0B4A3F] to-[#083831]';
+              let badgeBg = 'bg-slate-100 text-slate-700';
+              let badgeLabel = 'UMUM';
+              let emoji = '📢';
+              if (kat === 'UJIAN') {
+                headerGradient = 'from-emerald-700 to-emerald-900';
+                badgeBg = 'bg-emerald-100 text-emerald-800';
+                badgeLabel = 'UJIAN / AKADEMIK';
+                emoji = '📚';
+              } else if (kat === 'SPP') {
+                headerGradient = 'from-amber-700 to-amber-900';
+                badgeBg = 'bg-amber-100 text-amber-800';
+                badgeLabel = 'SYARIAH / BULANAN';
+                emoji = '💳';
+              } else if (kat === 'KEAMANAN') {
+                headerGradient = 'from-rose-700 to-rose-900';
+                badgeBg = 'bg-rose-100 text-rose-800';
+                badgeLabel = 'KEAMANAN / SANKSI';
+                emoji = '🛡️';
+              }
+              return (
+                <>
+                  <div className={`p-5 bg-gradient-to-r ${headerGradient} text-white flex justify-between items-center border-b border-white/20`}>
+                    <div className="flex items-center space-x-2.5">
+                      <div className="text-2xl">{emoji}</div>
+                      <div>
+                        <p className={`text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded-full inline-block mb-1 ${badgeBg}`}>
+                          {badgeLabel}
+                        </p>
+                        <h3 className="font-serif font-bold text-sm leading-tight">{selectedNotif.judul}</h3>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setSelectedNotif(null)}
+                      className="text-white/70 hover:text-white text-xl font-bold flex-shrink-0 ml-2"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="p-5 space-y-4">
+                    <div className="text-xs text-slate-400 font-mono">
+                      {new Date(selectedNotif.createdAt).toLocaleDateString('id-ID', {
+                        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+                      })}
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{selectedNotif.isi}</p>
+                    </div>
+                    {user.role === 'ADMIN' && typeof selectedNotif.id !== 'string' && (
+                      <div className="flex gap-2 pt-2 border-t border-slate-100">
+                        <button
+                          onClick={() => { handleOpenEditNotif(selectedNotif); setSelectedNotif(null); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs rounded-xl transition border border-blue-200"
+                        >
+                          <Pencil size={12} />
+                          Edit Pengumuman
+                        </button>
+                        <button
+                          onClick={() => { setConfirmDeleteId(selectedNotif.id); setSelectedNotif(null); setIsNotifOpen(true); }}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs rounded-xl transition border border-rose-200"
+                        >
+                          <Trash2 size={12} />
+                          Hapus
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setSelectedNotif(null)}
+                      className="w-full py-3 bg-[#0B4A3F] hover:bg-[#083831] text-white font-bold text-xs rounded-xl transition shadow-sm"
+                    >
+                      Tutup
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </div>
       )}
