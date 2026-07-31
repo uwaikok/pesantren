@@ -409,22 +409,7 @@ function Dashboard({ user }) {
             Anda masuk sebagai Administrator. Kelola seluruh data santri, konfigurasi kelas/rombel, monitoring keuangan Syariah, and sanksi kedisiplinan secara efisien melalui panel kontrol ini.
           </p>
           
-          {migrating ? (
-            <div className="mt-4 p-3 bg-white/10 border border-white/20 rounded-xl flex items-center space-x-3 text-xs text-white max-w-md">
-              <RefreshCw size={16} className="animate-spin text-[#E8C766]" />
-              <span>{migrateStatus}</span>
-            </div>
-          ) : (
-            localStorage.getItem('mock_users') && JSON.parse(localStorage.getItem('mock_users') || '[]').filter(u => u.role === 'SANTRI').length > 0 && (
-              <button
-                onClick={handleMigrateOfflineData}
-                className="mt-4 px-4 py-2 bg-[#D4AF37] hover:bg-[#E8C766] text-[#0B4A3F] font-bold text-xs rounded-xl shadow-md transition-all duration-200 flex items-center space-x-2 active:scale-95"
-              >
-                <Database size={14} />
-                <span>Migrasikan Data Offline ({JSON.parse(localStorage.getItem('mock_users') || '[]').filter(u => u.role === 'SANTRI').length} Santri)</span>
-              </button>
-            )
-          )}
+
         </div>
       </div>
 
