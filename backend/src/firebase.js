@@ -12,7 +12,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 } else {
   try {
     const path = require('path');
-    serviceAccount = require(path.join(__dirname, '../../firebase-admin.json'));
+    serviceAccount = require(path.join(__dirname, '../firebase-admin.json'));
   } catch (e) {
     console.warn('firebase-admin.json tidak ditemukan dan FIREBASE_SERVICE_ACCOUNT tidak diset. Push notifications tidak akan berfungsi.');
   }
@@ -21,7 +21,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 if (serviceAccount) {
   try {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount)
+      credential: admin.cert(serviceAccount)
     });
     console.log('Firebase Admin SDK initialized successfully.');
   } catch (initError) {

@@ -1,6 +1,7 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const admin = require('../firebase');
+const { getMessaging } = require('firebase-admin/messaging');
 
 
 const getNotifications = async (req, res) => {
@@ -147,7 +148,7 @@ const createNotification = async (req, res) => {
     // Kirim notifikasi push ke Firebase jika ini pengumuman global (santriId null)
     if (!santriId) {
       try {
-        await admin.messaging().send({
+        await getMessaging().send({
           topic: 'global_announcements',
           notification: {
             title: judul,
