@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, Plus, Edit, Trash2, Printer, Calendar, GraduationCap, Sparkles } from 'lucide-react';
 import api from '../utils/api';
+import { confirmDialog, alertDialog } from '../utils/dialog';
 
 function Pendidikan({ user }) {
   const [santriList, setSantriList] = useState([]);
@@ -25,27 +26,6 @@ function Pendidikan({ user }) {
 
   const [jenisRaporCetak, setJenisRaporCetak] = useState('AKHIR'); // 'UTS', 'UAS', 'AKHIR'
 
-  const getTahunAjaranOptions = () => {
-    const currentYear = new Date().getFullYear();
-    let startYear = 2025; // default fallback
-
-    if (currentSantriDetails?.tanggalMasuk) {
-      const entryDate = new Date(currentSantriDetails.tanggalMasuk);
-      const entryYear = entryDate.getFullYear();
-      const entryMonth = entryDate.getMonth() + 1; // 1-12
-      // Jika masuk Juli-Desember -> tahunAjaran awal = entryYear/(entryYear+1)
-      // Jika masuk Januari-Juni -> tahunAjaran awal = (entryYear-1)/entryYear
-      startYear = entryMonth >= 7 ? entryYear : entryYear - 1;
-    }
-
-    const endYear = Math.max(currentYear + 1, startYear + 2);
-    const options = [];
-    for (let y = startYear; y <= endYear; y++) {
-      options.push(`${y}/${y + 1}`);
-    }
-    return options.length > 0 ? options.reverse() : ['2025/2026', '2026/2027'];
-  };
-
   useEffect(() => {
     if (user.role === 'ADMIN') {
       fetchSantriList();
@@ -54,16 +34,6 @@ function Pendidikan({ user }) {
       setCurrentSantriDetails(user);
     }
   }, [user]);
-
-  // Adjust tahunAjaran if current selection is not valid for student
-  useEffect(() => {
-    if (currentSantriDetails) {
-      const options = getTahunAjaranOptions();
-      if (options.length > 0 && !options.includes(tahunAjaran)) {
-        setTahunAjaran(options[0]); // default to latest available/valid year
-      }
-    }
-  }, [currentSantriDetails]);
 
   useEffect(() => {
     if (selectedSantriId) {
@@ -138,11 +108,11 @@ function Pendidikan({ user }) {
     const { mataPelajaran, nilaiUts, nilaiUas } = formNilai;
 
     if (!mataPelajaran) {
-      alert('Mata pelajaran wajib diisi');
+      alertDialog('Mata pelajaran wajib diisi', 'Validasi');
       return;
     }
     if (nilaiUts === '' && nilaiUas === '') {
-      alert('Minimal salah satu nilai (UTS atau UAS) harus diisi');
+      alertDialog('Minimal salah satu nilai (UTS atau UAS) harus diisi', 'Validasi');
       return;
     }
 
@@ -192,7 +162,7 @@ function Pendidikan({ user }) {
       setExistingEntry(null);
       fetchNilaiData();
     } catch (err) {
-      alert(err.message || 'Gagal menyimpan nilai');
+      alertDialog(err.message || 'Gagal menyimpan nilai', 'Gagal');
     }
   };
 
@@ -219,12 +189,12 @@ function Pendidikan({ user }) {
   };
 
   const handleDeleteNilai = async (id) => {
-    if (!window.confirm('Hapus entri nilai ini?')) return;
+    if (!await confirmDialog('Hapus entri nilai ini?')) return;
     try {
       await api.delete(`/akademik/${id}`);
       fetchNilaiData();
     } catch (err) {
-      alert(err.message || 'Gagal menghapus nilai');
+      alertDialog(err.message || 'Gagal menghapus nilai', 'Gagal');
     }
   };
 
@@ -314,12 +284,12 @@ function Pendidikan({ user }) {
         <div className="flex flex-wrap items-center gap-4">
           {/* Dropdown Pilihan Santri (Admin Only) */}
           {user.role === 'ADMIN' && (
-            <div className="flex flex-col w-full sm:w-auto">
+            <div className="flex flex-col">
               <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Pilih Santri</label>
               <select
                 value={selectedSantriId}
                 onChange={(e) => setSelectedSantriId(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
               >
                 {santriList.map(s => (
                   <option key={s.id} value={s.id}>{s.nama} ({s.kelas})</option>
@@ -329,26 +299,25 @@ function Pendidikan({ user }) {
           )}
 
           {/* Tahun Ajaran */}
-          <div className="flex flex-col w-full sm:w-auto">
+          <div className="flex flex-col">
             <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Tahun Ajaran</label>
             <select
               value={tahunAjaran}
               onChange={(e) => setTahunAjaran(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+              className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
             >
-              {getTahunAjaranOptions().map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
+              <option value="2025/2026">2025/2026</option>
+              <option value="2026/2027">2026/2027</option>
             </select>
           </div>
 
           {/* Semester */}
-          <div className="flex flex-col w-full sm:w-auto">
+          <div className="flex flex-col">
             <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Semester</label>
             <select
               value={semester}
               onChange={(e) => setSemester(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+              className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
             >
               <option value="GANJIL">GANJIL</option>
               <option value="GENAP">GENAP</option>

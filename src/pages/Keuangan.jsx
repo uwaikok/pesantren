@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { DollarSign, Printer, CheckCircle, XCircle, RotateCcw, Calendar, X } from 'lucide-react';
 import api from '../utils/api';
+import { confirmDialog, alertDialog } from '../utils/dialog';
 
 function Keuangan({ user }) {
   const [santriList, setSantriList] = useState([]);
@@ -30,29 +31,6 @@ function Keuangan({ user }) {
       setCurrentSantriDetails(user);
     }
   }, [user]);
-
-  // Adjust sppTahun if it is less than student's admission year
-  useEffect(() => {
-    if (currentSantriDetails?.tanggalMasuk) {
-      const startYear = new Date(currentSantriDetails.tanggalMasuk).getFullYear();
-      if (parseInt(sppTahun) < startYear) {
-        setSppTahun(startYear);
-      }
-    }
-  }, [currentSantriDetails]);
-
-  const getYearOptions = () => {
-    const currentYear = new Date().getFullYear();
-    const startYear = currentSantriDetails?.tanggalMasuk 
-      ? new Date(currentSantriDetails.tanggalMasuk).getFullYear() 
-      : 2025;
-    const years = [];
-    const maxYear = Math.max(currentYear + 1, startYear);
-    for (let y = startYear; y <= maxYear; y++) {
-      years.push(y);
-    }
-    return years.length > 0 ? years.reverse() : [currentYear];
-  };
 
   useEffect(() => {
     if (selectedSantriId) {
@@ -105,7 +83,7 @@ function Keuangan({ user }) {
   };
 
   const handleCancelPayment = async (bulan) => {
-    if (!window.confirm(`Batalkan status Lunas syariah bulan ${getNamaBulan(bulan)} ${sppTahun} menjadi BELUM BAYAR?`)) return;
+    if (!await confirmDialog(`Batalkan status Lunas syariah bulan ${getNamaBulan(bulan)} ${sppTahun} menjadi BELUM BAYAR?`)) return;
 
     try {
       await api.post('/keuangan', {
@@ -117,7 +95,7 @@ function Keuangan({ user }) {
       });
       fetchKeuanganData();
     } catch (err) {
-      alert(err.message || 'Gagal membatalkan pembayaran');
+      alertDialog(err.message || 'Gagal membatalkan pembayaran', 'Gagal');
     }
   };
 
@@ -139,7 +117,7 @@ function Keuangan({ user }) {
       setIsPayModalOpen(false);
       fetchKeuanganData();
     } catch (err) {
-      alert(err.message || 'Gagal menyimpan pembayaran');
+      alertDialog(err.message || 'Gagal menyimpan pembayaran', 'Gagal');
     } finally {
       setPaySubmitting(false);
     }
@@ -205,12 +183,12 @@ function Keuangan({ user }) {
         <div className="flex flex-wrap items-center gap-4">
           {/* Dropdown Pilihan Santri (Admin Only) */}
           {user.role === 'ADMIN' && (
-            <div className="flex flex-col w-full sm:w-auto">
+            <div className="flex flex-col">
               <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Pilih Santri</label>
               <select
                 value={selectedSantriId}
                 onChange={(e) => setSelectedSantriId(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
               >
                 {santriList.map(s => (
                   <option key={s.id} value={s.id}>{s.nama} ({s.kelas})</option>
@@ -220,16 +198,15 @@ function Keuangan({ user }) {
           )}
 
           {/* Tahun Buku Syariah */}
-          <div className="flex flex-col w-full sm:w-auto">
+          <div className="flex flex-col">
             <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Tahun Buku Syariah</label>
             <select
               value={sppTahun}
-              onChange={(e) => setSppTahun(parseInt(e.target.value))}
-              className="w-full bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
+              onChange={(e) => setSppTahun(e.target.value)}
+              className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
             >
-              {getYearOptions().map(y => (
-                <option key={y} value={y}>{y}</option>
-              ))}
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
             </select>
           </div>
         </div>
@@ -238,16 +215,6 @@ function Keuangan({ user }) {
           Santri: <strong className="text-[#0B4A3F]">{currentSantriDetails?.nama || '-'}</strong> ({currentSantriDetails?.kelas || '-'})
         </div>
       </div>
-
-      {currentSantriDetails && (currentSantriDetails.isBeasiswa === true || currentSantriDetails.isBeasiswa === 'true') && (
-        <div className="bg-amber-50/70 border-l-4 border-amber-500 p-4 rounded-xl text-xs font-semibold text-amber-800 shadow-sm flex items-center justify-between no-print">
-          <div>
-            <p className="font-bold text-amber-900 text-sm">✨ Santri Penerima Beasiswa</p>
-            <p className="text-slate-600 mt-0.5">Santri ini dibebaskan dari kewajiban iuran Syariah Bulanan (Bebas Biaya Syariah).</p>
-          </div>
-          <span className="bg-amber-100 text-amber-800 text-[10px] font-extrabold uppercase px-3 py-1 rounded-full border border-amber-300">BEASISWA AKTIF</span>
-        </div>
-      )}
 
       {/* KARTU RINGKASAN SALDO (no-print) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">

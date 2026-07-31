@@ -31,13 +31,13 @@ function App() {
       setUser(null);
     } finally {
       setLoading(false);
-      // Sinkronisasi status mode demo ke state React
-      setDemoMode(localStorage.getItem('use_mock_db') === 'true');
+      // Sinkronisasi status mode berdasarkan window.useMockDb (bukan localStorage)
+      setDemoMode(window.useMockDb === true);
     }
   };
 
   const handleLogout = () => {
-    sessionStorage.removeItem('simesra_token');
+    localStorage.removeItem('simesra_token');
     setUser(null);
   };
 

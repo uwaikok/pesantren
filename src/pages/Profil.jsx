@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { User, Mail, Phone, MapPin, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Loader2, Key, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle, Eye, EyeOff } from 'lucide-react';
 import api from '../utils/api';
+import { confirmDialog, alertDialog } from '../utils/dialog';
 
 function Profil({ user, onUserUpdate }) {
   const { id } = useParams();
@@ -53,11 +54,6 @@ function Profil({ user, onUserUpdate }) {
   // State untuk Reset Password dialog (hanya untuk admin mereset password santri)
   const [resettingPassword, setResettingPassword] = useState(false);
   const [resetSuccessMessage, setResetSuccessMessage] = useState('');
-  
-  // State untuk simpan biodata
-  const [savingBiodata, setSavingBiodata] = useState(false);
-  const [saveBiodataError, setSaveBiodataError] = useState('');
-  const [saveBiodataSuccess, setSaveBiodataSuccess] = useState('');
 
   useEffect(() => {
     if (!isAdminSelf && !targetId) {
@@ -132,9 +128,9 @@ function Profil({ user, onUserUpdate }) {
             users[idx].fotoProfil = base64;
             localStorage.setItem('mock_users', JSON.stringify(users));
             if (effectiveId === user.id) {
-              const tokenUser = JSON.parse(sessionStorage.getItem('simesra_token') || '{}');
+              const tokenUser = JSON.parse(localStorage.getItem('simesra_token') || '{}');
               tokenUser.fotoProfil = base64;
-              sessionStorage.setItem('simesra_token', JSON.stringify(tokenUser));
+              localStorage.setItem('simesra_token', JSON.stringify(tokenUser));
               if (onUserUpdate) onUserUpdate({ fotoProfil: base64 });
             }
           }
@@ -150,25 +146,17 @@ function Profil({ user, onUserUpdate }) {
         const formData = new FormData();
         formData.append('foto', file);
 
-        const token = sessionStorage.getItem('simesra_token');
-        const response = await fetch(`/api/users/${effectiveId}/foto-profil`, {
-          method: 'PUT',
-          headers: { 'Authorization': `Bearer ${token}` },
-          body: formData,
+        const result = await api.put(`/users/${effectiveId}/foto-profil`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
         });
 
-        if (!response.ok) {
-          const errData = await response.json();
-          throw new Error(errData.message || 'Gagal mengupload foto');
-        }
-
-        const result = await response.json();
-        const fotoUrl = `/uploads/foto-profil/${result.fotoProfil?.split('/').pop() || ''}`;
         setProfileData(prev => ({
           ...prev,
           user: { ...prev.user, fotoProfil: result.fotoProfil }
         }));
-        setPreviewFoto(fotoUrl);
+        setPreviewFoto(result.fotoProfil);
         setFotoSuccess('Foto profil berhasil diperbarui!');
         if (effectiveId === user.id && onUserUpdate) onUserUpdate({ fotoProfil: result.fotoProfil });
         setFotoLoading(false);
@@ -224,9 +212,6 @@ function Profil({ user, onUserUpdate }) {
 
   const handleSaveBiodata = async (e) => {
     e.preventDefault();
-    setSavingBiodata(true);
-    setSaveBiodataError('');
-    setSaveBiodataSuccess('');
     try {
       if (isAdminSelf) {
         // Update profil admin sendiri via /auth/profile
@@ -234,7 +219,7 @@ function Profil({ user, onUserUpdate }) {
         
         // Simpan token baru jika didapatkan dari server
         if (result.token) {
-          sessionStorage.setItem('simesra_token', result.token);
+          localStorage.setItem('simesra_token', result.token);
         }
 
         if (onUserUpdate) onUserUpdate({ nama: result.user.nama, email: result.user.email, noHp: result.user.noHp, alamat: result.user.alamat });
@@ -247,19 +232,16 @@ function Profil({ user, onUserUpdate }) {
           if (onUserUpdate) onUserUpdate({ nama: result.user.nama, email: result.user.email, noHp: result.user.noHp, alamat: result.user.alamat });
         }
       }
-      setSaveBiodataSuccess('Profil berhasil diperbarui!');
       setIsEditing(false);
       fetchProfile();
     } catch (err) {
-      setSaveBiodataError(err.message || 'Gagal memperbarui biodata');
-    } finally {
-      setSavingBiodata(false);
+      alertDialog(err.message || 'Gagal memperbarui biodata', 'Gagal');
     }
   };
 
   // Pemicu reset password santri oleh admin
   const handleResetPasswordSantri = async () => {
-    if (!window.confirm(`Apakah Anda yakin ingin mereset kata sandi santri "${profileData.user.nama}" menjadi default?`)) return;
+    if (!await confirmDialog(`Apakah Anda yakin ingin mereset kata sandi santri "${profileData.user.nama}" menjadi default?`)) return;
     
     setResettingPassword(true);
     setResetSuccessMessage('');
@@ -279,7 +261,7 @@ function Profil({ user, onUserUpdate }) {
       
       setResetSuccessMessage(`Kata sandi ${profileData.user.nama} berhasil direset menjadi: ${defaultPassword}`);
     } catch (err) {
-      alert(err.message || 'Gagal mereset kata sandi');
+      alertDialog(err.message || 'Gagal mereset kata sandi', 'Gagal');
     } finally {
       setResettingPassword(false);
     }
@@ -583,21 +565,11 @@ function Profil({ user, onUserUpdate }) {
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none resize-none"
                       ></textarea>
                     </div>
-                    {saveBiodataError && (
-                      <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 font-semibold text-[11px]">
-                        ⚠️ {saveBiodataError}
-                      </div>
-                    )}
                     <button
                       type="submit"
-                      disabled={savingBiodata}
-                      className="bg-[#0B4A3F] hover:bg-[#083831] disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md flex items-center space-x-2"
+                      className="bg-[#0B4A3F] hover:bg-[#083831] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md"
                     >
-                      {savingBiodata ? (
-                        <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span>Menyimpan...</span></>
-                      ) : (
-                        <span>Simpan Perubahan</span>
-                      )}
+                      Simpan Perubahan
                     </button>
                   </form>
                 ) : (
@@ -726,6 +698,7 @@ function Profil({ user, onUserUpdate }) {
               </div>
             )}
 
+            {/* TAB: AKADEMIK */}
             {activeTab === 'akademik' && (
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-3 gap-2">
@@ -736,54 +709,26 @@ function Profil({ user, onUserUpdate }) {
                 </div>
 
                 {/* Ringkasan Statistik Akademik */}
-                {(() => {
-                  // Gabungkan pelajaran yang sama dari ganjil+genap menjadi 1 entri unik
-                  const akademikData = profileData.akademik || [];
-                  const uniqueMapel = [];
-                  const seen = new Set();
-                  akademikData.forEach(n => {
-                    const key = n.mataPelajaran.trim().toLowerCase();
-                    if (!seen.has(key)) {
-                      seen.add(key);
-                      uniqueMapel.push(n);
-                    }
-                  });
-
-                  // Hitung rata-rata dari unique mapel saja
-                  const validNilai = uniqueMapel.filter(n => 
-                    (n.nilaiUts !== null && n.nilaiUts !== undefined) ||
-                    (n.nilaiUas !== null && n.nilaiUas !== undefined)
-                  );
-                  const avgTotal = validNilai.length > 0
-                    ? (validNilai.reduce((acc, n) => {
-                        const hasUts = n.nilaiUts !== null && n.nilaiUts !== undefined;
-                        const hasUas = n.nilaiUas !== null && n.nilaiUas !== undefined;
-                        if (hasUts && hasUas) return acc + (n.nilaiUts + n.nilaiUas) / 2;
-                        if (hasUts) return acc + n.nilaiUts;
-                        if (hasUas) return acc + n.nilaiUas;
-                        return acc;
-                      }, 0) / validNilai.length).toFixed(1)
-                    : '-';
-
-                  return (
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3">
-                        <div className="p-3 bg-emerald-100 text-[#0B4A3F] rounded-xl"><Award size={20} /></div>
-                        <div>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase">Mata Pelajaran Diikuti</p>
-                          <h4 className="text-base font-bold text-slate-800">{uniqueMapel.length} Pelajaran Pesantren</h4>
-                        </div>
-                      </div>
-                      <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3">
-                        <div className="p-3 bg-amber-100 text-[#D4AF37] rounded-xl"><Sparkles size={20} /></div>
-                        <div>
-                          <p className="text-[9px] font-bold text-slate-400 uppercase">Rata-Rata Angka Studi</p>
-                          <h4 className="text-base font-bold text-slate-800">{avgTotal}</h4>
-                        </div>
-                      </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3">
+                    <div className="p-3 bg-emerald-100 text-[#0B4A3F] rounded-xl"><Award size={20} /></div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Mata Pelajaran Diikuti</p>
+                      <h4 className="text-base font-bold text-slate-800">{profileData.akademik ? profileData.akademik.length : 0} Pelajaran Pesantren</h4>
                     </div>
-                  );
-                })()}
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex items-center space-x-3">
+                    <div className="p-3 bg-amber-100 text-[#D4AF37] rounded-xl"><Sparkles size={20} /></div>
+                    <div>
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Rata-Rata Angka Studi</p>
+                      <h4 className="text-base font-bold text-slate-800">
+                        {profileData.akademik && profileData.akademik.length > 0
+                          ? (profileData.akademik.reduce((acc, curr) => acc + (curr.nilaiUts + curr.nilaiUas) / 2, 0) / profileData.akademik.length).toFixed(1)
+                          : '-'}
+                      </h4>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs border-collapse">
@@ -799,39 +744,18 @@ function Profil({ user, onUserUpdate }) {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {profileData.akademik && profileData.akademik.length > 0 ? (
-                        (() => {
-                          // Kelompokkan berdasarkan tahunAjaran+semester, lalu dalam setiap kelompok
-                          // hapus duplikat mataPelajaran
-                          const grouped = {};
-                          profileData.akademik.forEach(n => {
-                            const groupKey = `${n.tahunAjaran}__${n.semester}`;
-                            if (!grouped[groupKey]) grouped[groupKey] = [];
-                            // Cek apakah sudah ada mapel yang sama
-                            const existsInGroup = grouped[groupKey].some(
-                              x => x.mataPelajaran.trim().toLowerCase() === n.mataPelajaran.trim().toLowerCase()
-                            );
-                            if (!existsInGroup) grouped[groupKey].push(n);
-                          });
-
-                          return Object.values(grouped).flat().map((n) => {
-                            const hasUts = n.nilaiUts !== null && n.nilaiUts !== undefined;
-                            const hasUas = n.nilaiUas !== null && n.nilaiUas !== undefined;
-                            let avg = '-';
-                            if (hasUts && hasUas) avg = ((n.nilaiUts + n.nilaiUas) / 2).toFixed(1);
-                            else if (hasUts) avg = parseFloat(n.nilaiUts).toFixed(1);
-                            else if (hasUas) avg = parseFloat(n.nilaiUas).toFixed(1);
-                            return (
-                              <tr key={n.id} className="hover:bg-slate-100/40 transition">
-                                <td className="py-3 px-4 font-semibold text-slate-700">{n.tahunAjaran}</td>
-                                <td className="py-3 px-4 font-medium">{n.semester}</td>
-                                <td className="py-3 px-4 text-slate-800 font-bold">{n.mataPelajaran}</td>
-                                <td className="py-3 px-4 text-center font-medium text-slate-650">{hasUts ? n.nilaiUts : '-'}</td>
-                                <td className="py-3 px-4 text-center font-medium text-slate-650">{hasUas ? n.nilaiUas : '-'}</td>
-                                <td className="py-3 px-4 text-center font-extrabold text-[#0B4A3F]">{avg}</td>
-                              </tr>
-                            );
-                          });
-                        })()
+                        profileData.akademik.map((n) => (
+                          <tr key={n.id} className="hover:bg-slate-100/40 transition">
+                            <td className="py-3 px-4 font-semibold text-slate-700">{n.tahunAjaran}</td>
+                            <td className="py-3 px-4 font-medium">{n.semester}</td>
+                            <td className="py-3 px-4 text-slate-800 font-bold">{n.mataPelajaran}</td>
+                            <td className="py-3 px-4 text-center font-medium text-slate-650">{n.nilaiUts}</td>
+                            <td className="py-3 px-4 text-center font-medium text-slate-650">{n.nilaiUas}</td>
+                            <td className="py-3 px-4 text-center font-extrabold text-[#0B4A3F]">
+                              {((n.nilaiUts + n.nilaiUas) / 2).toFixed(1)}
+                            </td>
+                          </tr>
+                        ))
                       ) : (
                         <tr>
                           <td colSpan="6" className="py-8 text-center text-slate-400">Belum ada riwayat akademik tercatat.</td>
@@ -1047,21 +971,11 @@ function Profil({ user, onUserUpdate }) {
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs focus:bg-white focus:border-[#D4AF37] outline-none resize-none"
                     ></textarea>
                   </div>
-                  {saveBiodataError && (
-                    <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 font-semibold text-[11px]">
-                      ⚠️ {saveBiodataError}
-                    </div>
-                  )}
                   <button
                     type="submit"
-                    disabled={savingBiodata}
-                    className="bg-[#0B4A3F] hover:bg-[#083831] disabled:opacity-60 disabled:cursor-not-allowed text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md flex items-center space-x-2"
+                    className="bg-[#0B4A3F] hover:bg-[#083831] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition shadow-md"
                   >
-                    {savingBiodata ? (
-                      <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span><span>Menyimpan...</span></>
-                    ) : (
-                      <span>Simpan Profil Admin</span>
-                    )}
+                    Simpan Profil Admin
                   </button>
                 </form>
               ) : (

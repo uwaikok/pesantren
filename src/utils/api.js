@@ -1,8 +1,43 @@
 import axios from 'axios';
 
+// ============================================================
+// KONFIGURASI URL API
+// - Di browser web (dev): pakai proxy /api → localhost:5000
+// - Di Android APK (Capacitor native): pakai URL Vercel langsung
+//   karena APK tidak bisa pakai path relatif '/api'
+// ============================================================
+const isCapacitorNative = () => {
+  if (typeof window !== 'undefined' && window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) {
+    return true;
+  }
+  if (typeof window !== 'undefined' && window.location) {
+    const protocol = window.location.protocol;
+    if (protocol === 'capacitor:' || protocol === 'file:') {
+      return true;
+    }
+    const hostname = window.location.hostname;
+    if ((protocol === 'https:' || protocol === 'http:') && hostname === 'localhost' && !import.meta.env.DEV) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// URL backend Vercel production (untuk APK Android)
+const VERCEL_API_URL = 'https://pesantren-chi.vercel.app/api';
+
+// Tentukan baseURL:
+// - Native (APK Android): pakai Vercel URL langsung
+// - Browser web: pakai env var atau '/api' (di-proxy oleh Vite/Vercel)
+const BASE_URL = isCapacitorNative()
+  ? VERCEL_API_URL
+  : (import.meta.env.VITE_API_URL || '/api');
+
+console.log('[SIM Pesantren] API Base URL:', BASE_URL, '| Native:', isCapacitorNative());
+
 // Konfigurasi base Axios
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: BASE_URL,
   timeout: 15000,
 });
 
@@ -10,7 +45,7 @@ const api = axios.create({
 // Interceptor untuk menyisipkan token JWT di setiap request
 api.interceptors.request.use(
   (config) => {
-    const token = sessionStorage.getItem('simesra_token');
+    const token = localStorage.getItem('simesra_token');
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`;
     }
@@ -165,10 +200,11 @@ const seedMockDatabase = () => {
 // Panggil inisialisasi database localstorage
 seedMockDatabase();
 
-// PENTING: Bersihkan flag mock DB yang tersimpan dari sesi sebelumnya
-// agar aplikasi selalu coba backend nyata terlebih dahulu setiap kali halaman dibuka
+// Mode selalu menggunakan real backend (Vercel/Neon)
+// Mock mode hanya diaktifkan manual jika diperlukan
 localStorage.removeItem('use_mock_db');
 window.useMockDb = false;
+console.log('[SIM Pesantren] Mode: ONLINE — Terhubung ke backend Vercel + Neon DB');
 
 // Helper get database dari localStorage
 const getMockData = (key) => JSON.parse(localStorage.getItem(key) || '[]');
@@ -176,7 +212,7 @@ const saveMockData = (key, data) => localStorage.setItem(key, JSON.stringify(dat
 
 // Cek siapa user yang sedang login berdasarkan token
 const getLoggedInUser = () => {
-  const token = sessionStorage.getItem('simesra_token');
+  const token = localStorage.getItem('simesra_token');
   if (!token) return null;
   try {
     // Di demo mode, token hanyalah JSON string user
@@ -198,25 +234,23 @@ const getLoggedInUser = () => {
 };
 
 // Buat wrapper request API
-const request = async (method, url, data = null, params = null) => {
-  // Hanya gunakan window.useMockDb (in-memory) — TIDAK dari localStorage
-  // Ini memastikan setiap refresh halaman, app selalu coba backend nyata dulu
+const request = async (method, url, data = null, params = null, headers = null) => {
   const useMock = window.useMockDb === true;
 
   if (!useMock) {
     try {
-      // Coba panggil server backend asli
-      const response = await api({ method, url, data, params });
-      // Jika berhasil — pastikan mock mode OFF
-      window.useMockDb = false;
+      const config = { method, url, data, params };
+      if (headers) config.headers = headers;
+      const response = await api(config);
       return response.data;
     } catch (error) {
-      // Jika error dari backend berupa HTTP status (server online, ada error logika):
       if (error.response) {
+        // HTTP error dari server (4xx, 5xx)
         return Promise.reject(error.response.data || { message: 'Terjadi kesalahan pada server' });
       }
-      console.error('Koneksi ke server backend gagal:', error);
-      return Promise.reject({ message: 'Gagal terhubung ke server backend. Pastikan server lokal Anda sudah berjalan.' });
+      // Network error — tidak bisa konek ke backend
+      console.error('[SIM Pesantren] Gagal terhubung ke backend:', error.message);
+      return Promise.reject({ message: 'Gagal terhubung ke server. Periksa koneksi internet Anda.' });
     }
   }
 
@@ -238,7 +272,7 @@ const request = async (method, url, data = null, params = null) => {
             return reject({ message: 'Akun Anda belum aktif. Silakan hubungi admin untuk aktivasi.' });
           }
           // Simpan token (di demo mode, token kita adalah detail user itu sendiri)
-          sessionStorage.setItem('simesra_token', JSON.stringify(found));
+          localStorage.setItem('simesra_token', JSON.stringify(found));
           return resolve({ message: 'Login berhasil', token: JSON.stringify(found), user: found });
         }
 
@@ -288,7 +322,7 @@ const request = async (method, url, data = null, params = null) => {
           if (!latestUser) return reject({ message: 'User tidak ditemukan' });
           // Sync token dengan data terbaru
           const userForToken = { ...latestUser };
-          sessionStorage.setItem('simesra_token', JSON.stringify(userForToken));
+          localStorage.setItem('simesra_token', JSON.stringify(userForToken));
           // Return tanpa password
           const { password, ...safeUser } = latestUser;
           return resolve(safeUser);
@@ -323,9 +357,9 @@ const request = async (method, url, data = null, params = null) => {
           users[idx].password = passwordBaru;
           saveMockData('mock_users', users);
 
-          // Buat token baru TANPA field password (aman) dan simpan ke sessionStorage
+          // Buat token baru TANPA field password (aman) dan simpan ke localStorage
           const { password: _pw, ...safeUserForToken } = users[idx];
-          sessionStorage.setItem('simesra_token', JSON.stringify(safeUserForToken));
+          localStorage.setItem('simesra_token', JSON.stringify(safeUserForToken));
 
           return resolve({ message: 'Kata sandi berhasil diperbarui. Password lama tidak berlaku lagi.' });
         }
@@ -366,7 +400,7 @@ const request = async (method, url, data = null, params = null) => {
 
           // Update token
           const { password: _p, ...safeUser } = users[idx];
-          sessionStorage.setItem('simesra_token', JSON.stringify(safeUser));
+          localStorage.setItem('simesra_token', JSON.stringify(safeUser));
 
           return resolve({
             message: 'Profil berhasil diperbarui',
@@ -520,7 +554,7 @@ const request = async (method, url, data = null, params = null) => {
           
           // Sinkronkan token jika user yang diedit adalah user yang sedang login
           if (currentUser.id === id) {
-            sessionStorage.setItem('simesra_token', JSON.stringify(users[idx]));
+            localStorage.setItem('simesra_token', JSON.stringify(users[idx]));
           }
           return resolve({ message: 'Data santri berhasil diperbarui', user: users[idx] });
         }
@@ -757,41 +791,15 @@ const request = async (method, url, data = null, params = null) => {
           const targetTahun = new Date().getFullYear();
           const payments = getMockData('mock_pembayaran').filter(p => p.santriId === targetId && p.tahun === targetTahun);
           
-          const getMockStartMonth = (tanggalMasuk, targetTahun) => {
-            if (!tanggalMasuk) return 1;
-            const masuk = new Date(tanggalMasuk);
-            const tahunMasuk = masuk.getFullYear();
-            const bulanMasuk = masuk.getMonth() + 1;
-            if (tahunMasuk > targetTahun) return 13;
-            if (tahunMasuk === targetTahun) return bulanMasuk;
-            return 1;
-          };
-
-          const getMockIsMonthDue = (m, targetTahun) => {
-            const now = new Date();
-            const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth() + 1;
-            if (targetTahun < currentYear) return true;
-            if (targetTahun === currentYear) return m <= currentMonth;
-            return false;
-          };
-
-          const startMonth = getMockStartMonth(userSelect?.tanggalMasuk, targetTahun);
           const paymentsList = [];
           let totalTunggakan = 0;
-          let unpaidMonths = 0;
-          const defaultAmount = 300000;
+          const defaultAmount = 350000;
 
-          for (let m = startMonth; m <= 12; m++) {
+          for (let m = 1; m <= 12; m++) {
             const dbRecord = payments.find(p => p.bulan === m);
             if (dbRecord) {
               paymentsList.push(dbRecord);
-              if (dbRecord.status !== 'LUNAS') {
-                if (getMockIsMonthDue(m, targetTahun)) {
-                  totalTunggakan += dbRecord.jumlah;
-                  unpaidMonths++;
-                }
-              }
+              if (dbRecord.status !== 'LUNAS') totalTunggakan += dbRecord.jumlah;
             } else {
               paymentsList.push({
                 id: null,
@@ -802,16 +810,8 @@ const request = async (method, url, data = null, params = null) => {
                 tanggalBayar: null,
                 jumlah: defaultAmount
               });
-              if (getMockIsMonthDue(m, targetTahun)) {
-                totalTunggakan += defaultAmount;
-                unpaidMonths++;
-              }
+              totalTunggakan += defaultAmount;
             }
-          }
-
-          if (userSelect && (userSelect.isBeasiswa === true || userSelect.isBeasiswa === 'true')) {
-            totalTunggakan = 0;
-            unpaidMonths = 0;
           }
 
           return resolve({
@@ -821,7 +821,6 @@ const request = async (method, url, data = null, params = null) => {
             keuangan: {
               tahun: targetTahun,
               totalTunggakan,
-              unpaidMonths,
               payments: paymentsList
             }
           });
@@ -903,7 +902,7 @@ const request = async (method, url, data = null, params = null) => {
           // Sinkronkan token jika user yang diedit adalah user yang sedang login
           if (currentUser.id === targetId) {
             const { password: _p, ...safeUser } = users[idx];
-            sessionStorage.setItem('simesra_token', JSON.stringify(safeUser));
+            localStorage.setItem('simesra_token', JSON.stringify(safeUser));
           }
 
           const { password: _p, ...safeUser } = users[idx];
@@ -941,51 +940,21 @@ const request = async (method, url, data = null, params = null) => {
             });
 
             // Injeksi tunggakan SPP Syariah dinamis
-            const isScholar = currentUser.isBeasiswa === true || currentUser.isBeasiswa === 'true';
-            if (!isScholar) {
-              const unpaidMonths = [];
-              const masuk = currentUser.tanggalMasuk ? new Date(currentUser.tanggalMasuk) : new Date(currentUser.createdAt);
-              const startYear = masuk.getFullYear();
-              const startMonth = masuk.getMonth() + 1;
-
-              const now = new Date();
-              const currentYear = now.getFullYear();
-              const currentMonth = now.getMonth() + 1;
-
+            const pembayaran = getMockData('mock_pembayaran').filter(p => p.santriId === currentUser.id && p.status === 'BELUM_BAYAR');
+            if (pembayaran.length > 0) {
+              const totalTunggakan = pembayaran.reduce((sum, p) => sum + p.jumlah, 0);
               const namaBulan = ["", "Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
-              const mockPayments = getMockData('mock_pembayaran').filter(p => p.santriId === currentUser.id);
+              const listBulan = pembayaran.map(p => `${namaBulan[p.bulan]} ${p.tahun}`).join(', ');
 
-              for (let y = startYear; y <= currentYear; y++) {
-                const mStart = (y === startYear) ? startMonth : 1;
-                const mEnd = (y === currentYear) ? currentMonth : 12;
-
-                for (let m = mStart; m <= mEnd; m++) {
-                  const isPaid = mockPayments.some(p => p.tahun === y && p.bulan === m && p.status === 'LUNAS');
-                  if (!isPaid) {
-                    const dbRecord = mockPayments.find(p => p.tahun === y && p.bulan === m);
-                    const amount = dbRecord ? dbRecord.jumlah : 300000;
-                    unpaidMonths.push({
-                      nama: `${namaBulan[m]} ${y}`,
-                      jumlah: amount
-                    });
-                  }
-                }
-              }
-
-              if (unpaidMonths.length > 0) {
-                const totalTunggakan = unpaidMonths.reduce((sum, p) => sum + p.jumlah, 0);
-                const listBulan = unpaidMonths.map(p => p.nama).join(', ');
-
-                dynamicNotifs.push({
-                  id: `spp-warning-${currentUser.id}`,
-                  judul: "Pemberitahuan Tagihan Syariah Bulanan",
-                  isi: `Assalamu'alaikum Wr. Wb. Harap melakukan pembayaran Syariah Bulanan sebesar Rp ${totalTunggakan.toLocaleString('id-ID')} untuk bulan: ${listBulan}. Silakan lakukan pembayaran ke bendahara.`,
-                  kategori: "SPP",
-                  santriId: currentUser.id,
-                  isRead: false,
-                  createdAt: new Date().toISOString()
-                });
-              }
+              dynamicNotifs.push({
+                id: `spp-warning-${currentUser.id}`,
+                judul: "Pemberitahuan Tunggakan Syariah Bulanan",
+                isi: `Assalamu'alaikum Wr. Wb. Harap segera melunasi iuran Syariah Bulanan sebesar Rp ${totalTunggakan.toLocaleString('id-ID')} untuk bulan: ${listBulan}. Silakan lakukan pembayaran ke bendahara.`,
+                kategori: "SPP",
+                santriId: currentUser.id,
+                isRead: false,
+                createdAt: new Date().toISOString()
+              });
             }
 
             const allNotifs = [...dynamicNotifs, ...dbNotifications].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
@@ -1060,7 +1029,7 @@ const request = async (method, url, data = null, params = null) => {
 
 export default {
   get: (url, config) => request('get', url, null, config?.params),
-  post: (url, data) => request('post', url, data),
-  put: (url, data) => request('put', url, data),
+  post: (url, data, config) => request('post', url, data, null, config?.headers),
+  put: (url, data, config) => request('put', url, data, null, config?.headers),
   delete: (url) => request('delete', url),
 };
