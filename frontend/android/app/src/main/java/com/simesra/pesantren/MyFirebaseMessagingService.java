@@ -17,7 +17,7 @@ import com.google.firebase.messaging.RemoteMessage;
 
 public class MyFirebaseMessagingService extends FirebaseMessagingService {
 
-    private static final String CHANNEL_ID = "as_syadzili_channel";
+    private static final String CHANNEL_ID = "as_syadzili_channel_v4";
     private static final String CHANNEL_NAME = "AS-SYADZILI Notifikasi";
 
     @Override

@@ -69,8 +69,22 @@ function Dashboard({ user }) {
       if (user.role === 'ADMIN') fetchAdminData();
       else fetchSantriData();
     };
+
+    // Auto-refresh ketika app aktif kembali dari background (misal diklik dari panel notifikasi)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        if (user.role === 'ADMIN') fetchAdminData();
+        else fetchSantriData();
+      }
+    };
+
     window.addEventListener('refreshData', handleRefresh);
-    return () => window.removeEventListener('refreshData', handleRefresh);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('refreshData', handleRefresh);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [search, filterKelas, user]);
 
   useEffect(() => {
