@@ -4,7 +4,11 @@ const admin = require('firebase-admin');
 // Saat lokal: baca dari file firebase-admin.json langsung
 let serviceAccount;
 if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-  serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (parseError) {
+    console.error('Error parsing FIREBASE_SERVICE_ACCOUNT environment variable:', parseError);
+  }
 } else {
   try {
     const path = require('path');
@@ -15,9 +19,14 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT) {
 }
 
 if (serviceAccount) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
+  try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log('Firebase Admin SDK initialized successfully.');
+  } catch (initError) {
+    console.error('Error initializing Firebase Admin SDK:', initError);
+  }
 }
 
 module.exports = admin;
