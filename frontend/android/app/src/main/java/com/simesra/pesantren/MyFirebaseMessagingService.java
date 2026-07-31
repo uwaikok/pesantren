@@ -24,25 +24,27 @@ public class MyFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(@NonNull RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
 
+        // Kita mengirim data-only message, jadi baca dari data payload
         String title = "AS-SYADZILI";
         String body = "Ada pemberitahuan baru";
 
-        if (remoteMessage.getNotification() != null) {
-            if (remoteMessage.getNotification().getTitle() != null) {
-                title = remoteMessage.getNotification().getTitle();
-            }
-            if (remoteMessage.getNotification().getBody() != null) {
-                body = remoteMessage.getNotification().getBody();
-            }
-        }
-
-        // Jika payload dari data (bukan notification)
+        // Baca dari data payload (karena kita kirim data-only message)
         if (remoteMessage.getData().size() > 0) {
             if (remoteMessage.getData().containsKey("title")) {
                 title = remoteMessage.getData().get("title");
             }
             if (remoteMessage.getData().containsKey("body")) {
                 body = remoteMessage.getData().get("body");
+            }
+        }
+
+        // Fallback: jika ada notification payload juga
+        if (remoteMessage.getNotification() != null) {
+            if (remoteMessage.getNotification().getTitle() != null) {
+                title = remoteMessage.getNotification().getTitle();
+            }
+            if (remoteMessage.getNotification().getBody() != null) {
+                body = remoteMessage.getNotification().getBody();
             }
         }
 

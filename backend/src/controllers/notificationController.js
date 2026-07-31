@@ -148,18 +148,22 @@ const createNotification = async (req, res) => {
     // Kirim notifikasi push ke Firebase jika ini pengumuman global (santriId null)
     if (!santriId) {
       try {
+        // Kirim data-only message agar onMessageReceived SELALU dipanggil
+        // (bahkan saat app sedang tertutup/killed), memberikan kontrol penuh atas suara notifikasi
         await getMessaging().send({
           topic: 'global_announcements',
-          notification: {
-            title: judul,
-            body: isi
-          },
+          // TANPA key 'notification' = data-only message
           data: {
-            kategori: kategori,
-            click_action: 'FLUTTER_NOTIFICATION_CLICK'
+            title: judul,
+            body: isi,
+            kategori: kategori
+          },
+          android: {
+            priority: 'high',  // Prioritas tinggi agar HP "bangun" meski dalam mode hemat baterai
+            ttl: 3600 * 1000   // Pesan berlaku 1 jam
           }
         });
-        console.log('Firebase Push Notification sent successfully to global_announcements');
+        console.log('Firebase Push Notification (data-only) sent successfully to global_announcements');
       } catch (fcmError) {
         console.error('Error sending Firebase Push Notification:', fcmError);
         // Kita tidak mereturn error agar proses database tetap sukses meskipun push gagal
