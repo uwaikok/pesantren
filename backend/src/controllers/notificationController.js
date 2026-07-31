@@ -104,18 +104,20 @@ const getNotifications = async (req, res) => {
           });
           dynamicNotifications.push({
             id: `sanksi-${s.id}`,
-            judul: `Catatan Pelanggaran Baru (${s.kategori})`,
+            judul: `Catatan Pelanggaran (${s.kategori})`,
             isi: `Tercatat pelanggaran kedisiplinan keamanan pada tanggal ${formattedDate}: "${s.deskripsi}". Harap tidak mengulangi tindakan ini lagi.`,
             kategori: "KEAMANAN",
             santriId: userId,
             isRead: false,
-            createdAt: s.tanggalPelanggaran
+            // Gunakan createdAt DB (kapan dicatat), bukan tanggalPelanggaran
+            createdAt: s.createdAt
           });
         });
       }
 
-      // Gabungkan notifikasi database dengan notifikasi dinamis, urutkan berdasarkan tanggal terbaru
-      const allNotifications = [...dynamicNotifications, ...dbNotifications].sort((a, b) => {
+      // Gabungkan: DB notifications DULU (lebih prioritas/akurat waktu), lalu dynamic
+      // Sort by createdAt descending - notifikasi DB terbaru akan di atas
+      const allNotifications = [...dbNotifications, ...dynamicNotifications].sort((a, b) => {
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
 

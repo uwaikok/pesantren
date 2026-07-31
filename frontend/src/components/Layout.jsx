@@ -79,9 +79,11 @@ function Layout({ children, user, onLogout }) {
       try {
         const data = await api.get('/notifications');
         setNotifications(data);
-        // Otomatis buka notifikasi terbaru dalam modal
+        // Tampilkan notifikasi DB terbaru (bukan notifikasi dinamis string id)
         if (data && data.length > 0) {
-          setSelectedNotif(data[0]); // Tampilkan notifikasi terbaru
+          // Cari notifikasi DB asli (id numerik) - yang dikirim oleh admin
+          const dbNotif = data.find(n => typeof n.id === 'number');
+          setSelectedNotif(dbNotif || data[0]);
         } else {
           setIsNotifOpen(true); // Fallback: buka dropdown
         }
@@ -93,14 +95,14 @@ function Layout({ children, user, onLogout }) {
     // Cek sessionStorage: jika ada flag dari Android (kasus app baru terbuka)
     if (sessionStorage.getItem('openNotificationsOnLoad') === 'true') {
       sessionStorage.removeItem('openNotificationsOnLoad');
-      // Delay singkat agar React sudah render sempurna
       setTimeout(async () => {
         navigate('/');
         try {
           const data = await api.get('/notifications');
           setNotifications(data);
           if (data && data.length > 0) {
-            setSelectedNotif(data[0]);
+            const dbNotif = data.find(n => typeof n.id === 'number');
+            setSelectedNotif(dbNotif || data[0]);
           } else {
             setIsNotifOpen(true);
           }

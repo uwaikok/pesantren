@@ -59,6 +59,9 @@ function Dashboard({ user }) {
   // State untuk data santri (jika login sebagai Santri)
   const [mySummary, setMySummary] = useState(null);
 
+  // State untuk modal detail pengumuman di dashboard santri
+  const [dashSelectedNotif, setDashSelectedNotif] = useState(null);
+
   // State untuk modal list santri beasiswa/tidak aktif
   const [detailModal, setDetailModal] = useState({ isOpen: false, type: '', title: '', data: [], loading: false });
 
@@ -99,10 +102,17 @@ function Dashboard({ user }) {
 
     window.addEventListener('refreshData', handleRefresh);
     document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Refresh notifikasi santri ketika admin kirim pengumuman baru
+    const handleRefreshNotifs = () => {
+      if (user.role === 'SANTRI') fetchSantriData();
+    };
+    window.addEventListener('refreshNotifications', handleRefreshNotifs);
     
     return () => {
       window.removeEventListener('refreshData', handleRefresh);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('refreshNotifications', handleRefreshNotifs);
     };
   }, [search, filterKelas, user]);
 
@@ -413,7 +423,11 @@ function Dashboard({ user }) {
                     badgeLabel = 'UJIAN';
                   }
                   return (
-                    <div key={n.id} className={`p-3.5 bg-slate-50 border ${borderColor} rounded-xl`}>
+                    <div 
+                      key={n.id} 
+                      className={`p-3.5 bg-slate-50 border ${borderColor} rounded-xl cursor-pointer hover:shadow-md transition-all duration-200 active:scale-[0.98]`}
+                      onClick={() => setDashSelectedNotif(n)}
+                    >
                       <div className="flex justify-between items-start mb-1">
                         <span className={`text-[8px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded ${badgeColor}`}>{badgeLabel}</span>
                         <span className="text-[8px] text-slate-400 font-mono">
@@ -421,7 +435,8 @@ function Dashboard({ user }) {
                         </span>
                       </div>
                       <h4 className="text-xs font-bold text-[#0B4A3F]">{n.judul}</h4>
-                      <p className="text-slate-600 text-[10px] mt-1 leading-relaxed">{n.isi}</p>
+                      <p className="text-slate-500 text-[10px] mt-1 leading-relaxed line-clamp-2">{n.isi}</p>
+                      <p className="text-[9px] text-emerald-500 font-bold mt-1.5">Klik untuk baca selengkapnya →</p>
                     </div>
                   );
                 })
@@ -974,6 +989,53 @@ function Dashboard({ user }) {
               <button 
                 onClick={() => setDetailModal({ isOpen: false, type: '', title: '', data: [], loading: false })}
                 className="bg-[#0B4A3F] hover:bg-[#083831] text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-sm"
+              >
+                Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* MODAL DETAIL PENGUMUMAN (DASHBOARD SANTRI) */}
+      {dashSelectedNotif && (
+        <div 
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
+          onClick={() => setDashSelectedNotif(null)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-gradient-to-r from-[#0B4A3F] to-[#16A34A] text-white px-5 py-4 rounded-t-2xl flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <span className="text-lg">📢</span>
+                <span className="font-bold text-sm">Pengumuman</span>
+              </div>
+              <button onClick={() => setDashSelectedNotif(null)} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-sm font-bold transition">✕</button>
+            </div>
+            {/* Body */}
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-1 rounded-full ${
+                  dashSelectedNotif.kategori === 'SPP' ? 'bg-amber-100 text-amber-700' :
+                  dashSelectedNotif.kategori === 'KEAMANAN' ? 'bg-rose-100 text-rose-700' :
+                  dashSelectedNotif.kategori === 'UJIAN' ? 'bg-emerald-100 text-emerald-700' :
+                  'bg-slate-100 text-slate-600'
+                }`}>
+                  {dashSelectedNotif.kategori === 'SPP' ? 'SYARIAH' : dashSelectedNotif.kategori || 'UMUM'}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {new Date(dashSelectedNotif.createdAt).toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </span>
+              </div>
+              <h3 className="text-base font-bold text-[#0B4A3F] mb-3 leading-snug">{dashSelectedNotif.judul}</h3>
+              <p className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap">{dashSelectedNotif.isi}</p>
+            </div>
+            <div className="px-5 pb-5">
+              <button
+                onClick={() => setDashSelectedNotif(null)}
+                className="w-full bg-[#0B4A3F] hover:bg-[#083831] text-white font-bold text-sm py-2.5 rounded-xl transition shadow-sm"
               >
                 Tutup
               </button>
