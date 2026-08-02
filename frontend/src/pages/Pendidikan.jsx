@@ -120,6 +120,24 @@ function Pendidikan({ user }) {
     setIsModalOpen(true);
   };
 
+  // Helper: konversi string nilai (dengan koma atau titik) ke float
+  const parseNilai = (val) => {
+    if (val === '' || val === null || val === undefined) return null;
+    const normalized = String(val).replace(',', '.');
+    const parsed = parseFloat(normalized);
+    return isNaN(parsed) ? null : Math.min(100, Math.max(0, parsed));
+  };
+
+  // Helper: hanya izinkan angka, koma, dan titik saat mengetik nilai
+  const handleNilaiInput = (field, val) => {
+    // Izinkan: angka 0-9, satu koma atau titik desimal
+    const cleaned = val.replace(/[^0-9.,]/g, '');
+    // Cegah lebih dari satu separator desimal
+    const parts = cleaned.split(/[.,]/);
+    const result = parts.length > 2 ? parts[0] + ',' + parts.slice(1).join('') : cleaned;
+    setFormNilai(prev => ({ ...prev, [field]: result }));
+  };
+
   const handleSubmitNilai = async (e) => {
     e.preventDefault();
     const { mataPelajaran, nilaiUts, nilaiUas } = formNilai;
@@ -130,6 +148,18 @@ function Pendidikan({ user }) {
     }
     if (nilaiUts === '' && nilaiUas === '') {
       alertDialog('Minimal salah satu nilai (UTS atau UAS) harus diisi', 'Validasi');
+      return;
+    }
+
+    // Validasi rentang nilai (0 - 100)
+    const utsNum = parseNilai(nilaiUts);
+    const uasNum = parseNilai(nilaiUas);
+    if (nilaiUts !== '' && utsNum === null) {
+      alertDialog('Nilai UTS tidak valid. Gunakan angka (contoh: 85 atau 85,5)', 'Validasi');
+      return;
+    }
+    if (nilaiUas !== '' && uasNum === null) {
+      alertDialog('Nilai UAS tidak valid. Gunakan angka (contoh: 90 atau 90,5)', 'Validasi');
       return;
     }
 
@@ -148,9 +178,9 @@ function Pendidikan({ user }) {
       }
     }
 
-    // Jika upsert (gabung ke entri lama), nilai yang kosong = pakai nilai lama
-    let finalUts = nilaiUts !== '' ? parseFloat(nilaiUts) : null;
-    let finalUas = nilaiUas !== '' ? parseFloat(nilaiUas) : null;
+    // Gunakan parseNilai (mendukung koma) — nilai kosong = null
+    let finalUts = parseNilai(nilaiUts);
+    let finalUas = parseNilai(nilaiUas);
 
     if (isUpsert && existingEntry) {
       // Kalau field dikosongkan, pertahankan nilai lama
@@ -726,29 +756,27 @@ function Pendidikan({ user }) {
                 <div>
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nilai UTS</label>
                   <input
-                    type="number"
-                    min="0"
-                    max="100"
+                    type="text"
+                    inputMode="decimal"
                     value={formNilai.nilaiUts}
-                    onChange={(e) => setFormNilai({ ...formNilai, nilaiUts: e.target.value })}
-                    placeholder="Opsional (0 - 100)"
+                    onChange={(e) => handleNilaiInput('nilaiUts', e.target.value)}
+                    placeholder="cth: 85 atau 85,5"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
-                  <p className="text-[9px] text-slate-400 mt-0.5">Kosongkan jika belum ada</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">Koma atau titik untuk desimal, kosongkan jika belum ada</p>
                 </div>
                 
                 <div>
                   <label className="block text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Nilai UAS</label>
                   <input
-                    type="number"
-                    min="0"
-                    max="100"
+                    type="text"
+                    inputMode="decimal"
                     value={formNilai.nilaiUas}
-                    onChange={(e) => setFormNilai({ ...formNilai, nilaiUas: e.target.value })}
-                    placeholder="Opsional (0 - 100)"
+                    onChange={(e) => handleNilaiInput('nilaiUas', e.target.value)}
+                    placeholder="cth: 90 atau 90,5"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
-                  <p className="text-[9px] text-slate-400 mt-0.5">Kosongkan jika belum ada</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">Koma atau titik untuk desimal, kosongkan jika belum ada</p>
                 </div>
               </div>
 

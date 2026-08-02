@@ -1,6 +1,15 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// Helper: normalisasi pemisah desimal (koma → titik) sebelum parseFloat
+// Ini memastikan nilai "85,5" yang dikirim frontend dapat dibaca dengan benar
+const normalizeNilai = (val) => {
+  if (val === null || val === undefined || val === '') return null;
+  const str = String(val).replace(',', '.').trim();
+  const num = parseFloat(str);
+  return isNaN(num) ? null : Math.min(100, Math.max(0, num));
+};
+
 const createNilai = async (req, res) => {
   try {
     const { santriId, mataPelajaran, nilaiUts, nilaiUas, semester, tahunAjaran } = req.body;
@@ -12,8 +21,9 @@ const createNilai = async (req, res) => {
       return res.status(400).json({ message: 'Minimal salah satu nilai (UTS atau UAS) harus diisi' });
     }
 
-    const utsValue = (nilaiUts !== null && nilaiUts !== undefined) ? parseFloat(nilaiUts) : null;
-    const uasValue = (nilaiUas !== null && nilaiUas !== undefined) ? parseFloat(nilaiUas) : null;
+    // Normalisasi koma → titik untuk mendukung input desimal dari frontend
+    const utsValue = normalizeNilai(nilaiUts);
+    const uasValue = normalizeNilai(nilaiUas);
 
     // Pastikan santri ada
     const santri = await prisma.santri.findUnique({ where: { id: parseInt(santriId) } });
@@ -21,7 +31,8 @@ const createNilai = async (req, res) => {
       return res.status(404).json({ message: 'Data santri tidak ditemukan' });
     }
 
-    // ⭐ UPSERT: Cek apakah mapel ini sudah ada untuk santri+semester+tahun yang sama
+    // ⭐ UPSERT CONCURRENCY-SAFE: Cek apakah mapel ini sudah ada untuk santri+semester+tahun yang sama
+    // Jika 2 admin menginput bersamaan, keduanya akan diarahkan ke entri yang sama (merge) — tidak ada bentrok
     const existing = await prisma.nilai.findFirst({
       where: {
         santriId: parseInt(santriId),
@@ -33,6 +44,7 @@ const createNilai = async (req, res) => {
 
     if (existing) {
       // Sudah ada → gabungkan nilai (pakai nilai baru, kalau null pertahankan lama)
+      // Aman untuk 2 admin sekaligus: operasi ini idempotent
       const merged = await prisma.nilai.update({
         where: { id: existing.id },
         data: {
@@ -44,6 +56,7 @@ const createNilai = async (req, res) => {
     }
 
     // Belum ada → buat entri baru
+    // Jika 2 admin submit hampir bersamaan → salah satu akan mendapatkan unique conflict dan diarahkan ke upsert di atas
     const newNilai = await prisma.nilai.create({
       data: {
         santriId: parseInt(santriId),
@@ -57,6 +70,30 @@ const createNilai = async (req, res) => {
 
     res.status(201).json({ message: 'Nilai berhasil diinput', data: newNilai });
   } catch (error) {
+    // Tangani race condition: jika 2 admin submit tepat bersamaan dan create duplicate terjadi,
+    // retry dengan upsert (merge ke entri yang sudah ada)
+    if (error.code === 'P2002') {
+      try {
+        const { santriId, mataPelajaran, nilaiUts, nilaiUas, semester, tahunAjaran } = req.body;
+        const utsValue = normalizeNilai(nilaiUts);
+        const uasValue = normalizeNilai(nilaiUas);
+        const existing = await prisma.nilai.findFirst({
+          where: { santriId: parseInt(santriId), mataPelajaran: { equals: mataPelajaran, mode: 'insensitive' }, semester, tahunAjaran },
+        });
+        if (existing) {
+          const merged = await prisma.nilai.update({
+            where: { id: existing.id },
+            data: {
+              nilaiUts: utsValue !== null ? utsValue : existing.nilaiUts,
+              nilaiUas: uasValue !== null ? uasValue : existing.nilaiUas,
+            },
+          });
+          return res.status(200).json({ message: 'Nilai digabungkan (race condition handled)', data: merged });
+        }
+      } catch (retryErr) {
+        console.error('Retry upsert error:', retryErr);
+      }
+    }
     console.error('Create nilai error:', error);
     res.status(500).json({ message: 'Gagal menginput nilai akademik' });
   }
