@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, GraduationCap, ChevronRight, AlertCircle, ArrowUpCircle, CheckCircle } from 'lucide-react';
+import { Users, GraduationCap, ChevronRight, ChevronLeft, AlertCircle, ArrowUpCircle, CheckCircle } from 'lucide-react';
 import api from '../utils/api';
 import { confirmDialog } from '../utils/dialog';
 
@@ -33,6 +33,27 @@ const getNextClass = (currentClass) => {
   return PROGRESSION_MAP[currentClass] || null;
 };
 
+const getPrevClass = (currentClass, studentName) => {
+  const prevMap = {
+    'Ibtida 1 Putra': 'Imdad Putra',
+    'Ibtida 1 Putri': 'Imdad Putri',
+    'Ibtida 2 Putra': 'Ibtida 1 Putra',
+    'Ibtida 2 Putri': 'Ibtida 1 Putri',
+    'Ibtida 3': 'IBTIDA_2',
+    'Tsanawi 1': 'Ibtida 3',
+    'Tsanawi 2': 'Tsanawi 1',
+    'Tsanawi 3': 'Tsanawi 2'
+  };
+
+  let prev = prevMap[currentClass] || null;
+  if (prev === 'IBTIDA_2') {
+    const nameLower = String(studentName).toLowerCase();
+    const isFemale = nameLower.includes('putri') || nameLower.includes('binti') || nameLower.includes(' siti ') || nameLower.startsWith('siti');
+    return isFemale ? 'Ibtida 2 Putri' : 'Ibtida 2 Putra';
+  }
+  return prev;
+};
+
 function KelasRombel() {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +76,23 @@ function KelasRombel() {
       setError('Gagal memuat data santri');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDemoteIndividual = async (id, currentClass, studentName) => {
+    const prev = getPrevClass(currentClass, studentName);
+    if (!prev) return;
+
+    if (!await confirmDialog(`Turunkan santri ke kelas ${prev}?`)) return;
+
+    try {
+      setError('');
+      setSuccessMsg('');
+      await api.put(`/admin/santri/${id}`, { kelas: prev });
+      setSuccessMsg('Penurunan kelas berhasil diproses');
+      fetchStudents();
+    } catch (err) {
+      setError(err.message || 'Gagal memproses penurunan kelas');
     }
   };
 
@@ -201,8 +239,20 @@ function KelasRombel() {
                           <td className="py-3 px-6 text-slate-500 font-mono">{s.noHp || '-'}</td>
                           <td className="py-3 px-6 text-slate-550 max-w-xs truncate">{s.alamat || '-'}</td>
                           <td className="py-3 px-6 text-center">
-                            {nextClass ? (
-                              <div className="flex items-center justify-center space-x-2">
+                            <div className="flex items-center justify-center space-x-2">
+                              {/* Tombol Turun Kelas */}
+                              {getPrevClass(className, s.nama) && (
+                                <button
+                                  onClick={() => handleDemoteIndividual(s.id, className, s.nama)}
+                                  className="bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-extrabold px-3 py-1.5 rounded-full border border-amber-550/20 transition flex items-center space-x-1 uppercase"
+                                >
+                                  <ChevronLeft size={10} />
+                                  <span>Turun Kelas</span>
+                                </button>
+                              )}
+
+                              {/* Tombol Naik Kelas */}
+                              {nextClass && (
                                 <button
                                   onClick={() => handlePromoteIndividual(s.id, className)}
                                   className="bg-emerald-50 hover:bg-[#DCFCE7] text-[#16A34A] text-[10px] font-extrabold px-3 py-1.5 rounded-full border border-[#16A34A]/20 transition flex items-center space-x-1 uppercase"
@@ -210,24 +260,22 @@ function KelasRombel() {
                                   <span>Naik Kelas</span>
                                   <ChevronRight size={10} />
                                 </button>
-                                
-                                <select
-                                  onChange={(e) => {
-                                    if (e.target.value) {
-                                      handlePromoteIndividual(s.id, className, e.target.value);
-                                      e.target.value = "";
-                                    }
-                                  }}
-                                  className="bg-slate-50 border border-slate-200 text-slate-650 text-[10px] font-bold py-1 px-2 rounded-lg outline-none"
-                                >
-                                  <option value="">Ubah ke...</option>
-                                  {CLASS_ORDER.map(c => c !== className && <option key={c} value={c}>{c}</option>)}
-                                  <option value="LULUS">Lulus / Alumni</option>
-                                </select>
-                              </div>
-                            ) : (
-                              <span className="text-[10px] text-slate-400 font-bold uppercase">Santri Tingkat Akhir</span>
-                            )}
+                              )}
+
+                              <select
+                                onChange={(e) => {
+                                  if (e.target.value) {
+                                    handlePromoteIndividual(s.id, className, e.target.value);
+                                    e.target.value = "";
+                                  }
+                                }}
+                                className="bg-slate-50 border border-slate-200 text-slate-650 text-[10px] font-bold py-1 px-2 rounded-lg outline-none"
+                              >
+                                <option value="">Ubah ke...</option>
+                                {CLASS_ORDER.map(c => c !== className && <option key={c} value={c}>{c}</option>)}
+                                <option value="LULUS">Lulus / Alumni</option>
+                              </select>
+                            </div>
                           </td>
                         </tr>
                       ))}
