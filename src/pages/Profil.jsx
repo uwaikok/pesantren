@@ -55,6 +55,34 @@ function Profil({ user, onUserUpdate }) {
   const [resettingPassword, setResettingPassword] = useState(false);
   const [resetSuccessMessage, setResetSuccessMessage] = useState('');
 
+  const getAverage = (uts, uas) => {
+    const hasUts = uts !== null && uts !== undefined;
+    const hasUas = uas !== null && uas !== undefined;
+    if (hasUts && hasUas) return ((parseFloat(uts) + parseFloat(uas)) / 2).toFixed(1);
+    if (hasUts) return parseFloat(uts).toFixed(1);
+    if (hasUas) return parseFloat(uas).toFixed(1);
+    return '-';
+  };
+
+  const getHuruf = (score) => {
+    if (score === '-') return '-';
+    const s = parseFloat(score);
+    if (s >= 8.5) return 'A';
+    if (s >= 7.5) return 'B';
+    if (s >= 6.5) return 'C';
+    if (s >= 5.0) return 'D';
+    return 'E';
+  };
+
+  const getKeterangan = (huruf) => {
+    if (huruf === '-') return 'Belum Lengkap';
+    if (huruf === 'A') return 'Sangat Baik / Mumtaz';
+    if (huruf === 'B') return 'Baik / Jayyid';
+    if (huruf === 'C') return 'Cukup / Maqbul';
+    if (huruf === 'D') return 'Kurang / Qobih';
+    return 'Kurang Sekali / Qobih Ziddan';
+  };
+
   useEffect(() => {
     if (!isAdminSelf && !targetId) {
       navigate('/profil', { replace: true });
@@ -739,26 +767,41 @@ function Profil({ user, onUserUpdate }) {
                         <th className="py-3 px-4">MATA PELAJARAN</th>
                         <th className="py-3 px-4 text-center">UTS</th>
                         <th className="py-3 px-4 text-center">UAS</th>
-                        <th className="py-3 px-4 text-center rounded-tr-xl">RATA-RATA</th>
+                        <th className="py-3 px-4 text-center">RATA-RATA</th>
+                        <th className="py-3 px-4 text-center">HURUF</th>
+                        <th className="py-3 px-4 rounded-tr-xl">PREDIKAT / KETERANGAN</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {profileData.akademik && profileData.akademik.length > 0 ? (
-                        profileData.akademik.map((n) => (
-                          <tr key={n.id} className="hover:bg-slate-100/40 transition">
-                            <td className="py-3 px-4 font-semibold text-slate-700">{n.tahunAjaran}</td>
-                            <td className="py-3 px-4 font-medium">{n.semester}</td>
-                            <td className="py-3 px-4 text-slate-800 font-bold">{n.mataPelajaran}</td>
-                            <td className="py-3 px-4 text-center font-medium text-slate-650">{n.nilaiUts}</td>
-                            <td className="py-3 px-4 text-center font-medium text-slate-650">{n.nilaiUas}</td>
-                            <td className="py-3 px-4 text-center font-extrabold text-[#0B4A3F]">
-                              {((n.nilaiUts + n.nilaiUas) / 2).toFixed(1)}
-                            </td>
-                          </tr>
-                        ))
+                        profileData.akademik.map((n) => {
+                          const avg = getAverage(n.nilaiUts, n.nilaiUas);
+                          const huruf = getHuruf(avg);
+                          return (
+                            <tr key={n.id} className="hover:bg-slate-100/40 transition">
+                              <td className="py-3 px-4 font-semibold text-slate-700">{n.tahunAjaran}</td>
+                              <td className="py-3 px-4 font-medium">{n.semester}</td>
+                              <td className="py-3 px-4 text-slate-800 font-bold">{n.mataPelajaran}</td>
+                              <td className="py-3 px-4 text-center font-medium text-slate-650">{n.nilaiUts !== null && n.nilaiUts !== undefined ? n.nilaiUts : '-'}</td>
+                              <td className="py-3 px-4 text-center font-medium text-slate-650">{n.nilaiUas !== null && n.nilaiUas !== undefined ? n.nilaiUas : '-'}</td>
+                              <td className="py-3 px-4 text-center font-extrabold text-[#0B4A3F]">{avg}</td>
+                              <td className="py-3 px-4 text-center">
+                                <span className={`inline-block w-7 py-0.5 rounded-full font-bold text-center text-[10px] ${
+                                  huruf === 'A' ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/30' :
+                                  huruf === 'B' ? 'bg-sky-100 text-sky-800 border border-sky-200' :
+                                  huruf === 'C' ? 'bg-[#FEF3C7] text-[#D97706] border border-[#D97706]/30' :
+                                  'bg-[#FEE2E2] text-[#DC2626] border border-[#DC2626]/30'
+                                }`}>
+                                  {huruf}
+                                </span>
+                              </td>
+                              <td className="py-3 px-4 text-slate-600 font-medium">{getKeterangan(huruf)}</td>
+                            </tr>
+                          );
+                        })
                       ) : (
                         <tr>
-                          <td colSpan="6" className="py-8 text-center text-slate-400">Belum ada riwayat akademik tercatat.</td>
+                          <td colSpan="8" className="py-8 text-center text-slate-400">Belum ada riwayat akademik tercatat.</td>
                         </tr>
                       )}
                     </tbody>

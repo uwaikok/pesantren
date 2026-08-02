@@ -272,11 +272,11 @@ function Pendidikan({ user }) {
 
   const getKeterangan = (huruf) => {
     if (huruf === '-') return 'Belum Lengkap';
-    if (huruf === 'A') return 'Sangat Baik (Mumtaz)';
-    if (huruf === 'B') return 'Baik (Jayyid)';
-    if (huruf === 'C') return 'Cukup (Maqbul)';
-    if (huruf === 'D') return 'Kurang';
-    return 'Kurang Sekali';
+    if (huruf === 'A') return 'Sangat Baik / Mumtaz';
+    if (huruf === 'B') return 'Baik / Jayyid';
+    if (huruf === 'C') return 'Cukup / Maqbul';
+    if (huruf === 'D') return 'Kurang / Qobih';
+    return 'Kurang Sekali / Qobih Ziddan';
   };
 
   const totalNilai = nilaiList.reduce((acc, curr) => {
