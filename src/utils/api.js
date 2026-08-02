@@ -144,18 +144,18 @@ const seedMockDatabase = () => {
     ];
 
     const nilai = [
-      { id: 1, santriId: 2, mataPelajaran: 'Al-Qur\'an & Tajwid', nilaiUts: 85, nilaiUas: 90, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 2, santriId: 2, mataPelajaran: 'Fiqih Ibadah', nilaiUts: 80, nilaiUas: 88, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 3, santriId: 2, mataPelajaran: 'Bahasa Arab (Nahwu)', nilaiUts: 72, nilaiUas: 78, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 4, santriId: 2, mataPelajaran: 'Aqidah Akhlak', nilaiUts: 90, nilaiUas: 92, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 5, santriId: 2, mataPelajaran: 'Al-Qur\'an & Tajwid', nilaiUts: 88, nilaiUas: 92, semester: 'GENAP', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 6, santriId: 2, mataPelajaran: 'Fiqih Ibadah', nilaiUts: 82, nilaiUas: 85, semester: 'GENAP', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 7, santriId: 2, mataPelajaran: 'Bahasa Arab (Nahwu)', nilaiUts: 78, nilaiUas: 82, semester: 'GENAP', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 8, santriId: 2, mataPelajaran: 'Aqidah Akhlak', nilaiUts: 88, nilaiUas: 90, semester: 'GENAP', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 9, santriId: 3, mataPelajaran: 'Al-Qur\'an & Tajwid', nilaiUts: 95, nilaiUas: 96, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 10, santriId: 3, mataPelajaran: 'Fiqih Ibadah', nilaiUts: 88, nilaiUas: 92, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 11, santriId: 3, mataPelajaran: 'Bahasa Arab (Nahwu)', nilaiUts: 85, nilaiUas: 90, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
-      { id: 12, santriId: 3, mataPelajaran: 'Aqidah Akhlak', nilaiUts: 92, nilaiUas: 95, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() }
+      { id: 1, santriId: 2, mataPelajaran: 'Al-Qur\'an & Tajwid', nilaiUts: 8.5, nilaiUas: 9.0, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 2, santriId: 2, mataPelajaran: 'Fiqih Ibadah', nilaiUts: 8.0, nilaiUas: 8.8, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 3, santriId: 2, mataPelajaran: 'Bahasa Arab (Nahwu)', nilaiUts: 7.2, nilaiUas: 7.8, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 4, santriId: 2, mataPelajaran: 'Aqidah Akhlak', nilaiUts: 9.0, nilaiUas: 9.2, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 5, santriId: 2, mataPelajaran: 'Al-Qur\'an & Tajwid', nilaiUts: 8.8, nilaiUas: 9.2, semester: 'GENAP', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 6, santriId: 2, mataPelajaran: 'Fiqih Ibadah', nilaiUts: 8.2, nilaiUas: 8.5, semester: 'GENAP', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 7, santriId: 2, mataPelajaran: 'Bahasa Arab (Nahwu)', nilaiUts: 7.8, nilaiUas: 8.2, semester: 'GENAP', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 8, santriId: 2, mataPelajaran: 'Aqidah Akhlak', nilaiUts: 8.8, nilaiUas: 9.0, semester: 'GENAP', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 9, santriId: 3, mataPelajaran: 'Al-Qur\'an & Tajwid', nilaiUts: 9.5, nilaiUas: 9.6, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 10, santriId: 3, mataPelajaran: 'Fiqih Ibadah', nilaiUts: 8.8, nilaiUas: 9.2, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 11, santriId: 3, mataPelajaran: 'Bahasa Arab (Nahwu)', nilaiUts: 8.5, nilaiUas: 9.0, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() },
+      { id: 12, santriId: 3, mataPelajaran: 'Aqidah Akhlak', nilaiUts: 9.2, nilaiUas: 9.5, semester: 'GANJIL', tahunAjaran: '2025/2026', tanggalInput: new Date().toISOString() }
     ];
 
     const sanksi = [

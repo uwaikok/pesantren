@@ -2,12 +2,12 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 // Helper: normalisasi pemisah desimal (koma → titik) sebelum parseFloat
-// Ini memastikan nilai "85,5" yang dikirim frontend dapat dibaca dengan benar
+// Skala nilai: 0 – 10 (contoh: 8,8 → 8.8). Nilai maks 10.
 const normalizeNilai = (val) => {
   if (val === null || val === undefined || val === '') return null;
   const str = String(val).replace(',', '.').trim();
   const num = parseFloat(str);
-  return isNaN(num) ? null : Math.min(100, Math.max(0, num));
+  return isNaN(num) ? null : Math.min(10, Math.max(0, num));
 };
 
 const createNilai = async (req, res) => {

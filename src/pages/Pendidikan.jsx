@@ -121,11 +121,12 @@ function Pendidikan({ user }) {
   };
 
   // Helper: konversi string nilai (dengan koma atau titik) ke float
+  // Skala nilai: 0 – 10 (contoh: 8,8 = 8.8)
   const parseNilai = (val) => {
     if (val === '' || val === null || val === undefined) return null;
     const normalized = String(val).replace(',', '.');
     const parsed = parseFloat(normalized);
-    return isNaN(parsed) ? null : Math.min(100, Math.max(0, parsed));
+    return isNaN(parsed) ? null : Math.min(10, Math.max(0, parsed));
   };
 
   // Helper: hanya izinkan angka, koma, dan titik saat mengetik nilai
@@ -151,15 +152,15 @@ function Pendidikan({ user }) {
       return;
     }
 
-    // Validasi rentang nilai (0 - 100)
+    // Validasi rentang nilai (0 – 10)
     const utsNum = parseNilai(nilaiUts);
     const uasNum = parseNilai(nilaiUas);
     if (nilaiUts !== '' && utsNum === null) {
-      alertDialog('Nilai UTS tidak valid. Gunakan angka (contoh: 85 atau 85,5)', 'Validasi');
+      alertDialog('Nilai UTS tidak valid. Gunakan angka skala 10 (contoh: 8 atau 8,8)', 'Validasi');
       return;
     }
     if (nilaiUas !== '' && uasNum === null) {
-      alertDialog('Nilai UAS tidak valid. Gunakan angka (contoh: 90 atau 90,5)', 'Validasi');
+      alertDialog('Nilai UAS tidak valid. Gunakan angka skala 10 (contoh: 9 atau 9,5)', 'Validasi');
       return;
     }
 
@@ -760,10 +761,10 @@ function Pendidikan({ user }) {
                     inputMode="decimal"
                     value={formNilai.nilaiUts}
                     onChange={(e) => handleNilaiInput('nilaiUts', e.target.value)}
-                    placeholder="cth: 85 atau 85,5"
+                    placeholder="cth: 8 atau 8,8"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
-                  <p className="text-[9px] text-slate-400 mt-0.5">Koma atau titik untuk desimal, kosongkan jika belum ada</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">Skala 0–10 · koma atau titik untuk desimal</p>
                 </div>
                 
                 <div>
@@ -773,10 +774,10 @@ function Pendidikan({ user }) {
                     inputMode="decimal"
                     value={formNilai.nilaiUas}
                     onChange={(e) => handleNilaiInput('nilaiUas', e.target.value)}
-                    placeholder="cth: 90 atau 90,5"
+                    placeholder="cth: 9 atau 9,5"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2 text-xs focus:bg-white focus:border-[#D4AF37] outline-none"
                   />
-                  <p className="text-[9px] text-slate-400 mt-0.5">Koma atau titik untuk desimal, kosongkan jika belum ada</p>
+                  <p className="text-[9px] text-slate-400 mt-0.5">Skala 0–10 · koma atau titik untuk desimal</p>
                 </div>
               </div>
 
