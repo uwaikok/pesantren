@@ -7,11 +7,28 @@ function Pendidikan({ user }) {
   const [santriList, setSantriList] = useState([]);
   const [selectedSantriId, setSelectedSantriId] = useState('');
   const [currentSantriDetails, setCurrentSantriDetails] = useState(null);
+  const [searchSantri, setSearchSantri] = useState('');
   
   const [nilaiList, setNilaiList] = useState([]);
   const [tahunAjaran, setTahunAjaran] = useState('2025/2026');
   const [semester, setSemester] = useState('GANJIL');
   const [loading, setLoading] = useState(false);
+
+  // Efek untuk menyinkronkan pilihan santri saat pencarian memfilter keluar santri aktif
+  useEffect(() => {
+    if (user.role === 'ADMIN' && searchSantri && santriList.length > 0) {
+      const filtered = santriList.filter(s =>
+        s.nama.toLowerCase().includes(searchSantri.toLowerCase())
+      );
+      if (filtered.length > 0) {
+        const exists = filtered.some(s => s.id === parseInt(selectedSantriId));
+        if (!exists) {
+          setSelectedSantriId(String(filtered[0].id));
+          setCurrentSantriDetails(filtered[0]);
+        }
+      }
+    }
+  }, [searchSantri, santriList]);
   
   // State Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -282,19 +299,31 @@ function Pendidikan({ user }) {
       {/* FILTER TOOLBAR (no-print) */}
       <div className="bg-white p-5 rounded-2xl shadow-soft border border-slate-200/80 flex flex-wrap items-center justify-between gap-4 no-print">
         <div className="flex flex-wrap items-center gap-4">
-          {/* Dropdown Pilihan Santri (Admin Only) */}
+          {/* Dropdown Pilihan Santri dengan Pencarian Nama (Admin Only) */}
           {user.role === 'ADMIN' && (
             <div className="flex flex-col">
-              <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Pilih Santri</label>
-              <select
-                value={selectedSantriId}
-                onChange={(e) => setSelectedSantriId(e.target.value)}
-                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none"
-              >
-                {santriList.map(s => (
-                  <option key={s.id} value={s.id}>{s.nama} ({s.kelas})</option>
-                ))}
-              </select>
+              <label className="text-[10px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">Cari & Pilih Santri</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  placeholder="Ketik nama..."
+                  value={searchSantri}
+                  onChange={(e) => setSearchSantri(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-medium text-slate-800 outline-none w-36 placeholder:text-slate-400"
+                />
+                <select
+                  value={selectedSantriId}
+                  onChange={(e) => setSelectedSantriId(e.target.value)}
+                  className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] rounded-xl px-3 py-2 text-xs font-bold text-slate-800 outline-none max-w-[200px]"
+                >
+                  {santriList
+                    .filter(s => s.nama.toLowerCase().includes(searchSantri.toLowerCase()))
+                    .map(s => (
+                      <option key={s.id} value={s.id}>{s.nama} ({s.kelas})</option>
+                    ))
+                  }
+                </select>
+              </div>
             </div>
           )}
 
