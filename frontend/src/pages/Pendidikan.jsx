@@ -263,10 +263,10 @@ function Pendidikan({ user }) {
   const getHuruf = (score) => {
     if (score === '-') return '-';
     const s = parseFloat(score);
-    if (s >= 85) return 'A';
-    if (s >= 75) return 'B';
-    if (s >= 65) return 'C';
-    if (s >= 50) return 'D';
+    if (s >= 8.5) return 'A';
+    if (s >= 7.5) return 'B';
+    if (s >= 6.5) return 'C';
+    if (s >= 5.0) return 'D';
     return 'E';
   };
 
