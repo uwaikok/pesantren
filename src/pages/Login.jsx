@@ -92,29 +92,29 @@ function Login({ onLoginSuccess }) {
         {/* Border Gradient Emas Premium */}
         <div className="h-1.5 bg-gradient-to-r from-[#D4AF37] via-[#FFF5D1] to-[#D4AF37]"></div>
 
-        <div className="p-8 md:p-12">
+        <div className="p-6 md:p-8">
           {/* Header & Logo dengan circular glow */}
-          <div className="text-center mb-8">
-            <div className="relative inline-block mb-4">
+          <div className="text-center mb-6">
+            <div className="relative inline-block mb-3">
               {/* Gold glow behind logo */}
               <div className="absolute inset-0 bg-[#D4AF37]/35 rounded-3xl blur-xl animate-pulse"></div>
-              <div className="relative w-22 h-22 bg-gradient-to-br from-[#0B4A3F] to-[#083831] rounded-3xl flex items-center justify-center shadow-lg border border-[#D4AF37]/45 p-3.5 mx-auto">
+              <div className="relative w-20 h-20 bg-gradient-to-br from-[#0B4A3F] to-[#083831] rounded-2xl flex items-center justify-center shadow-lg border border-[#D4AF37]/45 p-2.5 mx-auto">
                 <img src="/logo.png" className="w-full h-full object-contain filter drop-shadow-md" alt="Logo Pesantren" />
               </div>
             </div>
-            <h2 className="text-3xl font-extrabold font-serif text-[#0B4A3F] tracking-tight">SIM Pesantren</h2>
+            <h2 className="text-2xl font-bold font-serif text-[#0B4A3F] tracking-tight">SIM Pesantren</h2>
             <h3 className="text-[10px] font-extrabold text-[#D4AF37] uppercase tracking-[0.2em] mt-1.5">MIFTAHUL HUDA AS-SYADZILI</h3>
             <p className="text-[11px] text-slate-500 mt-2 font-medium">Sistem Informasi Manajemen & Akademik Pesantren</p>
           </div>
 
           {error && (
-            <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-700 p-3.5 rounded-xl text-xs font-semibold mb-5 flex items-start space-x-2 shadow-sm animate-shake">
+            <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-700 p-3.5 rounded-xl text-xs font-semibold mb-4 flex items-start space-x-2 shadow-sm animate-shake">
               <span className="text-sm mt-0.5">⚠️</span>
               <span className="leading-relaxed">{error}</span>
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Email Field */}
             <div>
               <label className="block text-[11px] font-extrabold text-[#0B4A3F] uppercase tracking-wider mb-1.5">Alamat Email</label>
