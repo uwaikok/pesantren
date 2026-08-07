@@ -415,7 +415,10 @@ function Layout({ children, user, onLogout }) {
       </aside>
 
       {/* MOBILE HEADER */}
-      <header className="md:hidden bg-[#0B4A3F] text-white p-3.5 flex items-center justify-between shadow-md no-print z-30 sticky top-0 border-b border-[#D4AF37]/30">
+      <header 
+        style={{ paddingTop: 'calc(0.875rem + env(safe-area-inset-top))' }}
+        className="md:hidden bg-[#0B4A3F] text-white pb-3.5 px-3.5 flex items-center justify-between shadow-md no-print z-30 sticky top-0 border-b border-[#D4AF37]/30"
+      >
         <div className="flex items-center space-x-2.5">
           <img src="/logo.png" className="w-7 h-7 object-contain drop-shadow" alt="Logo" />
           <div>
@@ -439,7 +442,7 @@ function Layout({ children, user, onLogout }) {
 
           {/* Dropdown Notifikasi Mobile */}
           {isNotifOpen && (
-            <div className="absolute right-0 top-11 w-72 bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-xs text-[#1A1A1A]">
+            <div className="absolute right-0 top-11 w-[calc(100vw-2rem)] max-w-sm bg-white rounded-xl shadow-2xl border border-slate-200 z-50 overflow-hidden text-xs text-[#1A1A1A]">
               <div className="p-3 bg-[#0B4A3F] text-white font-bold flex items-center justify-between border-b border-[#D4AF37]/30">
                 <span className="flex items-center space-x-1 font-serif">
                   <Bell size={12} />
@@ -523,7 +526,10 @@ function Layout({ children, user, onLogout }) {
         <div className="md:hidden fixed inset-0 z-50 flex no-print">
           <div className="fixed inset-0 bg-[#083831]/80 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
           <aside className="relative flex flex-col w-64 bg-[#0B4A3F] text-white shadow-2xl z-10 animate-slide-in border-r border-[#D4AF37]/30">
-            <div className="p-4 border-b border-white/10 bg-[#083831] flex items-center justify-between">
+            <div 
+              style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))' }}
+              className="p-4 border-b border-white/10 bg-[#083831] flex items-center justify-between"
+            >
               <span className="font-bold text-xs font-serif text-[#E8C766] uppercase tracking-wider">Menu Navigasi</span>
               <button onClick={() => setIsSidebarOpen(false)} className="text-emerald-200 hover:text-white">
                 <X size={20} />
