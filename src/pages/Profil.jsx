@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { User, Mail, Phone, MapPin, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Loader2, Key, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle, Eye, EyeOff } from 'lucide-react';
+import { User, Mail, Phone, MapPin, BookOpen, ShieldAlert, DollarSign, Edit, Check, Camera, Loader2, Key, Sparkles, Calendar, ShieldCheck, Activity, Award, HelpCircle, Eye, EyeOff, Trash2 } from 'lucide-react';
 import api from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
 
@@ -195,6 +195,55 @@ function Profil({ user, onUserUpdate }) {
     }
   };
 
+  const handleDeleteFoto = async () => {
+    if (!await confirmDialog('Apakah Anda yakin ingin menghapus foto profil ini?')) return;
+
+    setFotoLoading(true);
+    setFotoError('');
+    setFotoSuccess('');
+
+    try {
+      const useMock = localStorage.getItem('use_mock_db') === 'true' || window.useMockDb === true;
+      const effectiveId = id ? parseInt(id) : user.id;
+
+      if (useMock) {
+        const users = JSON.parse(localStorage.getItem('mock_users') || '[]');
+        const idx = users.findIndex(u => u.id === effectiveId);
+        if (idx !== -1) {
+          users[idx].fotoProfil = null;
+          localStorage.setItem('mock_users', JSON.stringify(users));
+          if (effectiveId === user.id) {
+            const tokenUser = JSON.parse(localStorage.getItem('simesra_token') || '{}');
+            tokenUser.fotoProfil = null;
+            localStorage.setItem('simesra_token', JSON.stringify(tokenUser));
+            if (onUserUpdate) onUserUpdate({ fotoProfil: null });
+          }
+        }
+        setProfileData(prev => ({
+          ...prev,
+          user: { ...prev.user, fotoProfil: null }
+        }));
+        setPreviewFoto(null);
+        setFotoSuccess('Foto profil berhasil dihapus!');
+        setFotoLoading(false);
+      } else {
+        await api.delete(`/users/${effectiveId}/foto-profil`);
+
+        setProfileData(prev => ({
+          ...prev,
+          user: { ...prev.user, fotoProfil: null }
+        }));
+        setPreviewFoto(null);
+        setFotoSuccess('Foto profil berhasil dihapus!');
+        if (effectiveId === user.id && onUserUpdate) onUserUpdate({ fotoProfil: null });
+        setFotoLoading(false);
+      }
+    } catch (err) {
+      setFotoError(err.message || 'Gagal menghapus foto profil');
+      setFotoLoading(false);
+    }
+  };
+
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     setPwdError('');
@@ -357,7 +406,7 @@ function Profil({ user, onUserUpdate }) {
           
           {/* FOTO PROFIL DENGAN GOLD RING & GLOW */}
           <div className="relative group flex-shrink-0">
-            <div className="w-22 h-22 rounded-full overflow-hidden bg-gradient-to-br from-[#0B4A3F] to-[#083831] text-white flex items-center justify-center font-bold text-3xl shadow-lg border-4 border-white ring-2 ring-[#D4AF37]/50">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#0B4A3F] to-[#083831] text-white flex items-center justify-center font-bold text-3xl shadow-lg border-4 border-white ring-2 ring-[#D4AF37]/50">
               {(previewFoto || profileData.user.fotoProfil) ? (
                 <img
                   src={previewFoto || (profileData.user.fotoProfil?.startsWith('data:') ? profileData.user.fotoProfil : `/${profileData.user.fotoProfil}`)}
@@ -394,6 +443,17 @@ function Profil({ user, onUserUpdate }) {
                     <Camera size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
                   )}
                 </label>
+
+                {/* Tombol Hapus Foto - Tampil jika ada foto */}
+                {(previewFoto || profileData.user.fotoProfil) && (
+                  <button
+                    onClick={handleDeleteFoto}
+                    title="Hapus foto profil"
+                    className="absolute -top-1 -right-1 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-md transition-all duration-200 hover:scale-110 z-10 border border-white flex items-center justify-center"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                )}
               </>
             )}
           </div>

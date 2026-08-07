@@ -107,6 +107,7 @@ router.delete('/admin/santri/:id', verifyToken, isAdmin, adminController.deleteS
 
 // --- UPLOAD FOTO PROFIL (Admin atau user sendiri) ---
 router.put('/users/:id/foto-profil', verifyToken, adminController.upload.single('foto'), adminController.uploadFotoProfil);
+router.delete('/users/:id/foto-profil', verifyToken, adminController.deleteFotoProfil);
 
 
 // --- MODUL PENDIDIKAN (AKADEMIK) ---

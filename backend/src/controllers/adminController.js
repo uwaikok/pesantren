@@ -361,6 +361,62 @@ const uploadFotoProfil = async (req, res) => {
   }
 };
 
+const deleteFotoProfil = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const targetId = parseInt(id);
+
+    // RBAC check: Harus ADMIN atau Santri bersangkutan yang mengupdate fotonya sendiri
+    if (req.user.role !== 'ADMIN' && (req.user.role !== 'SANTRI' || req.user.id !== targetId)) {
+      return res.status(403).json({ message: 'Akses ditolak' });
+    }
+
+    // 1. Jika ADMIN menghapus foto profilnya sendiri (disimpan di tabel User)
+    if (req.user.role === 'ADMIN' && targetId === req.user.id) {
+      const updatedUser = await prisma.user.update({
+        where: { id: targetId },
+        data: { fotoProfil: null },
+        select: { id: true, nama: true, fotoProfil: true }
+      });
+      return res.json({ 
+        message: 'Foto profil admin berhasil dihapus', 
+        fotoProfil: null,
+        user: {
+          ...updatedUser,
+          role: 'ADMIN',
+          status: 'ACTIVE'
+        } 
+      });
+    }
+
+    // 2. Selain itu, yang di-update adalah tabel Santri (admin edit santri, atau santri edit fotonya sendiri)
+    const santri = await prisma.santri.findUnique({ where: { id: targetId } });
+    if (!santri) {
+      return res.status(404).json({ message: 'Santri tidak ditemukan' });
+    }
+
+    const updated = await prisma.santri.update({
+      where: { id: targetId },
+      data: { fotoProfil: null },
+      select: { id: true, nama: true, email: true, fotoProfil: true }
+    });
+
+    res.json({ 
+      message: 'Foto profil berhasil dihapus', 
+      fotoProfil: null,
+      user: {
+        ...updated,
+        email: updated.email || '-',
+        role: 'SANTRI',
+        status: santri.status
+      } 
+    });
+  } catch (error) {
+    console.error('Hapus foto profil error:', error);
+    res.status(500).json({ message: error.message || 'Gagal menghapus foto profil' });
+  }
+};
+
 module.exports = {
   getSantriList,
   createSantri,
@@ -369,5 +425,6 @@ module.exports = {
   getStats,
   promoteBulk,
   uploadFotoProfil,
+  deleteFotoProfil,
   upload,
 };
