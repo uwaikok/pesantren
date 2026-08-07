@@ -1,7 +1,8 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
+const jwt    = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { resetLoginLimiter } = require('../middleware/rateLimiter');
 
 const login = async (req, res) => {
   try {
@@ -46,9 +47,12 @@ const login = async (req, res) => {
         role: role,
         status: status
       },
-      process.env.JWT_SECRET || 'pesantren_secret_key_jwt_super_secure_123!',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
+
+    // Reset rate limiter counter untuk IP+email ini setelah login berhasil
+    resetLoginLimiter(req);
 
     res.json({
       message: 'Login berhasil',

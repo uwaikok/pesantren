@@ -4,6 +4,8 @@ const path = require('path');
 const fs = require('fs');
 const prisma = new PrismaClient();
 
+const { sanitizeUserData } = require('../utils/sanitize');
+
 // ---- KONFIGURASI MULTER UPLOAD FOTO PROFIL ----
 const storage = multer.memoryStorage();
 
@@ -52,10 +54,26 @@ const getSantriList = async (req, res) => {
       orderBy: {
         nama: 'asc',
       },
+      select: {
+        id: true,
+        nama: true,
+        email: true,
+        noHp: true,
+        alamat: true,
+        namaWali: true,
+        kelas: true,
+        status: true,
+        fotoProfil: true,
+        isBeasiswa: true,
+        tanggalMasuk: true,
+        createdAt: true,
+        updatedAt: true
+      }
     });
 
-    // Map for frontend compatibility
-    const mapped = santri.map(s => ({
+    // Map for frontend compatibility & sanitize
+    const sanitized = sanitizeUserData(santri);
+    const mapped = sanitized.map(s => ({
       ...s,
       email: s.email || '-',
     }));
@@ -110,8 +128,7 @@ const createSantri = async (req, res) => {
       }
     });
 
-    const safeSantri = { ...newSantri };
-    delete safeSantri.password;
+    const safeSantri = sanitizeUserData(newSantri);
 
     res.status(201).json({ 
       message: 'Santri berhasil ditambahkan.', 
@@ -182,8 +199,7 @@ const updateSantri = async (req, res) => {
       data: updateData,
     });
 
-    const safeSantri = { ...updated };
-    delete safeSantri.password;
+    const safeSantri = sanitizeUserData(updated);
 
     res.json({ 
       message: 'Data santri berhasil diperbarui', 

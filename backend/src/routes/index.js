@@ -4,6 +4,8 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 const { verifyToken, isAdmin } = require('../middleware/auth');
+const { sanitizeUserData } = require('../utils/sanitize');
+const { loginRateLimiter, resetLoginLimiter } = require('../middleware/rateLimiter');
 const authController = require('../controllers/authController');
 const adminController = require('../controllers/adminController');
 const akademikController = require('../controllers/akademikController');
@@ -12,7 +14,7 @@ const keuanganController = require('../controllers/keuanganController');
 const notificationController = require('../controllers/notificationController');
 
 // --- AUTENTIKASI ---
-router.post('/auth/login', authController.login);
+router.post('/auth/login', loginRateLimiter, authController.login);
 router.get('/auth/me', verifyToken, authController.getMe);
 router.post('/auth/change-password', verifyToken, authController.changePassword);
 
@@ -81,7 +83,7 @@ router.put('/auth/profile', verifyToken, async (req, res) => {
         role: 'ADMIN',
         status: 'ACTIVE'
       },
-      process.env.JWT_SECRET || 'pesantren_secret_key_jwt_super_secure_123!',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -361,8 +363,7 @@ router.put('/users/:id/profile', verifyToken, async (req, res) => {
       });
     }
 
-    const safeSantri = { ...updated };
-    delete safeSantri.password;
+    const safeSantri = sanitizeUserData(updated);
 
     res.json({
       message: 'Profil berhasil diperbarui',
