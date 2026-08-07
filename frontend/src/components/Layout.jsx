@@ -382,8 +382,6 @@ function Layout({ children, user, onLogout }) {
                   user?.nama?.charAt(0)
                 )}
               </div>
-              {/* Online Indicator Status */}
-              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0B2E22] rounded-full shadow-sm"></span>
             </div>
             <div className="overflow-hidden flex-1">
               <h2 className="font-bold text-xs text-white truncate font-sans group-hover:text-[#E8C766] transition-colors duration-250 leading-tight">{user?.nama}</h2>
@@ -617,8 +615,6 @@ function Layout({ children, user, onLogout }) {
                       user?.nama?.charAt(0)
                     )}
                   </div>
-                  {/* Status Online Indicator Mobile */}
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-[#0B2E22] rounded-full"></span>
                 </div>
                 <div className="overflow-hidden flex-1">
                   <h2 className="font-bold text-xs text-white truncate font-sans">{user?.nama}</h2>

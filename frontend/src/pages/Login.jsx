@@ -10,27 +10,12 @@ function Login({ onLoginSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [emailError, setEmailError] = useState('');
   const navigate = useNavigate();
-
-  const handleEmailChange = (e) => {
-    const val = e.target.value;
-    setEmail(val);
-    if (val && !/\S+@\S+\.\S+/.test(val)) {
-      setEmailError('Format email tidak valid (contoh: nama@email.com)');
-    } else {
-      setEmailError('');
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       setError('Email dan password wajib diisi');
-      return;
-    }
-    if (emailError) {
-      setError('Harap perbaiki format email terlebih dahulu');
       return;
     }
 
@@ -43,8 +28,8 @@ function Login({ onLoginSuccess }) {
       // Simpan token ke localStorage
       localStorage.setItem('simesra_token', response.token);
       
-      // Panggil callback sukses
-      onLoginSuccess();
+      // Panggil callback sukses (tunggu sampai selesai auth check agar transisi instan)
+      await onLoginSuccess();
       
       // Redirect ke beranda
       navigate('/');
@@ -125,17 +110,12 @@ function Login({ onLoginSuccess }) {
                 <input
                   type="email"
                   value={email}
-                  onChange={handleEmailChange}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="nama@pesantren.com"
-                  className={`w-full bg-slate-50/80 border ${emailError ? 'border-rose-400 focus:ring-rose-500/20' : 'border-slate-200 focus:border-[#0B4A3F] focus:ring-[#0B4A3F]/15'} focus:ring-4 focus:bg-white rounded-xl py-3 pl-10 pr-4 text-xs font-medium outline-none transition duration-200`}
+                  className="w-full bg-slate-50/80 border border-slate-200 focus:border-[#0B4A3F] focus:ring-4 focus:ring-[#0B4A3F]/15 focus:bg-white rounded-xl py-3 pl-10 pr-4 text-xs font-medium outline-none transition duration-200"
                   required
                 />
               </div>
-              {emailError && (
-                <span className="text-[10px] text-rose-500 font-semibold mt-1.5 block animate-fade-in">
-                  {emailError}
-                </span>
-              )}
             </div>
 
             {/* Password Field */}
