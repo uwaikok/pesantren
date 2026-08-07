@@ -391,22 +391,24 @@ function Dashboard({ user }) {
         </div>
 
         {/* Widgets Grid dengan Desain Modern Premium */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {/* Card Kelas Santri */}
-          <div className="bg-white border-l-4 border-l-emerald-500 p-5 rounded-2xl shadow-soft hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36">
+          <div className="bg-white border-l-4 border-l-emerald-500 p-3.5 sm:p-5 rounded-2xl shadow-soft hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[120px] sm:h-36">
             <div className="flex justify-between items-start z-10 w-full">
-              <div className="min-w-0">
-                <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">KELAS SANTRI</span>
-                <h3 className="text-lg sm:text-xl font-extrabold mt-1 text-[#0B4A3F] font-sans tracking-tight break-words">
+              <div className="min-w-0 flex-1 pr-1">
+                <span className="text-[9px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block leading-tight">KELAS SANTRI</span>
+                <h3 className="text-sm sm:text-xl font-extrabold mt-1 text-[#0B4A3F] font-sans tracking-tight break-words leading-tight">
                   {mySummary?.user.kelas || 'Belum Set'}
                 </h3>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100/80 text-emerald-600 flex items-center justify-center shadow-inner flex-shrink-0">
-                <Users size={22} className="stroke-[2.2]" />
+              <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100/80 text-emerald-600 flex items-center justify-center shadow-inner flex-shrink-0">
+                <Users size={17} className="stroke-[2.2] sm:hidden" />
+                <Users size={22} className="stroke-[2.2] hidden sm:block" />
               </div>
             </div>
-            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-emerald-600 font-bold z-10">
-              <span className="text-slate-400 font-semibold">Tahun Ajaran 2025/2026</span>
+            <div className="flex items-center gap-1 text-[9px] sm:text-xs text-emerald-600 font-bold z-10">
+              <span className="text-slate-400 font-semibold hidden sm:inline">Tahun Ajaran 2025/2026</span>
+              <span className="text-slate-400 font-semibold sm:hidden">2025/2026</span>
             </div>
           </div>
 
@@ -415,41 +417,47 @@ function Dashboard({ user }) {
             const avgValue = parseFloat(mySummary?.avgNilai) || 0;
             let ringColor = 'stroke-rose-500';
             let statusText = 'Perlu Peningkatan';
+            let statusTextMobile = 'Perlu ↑';
             let textClass = 'text-rose-600';
             if (avgValue >= 80) {
               ringColor = 'stroke-emerald-500';
               statusText = 'Sangat Baik';
+              statusTextMobile = 'Sangat Baik';
               textClass = 'text-emerald-600';
             } else if (avgValue >= 65) {
               ringColor = 'stroke-amber-500';
               statusText = 'Cukup Baik';
+              statusTextMobile = 'Cukup Baik';
               textClass = 'text-amber-600';
             }
             return (
-              <div className="bg-white border-l-4 border-l-[#D4AF37] p-5 rounded-2xl shadow-soft hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36">
+              <div className="bg-white border-l-4 border-l-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[120px] sm:h-36">
                 <div className="flex justify-between items-start z-10 w-full">
-                  <div className="min-w-0">
-                    <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">RATA-RATA NILAI</span>
-                    <div className="flex items-center gap-2 mt-1">
+                  <div className="min-w-0 flex-1 pr-1">
+                    <span className="text-[9px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block leading-tight">RATA-RATA NILAI</span>
+                    <div className="flex items-center gap-1.5 mt-1">
                       <h3 className="text-xl sm:text-2xl font-extrabold text-[#0B4A3F] font-serif tracking-tight">
                         <AnimatedNumber value={avgValue} />
                       </h3>
-                      {/* Circular Progress Ring */}
-                      <div className="relative w-8 h-8 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-8 h-8 transform -rotate-90">
-                          <circle cx="16" cy="16" r="13" className="stroke-slate-100" strokeWidth="2.5" fill="transparent" />
-                          <circle cx="16" cy="16" r="13" className={`${ringColor} transition-all duration-500`} strokeWidth="2.5" fill="transparent" strokeDasharray="81.6" strokeDashoffset={81.6 - (81.6 * Math.min(avgValue, 100)) / 100} />
+                      {/* Circular Progress Ring - smaller on mobile */}
+                      <div className="relative w-6 h-6 sm:w-8 sm:h-8 flex items-center justify-center flex-shrink-0">
+                        <svg className="w-6 h-6 sm:w-8 sm:h-8 transform -rotate-90">
+                          <circle cx="12" cy="12" r="9" className="stroke-slate-100 sm:hidden" strokeWidth="2" fill="transparent" />
+                          <circle cx="12" cy="12" r="9" className={`${ringColor} transition-all duration-500 sm:hidden`} strokeWidth="2" fill="transparent" strokeDasharray="56.5" strokeDashoffset={56.5 - (56.5 * Math.min(avgValue, 100)) / 100} />
+                          <circle cx="16" cy="16" r="13" className="stroke-slate-100 hidden sm:block" strokeWidth="2.5" fill="transparent" />
+                          <circle cx="16" cy="16" r="13" className={`${ringColor} transition-all duration-500 hidden sm:block`} strokeWidth="2.5" fill="transparent" strokeDasharray="81.6" strokeDashoffset={81.6 - (81.6 * Math.min(avgValue, 100)) / 100} />
                         </svg>
-                        <span className="absolute text-[8px] font-extrabold text-slate-500">{Math.round(avgValue)}%</span>
+                        <span className="absolute text-[7px] sm:text-[8px] font-extrabold text-slate-500">{Math.round(avgValue)}%</span>
                       </div>
                     </div>
                   </div>
-                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100/80 text-[#D4AF37] flex items-center justify-center shadow-inner flex-shrink-0">
-                    <BookOpen size={22} className="stroke-[2.2]" />
+                  <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100/80 text-[#D4AF37] flex items-center justify-center shadow-inner flex-shrink-0">
+                    <BookOpen size={17} className="stroke-[2.2] sm:hidden" />
+                    <BookOpen size={22} className="stroke-[2.2] hidden sm:block" />
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold z-10">
-                  <span className={`${textClass} bg-slate-50 px-1.5 py-0.5 rounded font-extrabold`}>{statusText}</span>
+                <div className="flex items-center gap-1 text-[9px] sm:text-xs font-bold z-10">
+                  <span className={`${textClass} bg-slate-50 px-1 sm:px-1.5 py-0.5 rounded font-extrabold text-[9px] sm:text-xs`}>{statusTextMobile}</span>
                 </div>
               </div>
             );
@@ -461,35 +469,36 @@ function Dashboard({ user }) {
             return (
               <Link
                 to="/keamanan"
-                className={`bg-white border-l-4 ${hasSanksi ? 'border-l-rose-500 hover:shadow-xl' : 'border-l-emerald-500'} p-5 rounded-2xl shadow-soft hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36 cursor-pointer group active:scale-[0.98]`}
+                className={`bg-white border-l-4 ${hasSanksi ? 'border-l-rose-500 hover:shadow-xl' : 'border-l-emerald-500'} p-3.5 sm:p-5 rounded-2xl shadow-soft hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[120px] sm:h-36 cursor-pointer group active:scale-[0.98]`}
                 title="Klik untuk melihat detail pelanggaran Anda"
               >
                 <div className="flex justify-between items-start z-10 w-full">
                   <div className="min-w-0">
-                    <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">TOTAL PELANGGARAN</span>
+                    <span className="text-[9px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block leading-tight">PELANGGARAN</span>
                     <h3 className={`text-xl sm:text-2xl font-extrabold mt-1 font-serif tracking-tight ${hasSanksi ? 'text-rose-600' : 'text-[#0B4A3F]'}`}>
                       <AnimatedNumber value={mySummary?.sanksiCount || 0} />
                     </h3>
                   </div>
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${hasSanksi ? 'from-rose-50 to-rose-100/50 text-rose-600 border-rose-100/80' : 'from-emerald-50 to-emerald-100/50 text-emerald-600 border-emerald-100/80'} border flex items-center justify-center shadow-inner flex-shrink-0`}>
-                    <ShieldAlert size={22} className="stroke-[2.2]" />
+                  <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${hasSanksi ? 'from-rose-50 to-rose-100/50 text-rose-600 border-rose-100/80' : 'from-emerald-50 to-emerald-100/50 text-emerald-600 border-emerald-100/80'} border flex items-center justify-center shadow-inner flex-shrink-0`}>
+                    <ShieldAlert size={17} className="stroke-[2.2] sm:hidden" />
+                    <ShieldAlert size={22} className="stroke-[2.2] hidden sm:block" />
                   </div>
                 </div>
                 <div className="flex items-center justify-between z-10 w-full">
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold">
+                  <div className="flex items-center gap-1 text-[9px] sm:text-xs font-bold">
                     {hasSanksi ? (
                       <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
-                        <span className="text-slate-400 group-hover:text-rose-600 group-hover:underline transition duration-150">Klik untuk lihat detail</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping flex-shrink-0"></span>
+                        <span className="text-slate-400 group-hover:text-rose-600 transition duration-150 hidden sm:inline">Klik untuk lihat detail</span>
+                        <span className="text-slate-400 sm:hidden">Lihat →</span>
                       </>
                     ) : (
                       <>
-                        <span className="inline-block bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8px] font-extrabold">BERSIH ✓</span>
-                        <span className="text-slate-400">Tidak ada pelanggaran</span>
+                        <span className="inline-block bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded text-[8px] font-extrabold whitespace-nowrap">BERSIH ✓</span>
                       </>
                     )}
                   </div>
-                  <ArrowUpRight size={16} className={`text-rose-500 opacity-0 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0 transition-all duration-200 ${hasSanksi ? 'block' : 'hidden'}`} />
+                  <ArrowUpRight size={13} className={`text-rose-500 opacity-0 group-hover:opacity-100 transition-all duration-200 ${hasSanksi ? 'block' : 'hidden'}`} />
                 </div>
               </Link>
             );
@@ -501,39 +510,40 @@ function Dashboard({ user }) {
             return (
               <Link
                 to="/keuangan"
-                className={`bg-white border-l-4 ${hasTunggakan ? 'border-l-rose-500 hover:shadow-xl' : 'border-l-emerald-500'} p-5 rounded-2xl shadow-soft hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36 cursor-pointer group active:scale-[0.98]`}
+                className={`bg-white border-l-4 ${hasTunggakan ? 'border-l-rose-500 hover:shadow-xl' : 'border-l-emerald-500'} p-3.5 sm:p-5 rounded-2xl shadow-soft hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[120px] sm:h-36 cursor-pointer group active:scale-[0.98]`}
                 title="Klik untuk melihat detail keuangan & tunggakan Anda"
               >
                 <div className="flex justify-between items-start z-10 w-full">
-                  <div className="min-w-0">
-                    <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">TUNGGAKAN SYARIAH</span>
+                  <div className="min-w-0 flex-1 pr-1">
+                    <span className="text-[9px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block leading-tight">TUNGGAKAN</span>
                     {hasTunggakan ? (
-                      <h3 className="text-xl sm:text-2xl font-extrabold mt-1 text-rose-600 font-serif tracking-tight">
-                        Rp <AnimatedNumber value={mySummary.tunggakan} />
+                      <h3 className="text-sm sm:text-xl font-extrabold mt-1 text-rose-600 font-serif tracking-tight leading-tight">
+                        <span className="text-[10px] sm:text-sm font-bold">Rp </span><AnimatedNumber value={mySummary.tunggakan} />
                       </h3>
                     ) : (
                       <h3 className="text-xl sm:text-2xl font-extrabold mt-1 text-emerald-600 font-serif tracking-tight">Lunas</h3>
                     )}
                   </div>
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${hasTunggakan ? 'from-rose-50 to-rose-100/50 text-rose-600 border-rose-100/80' : 'from-emerald-50 to-emerald-100/50 text-emerald-600 border-emerald-100/80'} border flex items-center justify-center shadow-inner flex-shrink-0`}>
-                    <DollarSign size={22} className="stroke-[2.2]" />
+                  <div className={`w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br ${hasTunggakan ? 'from-rose-50 to-rose-100/50 text-rose-600 border-rose-100/80' : 'from-emerald-50 to-emerald-100/50 text-emerald-600 border-emerald-100/80'} border flex items-center justify-center shadow-inner flex-shrink-0`}>
+                    <DollarSign size={17} className="stroke-[2.2] sm:hidden" />
+                    <DollarSign size={22} className="stroke-[2.2] hidden sm:block" />
                   </div>
                 </div>
                 <div className="flex items-center justify-between z-10 w-full">
-                  <div className="flex items-center gap-1.5 text-[10px] sm:text-xs font-bold">
+                  <div className="flex items-center gap-1 text-[9px] sm:text-xs font-bold">
                     {hasTunggakan ? (
                       <>
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping"></span>
-                        <span className="text-slate-400 group-hover:text-rose-600 group-hover:underline transition duration-150">Klik untuk lihat detail</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping flex-shrink-0"></span>
+                        <span className="text-slate-400 group-hover:text-rose-600 transition duration-150 hidden sm:inline">Klik untuk lihat detail</span>
+                        <span className="text-slate-400 sm:hidden">Lihat →</span>
                       </>
                     ) : (
                       <>
-                        <span className="inline-block bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[8px] font-extrabold">LUNAS ✓</span>
-                        <span className="text-slate-400">Pembayaran bersih</span>
+                        <span className="inline-block bg-emerald-100 text-emerald-700 px-1 py-0.5 rounded text-[8px] font-extrabold whitespace-nowrap">LUNAS ✓</span>
                       </>
                     )}
                   </div>
-                  <ArrowUpRight size={16} className={`text-[#D4AF37] opacity-0 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0 transition-all duration-200 ${hasTunggakan ? 'block' : 'hidden'}`} />
+                  <ArrowUpRight size={13} className={`text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-all duration-200 ${hasTunggakan ? 'block' : 'hidden'}`} />
                 </div>
               </Link>
             );
@@ -708,9 +718,9 @@ function Dashboard({ user }) {
       </div>
 
       {/* Stats Grid dengan Desain Modern Premium */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         {/* Total Santri */}
-        <div className="bg-white border-l-4 border-l-sky-500 p-5 sm:p-6 rounded-2xl shadow-soft hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36">
+        <div className="bg-white border-l-4 border-l-sky-500 p-3.5 sm:p-6 rounded-2xl shadow-soft hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[120px] sm:h-36">
           {/* Subtle background sparkline graph decoration */}
           <svg className="absolute bottom-0 right-0 left-0 h-12 w-full text-sky-100 opacity-20 pointer-events-none" viewBox="0 0 100 20" preserveAspectRatio="none">
             <defs>
@@ -725,23 +735,25 @@ function Dashboard({ user }) {
 
           <div className="flex justify-between items-start z-10 w-full">
             <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">TOTAL SANTRI TERDAFTAR</span>
-              <h3 className="text-3xl sm:text-4xl font-extrabold mt-1 text-[#0B4A3F] font-serif tracking-tight">
+              <span className="text-[9px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block leading-tight">TOTAL SANTRI</span>
+              <h3 className="text-2xl sm:text-4xl font-extrabold mt-1 text-[#0B4A3F] font-serif tracking-tight">
                 <AnimatedNumber value={stats?.totalSantri || 0} />
               </h3>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-50 to-sky-100/50 border border-sky-100/80 text-sky-600 flex items-center justify-center shadow-inner flex-shrink-0">
-              <Users size={22} className="stroke-[2.2]" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-sky-50 to-sky-100/50 border border-sky-100/80 text-sky-600 flex items-center justify-center shadow-inner flex-shrink-0">
+              <Users size={17} className="stroke-[2.2] sm:hidden" />
+              <Users size={22} className="stroke-[2.2] hidden sm:block" />
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-sky-600 font-bold z-10">
-            <TrendingUp size={14} />
-            <span className="text-slate-400 font-semibold">Registrasi keseluruhan terdata</span>
+          <div className="flex items-center gap-1 text-[9px] sm:text-xs text-sky-600 font-bold z-10">
+            <TrendingUp size={11} />
+            <span className="text-slate-400 font-semibold hidden sm:inline">Registrasi keseluruhan terdata</span>
+            <span className="text-slate-400 font-semibold sm:hidden">Keseluruhan</span>
           </div>
         </div>
 
         {/* Santri Aktif */}
-        <div className="bg-white border-l-4 border-l-emerald-500 p-5 sm:p-6 rounded-2xl shadow-soft hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36">
+        <div className="bg-white border-l-4 border-l-emerald-500 p-3.5 sm:p-6 rounded-2xl shadow-soft hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[120px] sm:h-36">
           {/* Subtle background sparkline graph decoration */}
           <svg className="absolute bottom-0 right-0 left-0 h-12 w-full text-emerald-100 opacity-20 pointer-events-none" viewBox="0 0 100 20" preserveAspectRatio="none">
             <defs>
@@ -756,25 +768,27 @@ function Dashboard({ user }) {
 
           <div className="flex justify-between items-start z-10 w-full">
             <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">SANTRI STATUS AKTIF</span>
-              <h3 className="text-3xl sm:text-4xl font-extrabold mt-1 text-[#0B4A3F] font-serif tracking-tight">
+              <span className="text-[9px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block leading-tight">STATUS AKTIF</span>
+              <h3 className="text-2xl sm:text-4xl font-extrabold mt-1 text-[#0B4A3F] font-serif tracking-tight">
                 <AnimatedNumber value={stats?.activeSantri || 0} />
               </h3>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100/80 text-emerald-600 flex items-center justify-center shadow-inner flex-shrink-0">
-              <UserCheck size={22} className="stroke-[2.2]" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100/80 text-emerald-600 flex items-center justify-center shadow-inner flex-shrink-0">
+              <UserCheck size={17} className="stroke-[2.2] sm:hidden" />
+              <UserCheck size={22} className="stroke-[2.2] hidden sm:block" />
             </div>
           </div>
-          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-emerald-600 font-bold z-10">
-            <Check size={14} className="bg-emerald-100 rounded-full p-0.5" />
-            <span className="text-slate-400 font-semibold">Aktif mengikuti pendidikan</span>
+          <div className="flex items-center gap-1 text-[9px] sm:text-xs text-emerald-600 font-bold z-10">
+            <Check size={11} className="bg-emerald-100 rounded-full p-0.5" />
+            <span className="text-slate-400 font-semibold hidden sm:inline">Aktif mengikuti pendidikan</span>
+            <span className="text-slate-400 font-semibold sm:hidden">Aktif</span>
           </div>
         </div>
 
         {/* Santri Beasiswa */}
         <div 
           onClick={() => handleCardClick('BEASISWA')}
-          className="bg-white border-l-4 border-l-[#D4AF37] p-5 sm:p-6 rounded-2xl shadow-soft hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36 cursor-pointer group active:scale-[0.98]"
+          className="bg-white border-l-4 border-l-[#D4AF37] p-3.5 sm:p-6 rounded-2xl shadow-soft hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[120px] sm:h-36 cursor-pointer group active:scale-[0.98]"
           title="Klik untuk melihat daftar nama santri beasiswa"
         >
           {/* Subtle background sparkline graph decoration */}
@@ -791,28 +805,30 @@ function Dashboard({ user }) {
 
           <div className="flex justify-between items-start z-10 w-full">
             <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">SANTRI BEASISWA</span>
-              <h3 className="text-3xl sm:text-4xl font-extrabold mt-1 text-[#D4AF37] font-serif tracking-tight">
+              <span className="text-[9px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block leading-tight">BEASISWA</span>
+              <h3 className="text-2xl sm:text-4xl font-extrabold mt-1 text-[#D4AF37] font-serif tracking-tight">
                 <AnimatedNumber value={stats?.totalBeasiswa || 0} />
               </h3>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100/80 text-[#D4AF37] flex items-center justify-center shadow-inner flex-shrink-0">
-              <Award size={22} className="stroke-[2.2]" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100/80 text-[#D4AF37] flex items-center justify-center shadow-inner flex-shrink-0">
+              <Award size={17} className="stroke-[2.2] sm:hidden" />
+              <Award size={22} className="stroke-[2.2] hidden sm:block" />
             </div>
           </div>
           <div className="flex items-center justify-between z-10 w-full">
-            <div className="flex items-center gap-1 text-[10px] sm:text-xs text-[#D4AF37] font-bold">
-              <Award size={14} />
-              <span className="text-slate-400 group-hover:text-[#D4AF37] group-hover:underline transition duration-150">Klik untuk lihat daftar</span>
+            <div className="flex items-center gap-1 text-[9px] sm:text-xs text-[#D4AF37] font-bold">
+              <Award size={11} />
+              <span className="text-slate-400 group-hover:text-[#D4AF37] transition duration-150 hidden sm:inline">Klik untuk lihat daftar</span>
+              <span className="text-slate-400 sm:hidden">Lihat →</span>
             </div>
-            <ArrowUpRight size={16} className="text-[#D4AF37] opacity-0 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0 transition-all duration-200" />
+            <ArrowUpRight size={13} className="text-[#D4AF37] opacity-0 group-hover:opacity-100 transition-all duration-200" />
           </div>
         </div>
 
         {/* Santri Tidak Aktif */}
         <div 
           onClick={() => handleCardClick('INACTIVE')}
-          className="bg-white border-l-4 border-l-rose-500 p-5 sm:p-6 rounded-2xl shadow-soft hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36 cursor-pointer group active:scale-[0.98]"
+          className="bg-white border-l-4 border-l-rose-500 p-3.5 sm:p-6 rounded-2xl shadow-soft hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-[120px] sm:h-36 cursor-pointer group active:scale-[0.98]"
           title="Klik untuk melihat daftar nama santri tidak aktif"
         >
           {/* Subtle background sparkline graph decoration */}
@@ -829,21 +845,23 @@ function Dashboard({ user }) {
 
           <div className="flex justify-between items-start z-10 w-full">
             <div className="min-w-0">
-              <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">STATUS TIDAK AKTIF</span>
-              <h3 className="text-3xl sm:text-4xl font-extrabold mt-1 text-rose-600 font-serif tracking-tight">
+              <span className="text-[9px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block leading-tight">TIDAK AKTIF</span>
+              <h3 className="text-2xl sm:text-4xl font-extrabold mt-1 text-rose-600 font-serif tracking-tight">
                 <AnimatedNumber value={stats?.inactiveSantri || 0} />
               </h3>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-50 to-rose-100/50 border border-rose-100/80 text-rose-600 flex items-center justify-center shadow-inner flex-shrink-0">
-              <UserX size={22} className="stroke-[2.2]" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-rose-50 to-rose-100/50 border border-rose-100/80 text-rose-600 flex items-center justify-center shadow-inner flex-shrink-0">
+              <UserX size={17} className="stroke-[2.2] sm:hidden" />
+              <UserX size={22} className="stroke-[2.2] hidden sm:block" />
             </div>
           </div>
           <div className="flex items-center justify-between z-10 w-full">
-            <div className="flex items-center gap-1 text-[10px] sm:text-xs text-rose-600 font-bold">
-              <UserX size={14} />
-              <span className="text-slate-400 group-hover:text-rose-550 group-hover:underline transition duration-150">Klik untuk lihat daftar</span>
+            <div className="flex items-center gap-1 text-[9px] sm:text-xs text-rose-600 font-bold">
+              <UserX size={11} />
+              <span className="text-slate-400 group-hover:text-rose-500 transition duration-150 hidden sm:inline">Klik untuk lihat daftar</span>
+              <span className="text-slate-400 sm:hidden">Lihat →</span>
             </div>
-            <ArrowUpRight size={16} className="text-rose-500 opacity-0 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0 transition-all duration-200" />
+            <ArrowUpRight size={13} className="text-rose-500 opacity-0 group-hover:opacity-100 transition-all duration-200" />
           </div>
         </div>
       </div>
