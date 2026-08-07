@@ -1,4 +1,19 @@
 require('dotenv').config();
+
+// Validasi Environment Variables Wajib demi keamanan
+const requiredEnvVars = ['JWT_SECRET', 'DATABASE_URL'];
+const missingEnvVars = requiredEnvVars.filter(envVar => !process.env[envVar] || process.env[envVar].trim() === '');
+
+if (missingEnvVars.length > 0) {
+  console.error('================================================================');
+  console.error('❌ EROR STARTUP SERIUS: Environment Variable Wajib Tidak Ditemukan!');
+  console.error(`Variabel yang kurang: ${missingEnvVars.join(', ')}`);
+  console.error('Silakan konfigurasi variabel ini di file .env Anda atau platform hosting.');
+  console.error('Server dihentikan otomatis demi keamanan data.');
+  console.error('================================================================');
+  process.exit(1);
+}
+
 const express = require('express');
 const cors = require('cors');
 const path = require('path');

@@ -18,10 +18,25 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file('E:/Pesantren/pesantren-release.keystore')
-            storePassword 'Pesantren2025'
-            keyAlias 'pesantren'
-            keyPassword 'Pesantren2025'
+            def keystorePropsFile = file("../keystore.properties")
+            if (!keystorePropsFile.exists()) {
+                throw new GradleException("CRITICAL CONFIGURATION ERROR: File 'keystore.properties' tidak ditemukan di folder android/. Silakan buat file tersebut berdasarkan template dan isi kredensial signing key Anda sebelum melanjutkan build release.")
+            }
+            def keystoreProps = new Properties()
+            keystorePropsFile.withInputStream { keystoreProps.load(it) }
+
+            // Validasi kunci wajib
+            def requiredKeys = ['storeFile', 'storePassword', 'keyAlias', 'keyPassword']
+            for (key in requiredKeys) {
+                if (!keystoreProps.containsKey(key) || keystoreProps.getProperty(key).trim().isEmpty()) {
+                    throw new GradleException("CRITICAL CONFIGURATION ERROR: Properti '${key}' tidak diset atau bernilai kosong di keystore.properties!")
+                }
+            }
+
+            storeFile file(keystoreProps.getProperty('storeFile'))
+            storePassword keystoreProps.getProperty('storePassword')
+            keyAlias keystoreProps.getProperty('keyAlias')
+            keyPassword keystoreProps.getProperty('keyPassword')
         }
     }
     buildTypes {

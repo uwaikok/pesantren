@@ -36,3 +36,9 @@ Thumbs.db
 .env*
 
 firebase_env_value.txt
+
+# Keystores & Android Signing Credentials
+*.keystore
+*.jks
+keystore.properties
+frontend/android/keystore.properties
