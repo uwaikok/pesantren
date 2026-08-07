@@ -340,9 +340,9 @@ function Layout({ children, user, onLogout }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5F0] flex flex-col md:flex-row text-[#1A1A1A]">
+    <div className="bg-[#F5F5F0] flex flex-col md:flex-row md:h-screen md:overflow-hidden text-[#1A1A1A]">
       {/* SIDEBAR - DESKTOP */}
-      <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-[#0B4A3F] via-[#094137] to-[#083831] text-white shadow-2xl flex-shrink-0 no-print border-r border-[#D4AF37]/20 relative">
+      <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-[#0B4A3F] via-[#094137] to-[#083831] text-white shadow-2xl flex-shrink-0 no-print border-r border-[#D4AF37]/20 relative md:h-screen">
         {/* Subtle accent border line */}
         <div className="absolute top-0 right-0 w-[2px] h-full bg-gradient-to-b from-[#D4AF37] via-[#E8C766]/30 to-transparent"></div>
 
@@ -636,7 +636,7 @@ function Layout({ children, user, onLogout }) {
       )}
 
       {/* CONTENT AREA */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 flex flex-col min-w-0 md:h-screen md:overflow-hidden">
         {/* Header Desktop */}
         <header className="hidden md:flex bg-white h-16 border-b border-slate-200/80 items-center justify-between px-8 no-print shadow-sm">
           <div className="flex items-center text-xs font-bold text-slate-500 space-x-2">

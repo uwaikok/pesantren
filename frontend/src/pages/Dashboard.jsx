@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   Users, 
@@ -21,7 +21,8 @@ import {
   RefreshCw,
   UserX,
   ArrowUpRight,
-  TrendingUp
+  TrendingUp,
+  ChevronsUpDown
 } from 'lucide-react';
 import api from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
@@ -94,6 +95,13 @@ function Dashboard({ user }) {
   // State untuk modal list santri beasiswa/tidak aktif
   const [detailModal, setDetailModal] = useState({ isOpen: false, type: '', title: '', data: [], loading: false });
 
+  // State untuk sorting tabel santri
+  const [sortConfig, setSortConfig] = useState({ key: 'nama', dir: 'asc' });
+  // Ref untuk debounce live search
+  const debounceRef = useRef(null);
+  // State untuk animasi bar demografi
+  const [barsAnimated, setBarsAnimated] = useState(false);
+
   const handleCardClick = async (type) => {
     setDetailModal({ isOpen: true, type, title: type === 'BEASISWA' ? 'Daftar Santri Penerima Beasiswa' : 'Daftar Santri Tidak Aktif', data: [], loading: true });
     try {
@@ -148,6 +156,15 @@ function Dashboard({ user }) {
   useEffect(() => {
     setCurrentPage(1);
   }, [search, filterKelas]);
+
+  // Trigger animasi progress bar saat data stats dimuat
+  useEffect(() => {
+    if (stats) {
+      setBarsAnimated(false);
+      const t = setTimeout(() => setBarsAnimated(true), 80);
+      return () => clearTimeout(t);
+    }
+  }, [stats?.totalSantri]);
 
   const fetchAdminData = async () => {
     try {
@@ -664,6 +681,13 @@ function Dashboard({ user }) {
   }
 
   // --- RENDERING DASHBOARD ADMIN ---
+  const sortedSantriList = [...santriList].sort((a, b) => {
+    if (!sortConfig.key) return 0;
+    const aVal = (a[sortConfig.key] || '').toString().toLowerCase();
+    const bVal = (b[sortConfig.key] || '').toString().toLowerCase();
+    return sortConfig.dir === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+  });
+
   return (
     <div className="space-y-6">
       {/* Welcome Banner Admin */}
@@ -826,57 +850,92 @@ function Dashboard({ user }) {
 
       {/* Main Content Layout: Graph & Santri CRUD List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Demografi Santri per Kelas dengan Bar Gradient Hijau-Emas */}
-        <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80">
-          <h2 className="text-base font-bold text-[#0B4A3F] font-serif mb-5 pb-2 border-b border-slate-100">
+        {/* Demografi Santri per Kelas — Modern Premium */}
+        <div className="lg:col-span-1 bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 flex flex-col">
+          <h2 className="text-base font-bold text-[#0B4A3F] font-serif">
             📊 Demografi Santri per Kelas
           </h2>
-          
-          <div className="space-y-4">
+          <p className="text-[10px] text-slate-400 font-medium mt-0.5 mb-4 pb-3 border-b border-slate-100">
+            Diurutkan dari kelas terbanyak santri
+          </p>
+
+          <div className="space-y-1 flex-1">
             {stats?.classChart && stats.classChart.length > 0 ? (
-              stats.classChart.map((c, index) => {
-                const maxCount = Math.max(...stats.classChart.map(x => x.jumlah), 1);
-                const pct = Math.round((c.jumlah / maxCount) * 100);
-                
-                return (
-                  <div key={index} className="space-y-1">
-                    <div className="flex justify-between text-xs font-bold text-slate-700">
-                      <span>{c.kelas}</span>
-                      <span className="text-[#0B4A3F]">{c.jumlah} Santri ({pct}%)</span>
+              [...stats.classChart]
+                .sort((a, b) => b.jumlah - a.jumlah)
+                .map((c, index) => {
+                  const maxCount = Math.max(...stats.classChart.map(x => x.jumlah), 1);
+                  const pct = Math.round((c.jumlah / maxCount) * 100);
+                  let barColor, pillBg, pillText;
+                  if (pct > 70) {
+                    barColor = 'bg-emerald-600';
+                    pillBg = 'bg-emerald-50';
+                    pillText = 'text-emerald-700';
+                  } else if (pct > 30) {
+                    barColor = 'bg-amber-500';
+                    pillBg = 'bg-amber-50';
+                    pillText = 'text-amber-700';
+                  } else {
+                    barColor = 'bg-rose-400';
+                    pillBg = 'bg-rose-50';
+                    pillText = 'text-rose-600';
+                  }
+                  return (
+                    <div key={index} className="group px-3 py-2.5 -mx-3 rounded-xl hover:bg-slate-50/80 transition-all duration-150 cursor-default">
+                      <div className="flex justify-between items-center mb-1.5">
+                        <span className="text-xs font-bold text-slate-800">{c.kelas}</span>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${pillBg} ${pillText}`}>
+                          {c.jumlah} · {pct}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden shadow-inner border border-slate-200/40">
+                        <div
+                          className={`${barColor} h-full rounded-full transition-all duration-700 ease-out`}
+                          style={{ width: barsAnimated ? `${pct}%` : '0%' }}
+                        />
+                      </div>
                     </div>
-                    <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden p-0.5 border border-slate-200/50">
-                      <div 
-                        className="bg-gradient-to-r from-[#0B4A3F] via-[#16A34A] to-[#D4AF37] h-full rounded-full transition-all duration-700 ease-out" 
-                        style={{ width: `${pct}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                );
-              })
+                  );
+                })
             ) : (
               <p className="text-xs text-slate-400 text-center py-6">Tidak ada data demografi</p>
             )}
           </div>
 
-          <div className="mt-8 p-4 bg-[#0B4A3F]/5 rounded-xl border border-[#0B4A3F]/15 text-xs">
-            <h4 className="font-bold text-[#0B4A3F] mb-1">⚙️ Status Layanan SIM:</h4>
-            <p className="text-[11px] text-slate-600 leading-relaxed font-semibold">
-              Sistem berjalan dengan normal. Seluruh data disinkronkan langsung secara real-time ke database cloud. Lakukan backup data secara berkala demi keamanan informasi.
+          {/* Status Layanan SIM — Card Premium */}
+          <div className="mt-5 p-4 bg-gradient-to-br from-emerald-50 to-emerald-100/40 rounded-2xl border border-emerald-200/60 shadow-sm">
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className="relative flex-shrink-0">
+                <div className="w-7 h-7 rounded-full bg-emerald-500 flex items-center justify-center shadow-sm">
+                  <Check size={13} className="text-white stroke-[3]" />
+                </div>
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-white animate-ping opacity-75" />
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white" />
+              </div>
+              <div>
+                <h4 className="text-[11px] font-extrabold text-emerald-800 uppercase tracking-wider">Sistem Online</h4>
+                <p className="text-[9px] text-emerald-600 font-semibold">Status Layanan SIM: Normal</p>
+              </div>
+            </div>
+            <p className="text-[10px] text-emerald-700/80 leading-relaxed">
+              Seluruh data tersinkronisasi real-time ke database cloud. Lakukan backup berkala demi keamanan data pesantren.
             </p>
           </div>
         </div>
 
         {/* Tabel Daftar Seluruh Santri */}
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 pb-2 border-b border-slate-100">
-            <h2 className="text-base font-bold text-[#0B4A3F] font-serif">📋 Daftar Seluruh Santri</h2>
-            
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-5 pb-3 border-b border-slate-100">
+            <div>
+              <h2 className="text-base font-bold text-[#0B4A3F] font-serif">📋 Daftar Seluruh Santri</h2>
+              <p className="text-[10px] text-slate-400 mt-0.5 font-medium">{santriList.length} total santri terdaftar</p>
+            </div>
             {/* Search Box & Class Filter */}
-            <div className="flex items-center space-x-2">
+            <div className="flex flex-wrap items-center gap-2">
               <select
                 value={filterKelas}
                 onChange={(e) => setFilterKelas(e.target.value)}
-                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] focus:bg-white rounded-full py-1.5 px-3 text-xs outline-none text-slate-700 font-bold cursor-pointer transition duration-150"
+                className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:bg-white rounded-xl py-2 px-3 text-xs outline-none text-slate-700 font-bold cursor-pointer transition duration-150"
               >
                 <option value="">Semua Kelas</option>
                 <option value="Imdad Putra">Imdad Putra</option>
@@ -890,92 +949,115 @@ function Dashboard({ user }) {
                 <option value="Tsanawi 2">Tsanawi 2</option>
                 <option value="Tsanawi 3">Tsanawi 3</option>
               </select>
-
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-[#0B4A3F]">
-                  <Search size={14} />
-                </span>
-                <input
-                  type="text"
-                  placeholder="Cari nama/kelas..."
-                  value={searchInput}
-                  onChange={(e) => setSearchInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      setSearch(searchInput);
-                    }
-                  }}
-                  className="bg-slate-50 border border-slate-200 focus:border-[#D4AF37] focus:bg-white rounded-l-full py-1.5 pl-9 pr-4 text-xs w-36 outline-none transition duration-200"
-                />
+              <div className="flex items-center">
+                <div className="relative">
+                  <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none">
+                    <Search size={13} />
+                  </span>
+                  <input
+                    type="text"
+                    placeholder="Cari nama / kelas..."
+                    value={searchInput}
+                    onChange={(e) => {
+                      setSearchInput(e.target.value);
+                      clearTimeout(debounceRef.current);
+                      debounceRef.current = setTimeout(() => setSearch(e.target.value), 400);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        clearTimeout(debounceRef.current);
+                        setSearch(searchInput);
+                      }
+                    }}
+                    className="bg-slate-50 border border-slate-200 border-r-0 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:bg-white rounded-l-xl py-2 pl-9 pr-4 text-xs w-44 outline-none transition duration-200"
+                  />
+                </div>
+                <button
+                  onClick={() => { clearTimeout(debounceRef.current); setSearch(searchInput); }}
+                  className="bg-[#0B4A3F] hover:bg-[#083831] active:scale-95 text-white text-xs font-bold px-4 py-2 rounded-r-xl transition shadow-sm hover:shadow-md border border-[#0B4A3F]"
+                >
+                  Cari
+                </button>
               </div>
-              <button
-                onClick={() => setSearch(searchInput)}
-                className="bg-[#0B4A3F] hover:bg-[#083831] text-white text-xs font-bold px-3 py-1.5 rounded-r-full transition shadow-sm border border-[#0B4A3F]"
-              >
-                Cari
-              </button>
             </div>
           </div>
 
-          {/* Table Header Hijau Muda Pastel */}
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          {/* Table with horizontal scroll */}
+          <div className="overflow-x-auto rounded-xl">
+            <table className="w-full text-left text-xs border-collapse min-w-[640px]">
               <thead>
-                <tr className="bg-[#DCFCE7]/60 text-[#0B4A3F] font-extrabold uppercase tracking-wider border-b border-emerald-200/80">
-                  <th className="py-3 px-4 rounded-tl-xl">NAMA LENGKAP</th>
-                  <th className="py-3 px-4">KELAS</th>
-                  <th className="py-3 px-4">ORANG TUA / WALI</th>
-                  <th className="py-3 px-4">NO. HP</th>
-                  <th className="py-3 px-4">STATUS</th>
-                  <th className="py-3 px-4 text-center rounded-tr-xl">AKSI</th>
+                <tr className="bg-gradient-to-r from-[#0B4A3F] to-[#094137] text-white">
+                  <th
+                    className="py-3.5 px-4 rounded-tl-xl font-extrabold uppercase tracking-widest text-[10px] cursor-pointer select-none hover:bg-white/10 transition-colors"
+                    onClick={() => setSortConfig(prev => ({ key: 'nama', dir: prev.key === 'nama' && prev.dir === 'asc' ? 'desc' : 'asc' }))}
+                  >
+                    <span className="flex items-center gap-1.5">NAMA LENGKAP <ChevronsUpDown size={11} className="opacity-60" /></span>
+                  </th>
+                  <th
+                    className="py-3.5 px-4 font-extrabold uppercase tracking-widest text-[10px] cursor-pointer select-none hover:bg-white/10 transition-colors"
+                    onClick={() => setSortConfig(prev => ({ key: 'kelas', dir: prev.key === 'kelas' && prev.dir === 'asc' ? 'desc' : 'asc' }))}
+                  >
+                    <span className="flex items-center gap-1.5">KELAS <ChevronsUpDown size={11} className="opacity-60" /></span>
+                  </th>
+                  <th className="py-3.5 px-4 font-extrabold uppercase tracking-widest text-[10px]">ORANG TUA / WALI</th>
+                  <th className="py-3.5 px-4 font-extrabold uppercase tracking-widest text-[10px]">NO. HP</th>
+                  <th
+                    className="py-3.5 px-4 font-extrabold uppercase tracking-widest text-[10px] cursor-pointer select-none hover:bg-white/10 transition-colors"
+                    onClick={() => setSortConfig(prev => ({ key: 'status', dir: prev.key === 'status' && prev.dir === 'asc' ? 'desc' : 'asc' }))}
+                  >
+                    <span className="flex items-center gap-1.5">STATUS <ChevronsUpDown size={11} className="opacity-60" /></span>
+                  </th>
+                  <th className="py-3.5 px-4 text-center rounded-tr-xl font-extrabold uppercase tracking-widest text-[10px]">AKSI</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {(() => {
                   const indexOfLastItem = currentPage * itemsPerPage;
                   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-                  const currentSantriList = santriList.slice(indexOfFirstItem, indexOfLastItem);
-                  
-                  return currentSantriList.length > 0 ? (
-                    currentSantriList.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-100/60 transition duration-150">
+                  const currentItems = sortedSantriList.slice(indexOfFirstItem, indexOfLastItem);
+                  return currentItems.length > 0 ? (
+                    currentItems.map((s, rowIdx) => (
+                      <tr key={s.id} className={`hover:bg-emerald-50/40 transition duration-150 ${rowIdx % 2 === 1 ? 'bg-slate-50/60' : ''}`}>
                         <td className="py-3.5 px-4 font-bold text-slate-800">{s.nama}</td>
-                        <td className="py-3.5 px-4 text-slate-600 font-medium">{s.kelas || '-'}</td>
-                        <td className="py-3.5 px-4 text-slate-600">{s.namaWali || '-'}</td>
-                        <td className="py-3.5 px-4 text-slate-500 font-mono text-[11px]">{s.noHp}</td>
-                        {/* Pill-shape Status Badge */}
+                        <td className="py-3.5 px-4 text-slate-600 font-medium">{s.kelas || <span className="text-slate-300 italic">—</span>}</td>
+                        <td className="py-3.5 px-4 text-slate-600">{s.namaWali || <span className="text-slate-300 italic">—</span>}</td>
+                        <td className="py-3.5 px-4 font-mono text-[11px]">
+                          {s.noHp ? s.noHp : <span className="text-slate-300 italic text-[10px]">Belum diisi</span>}
+                        </td>
                         <td className="py-3.5 px-4">
-                          <span className={`inline-block px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${
-                            s.status === 'ACTIVE' 
-                              ? 'bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/30' 
-                              : 'bg-slate-100 text-slate-500 border border-slate-300'
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold tracking-wide uppercase ${
+                            s.status === 'ACTIVE'
+                              ? 'bg-emerald-100 text-emerald-700'
+                              : 'bg-slate-100 text-slate-500'
                           }`}>
+                            {s.status === 'ACTIVE' && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse flex-shrink-0" />
+                            )}
                             {s.status === 'ACTIVE' ? 'AKTIF' : 'TIDAK AKTIF'}
                           </span>
                         </td>
-                        {/* Action Icons with Soft Circle Hover & Colors */}
                         <td className="py-3.5 px-4 text-center">
-                          <div className="flex items-center justify-center space-x-1.5">
-                            <Link 
-                              to={`/profil/${s.id}`} 
+                          <div className="flex items-center justify-center space-x-1">
+                            <Link
+                              to={`/profil/${s.id}`}
                               title="Lihat Detail Profil"
                               className="p-2 text-sky-600 hover:bg-sky-100/80 rounded-full transition"
                             >
-                              <Eye size={15} />
+                              <Eye size={14} />
                             </Link>
-                            <button 
+                            <button
                               onClick={() => openEditModal(s)}
                               title="Edit Data Santri"
-                              className="p-2 text-[#16A34A] hover:bg-[#DCFCE7] rounded-full transition"
+                              className="p-2 text-emerald-600 hover:bg-emerald-100/80 rounded-full transition"
                             >
-                              <Edit size={15} />
+                              <Edit size={14} />
                             </button>
-                            <button 
+                            <button
                               onClick={() => handleDelete(s.id, s.nama)}
                               title="Hapus Santri"
-                              className="p-2 text-[#DC2626] hover:bg-[#FEE2E2] rounded-full transition"
+                              className="p-2 text-rose-500 hover:bg-rose-100/80 rounded-full transition"
                             >
-                              <Trash2 size={15} />
+                              <Trash2 size={14} />
                             </button>
                           </div>
                         </td>
@@ -983,8 +1065,9 @@ function Dashboard({ user }) {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="py-8 text-center text-slate-400">
-                        Tidak ada data santri ditemukan.
+                      <td colSpan="6" className="py-10 text-center text-slate-400">
+                        <Search size={20} className="mx-auto mb-2 opacity-30" />
+                        <p className="text-xs">Tidak ada data santri ditemukan.</p>
                       </td>
                     </tr>
                   );
@@ -992,11 +1075,14 @@ function Dashboard({ user }) {
               </tbody>
             </table>
           </div>
+
           {(() => {
-            const totalPages = Math.ceil(santriList.length / itemsPerPage);
+            const totalPages = Math.ceil(sortedSantriList.length / itemsPerPage);
             const indexOfLastItem = currentPage * itemsPerPage;
             const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-            
+
+            if (sortedSantriList.length === 0) return null;
+
             const getPageNumbers = () => {
               const pages = [];
               for (let i = 1; i <= totalPages; i++) {
@@ -1009,49 +1095,49 @@ function Dashboard({ user }) {
               return pages;
             };
 
-            return totalPages > 1 && (
+            return (
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-5 pt-4 border-t border-slate-100 text-xs">
                 <span className="text-slate-500 font-medium">
-                  Menampilkan <strong className="text-slate-800">{indexOfFirstItem + 1}</strong> - <strong className="text-slate-800">{Math.min(indexOfLastItem, santriList.length)}</strong> dari <strong className="text-slate-800">{santriList.length}</strong> santri
+                  Menampilkan <strong className="text-slate-800">{indexOfFirstItem + 1}</strong> – <strong className="text-slate-800">{Math.min(indexOfLastItem, sortedSantriList.length)}</strong> dari <strong className="text-slate-800">{sortedSantriList.length}</strong> santri
                 </span>
-                <div className="flex items-center space-x-1">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed select-none"
-                  >
-                    Sebelumnya
-                  </button>
-                  
-                  {getPageNumbers().map((pageNum, idx) => (
-                    pageNum === '...' ? (
-                      <span key={`ellipsis-${idx}`} className="text-slate-400 px-1.5 font-bold">...</span>
-                    ) : (
-                      <button
-                        key={pageNum}
-                        type="button"
-                        onClick={() => setCurrentPage(pageNum)}
-                        className={`px-3 py-1.5 rounded-lg font-bold border transition select-none ${
-                          currentPage === pageNum
-                            ? 'bg-[#0B4A3F] border-[#0B4A3F] text-white shadow-sm'
-                            : 'bg-white border-slate-200 text-slate-650 hover:bg-slate-50'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    )
-                  ))}
-
-                  <button
-                    type="button"
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                    disabled={currentPage === totalPages}
-                    className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed select-none"
-                  >
-                    Berikutnya
-                  </button>
-                </div>
+                {totalPages > 1 && (
+                  <div className="flex items-center space-x-1">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                      disabled={currentPage === 1}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed select-none"
+                    >
+                      Sebelumnya
+                    </button>
+                    {getPageNumbers().map((pageNum, idx) => (
+                      pageNum === '...' ? (
+                        <span key={`ellipsis-${idx}`} className="text-slate-400 px-1.5 font-bold">...</span>
+                      ) : (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-3 py-1.5 rounded-lg font-bold border transition select-none ${
+                            currentPage === pageNum
+                              ? 'bg-[#0B4A3F] border-[#0B4A3F] text-white shadow-sm'
+                              : 'bg-white border-slate-200 text-slate-650 hover:bg-slate-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                      disabled={currentPage === totalPages}
+                      className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-650 font-bold transition disabled:opacity-50 disabled:cursor-not-allowed select-none"
+                    >
+                      Berikutnya
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })()}
