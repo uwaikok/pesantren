@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -27,6 +27,8 @@ function Layout({ children, user, onLogout }) {
 
   // State untuk Notifikasi Lonceng
   const [isNotifOpen, setIsNotifOpen] = useState(false);
+  const mobileNotifRef = useRef(null); // Ref untuk dropdown notifikasi mobile
+  const desktopNotifRef = useRef(null); // Ref untuk dropdown notifikasi desktop
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   
@@ -57,6 +59,28 @@ function Layout({ children, user, onLogout }) {
       handleMarkAdminNotifRead(notif.id);
     }
   };
+
+  // Tutup dropdown notifikasi saat klik di luar area notifikasi
+  // Menggunakan dua ref terpisah agar mobile & desktop tidak saling konflik
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      const insideMobile = mobileNotifRef.current && mobileNotifRef.current.contains(e.target);
+      const insideDesktop = desktopNotifRef.current && desktopNotifRef.current.contains(e.target);
+      if (!insideMobile && !insideDesktop) {
+        setIsNotifOpen(false);
+      }
+    };
+    if (isNotifOpen) {
+      // Gunakan 'mouseup' & 'touchend' (bukan mousedown/touchstart)
+      // agar user bisa berinteraksi penuh sebelum event close dipicu
+      document.addEventListener('mouseup', handleClickOutside);
+      document.addEventListener('touchend', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mouseup', handleClickOutside);
+      document.removeEventListener('touchend', handleClickOutside);
+    };
+  }, [isNotifOpen]);
 
   useEffect(() => {
     if (user) {
@@ -426,7 +450,7 @@ function Layout({ children, user, onLogout }) {
             <span className="text-[9px] text-[#E8C766] font-semibold">Miftahul Huda As-Syadzili</span>
           </div>
         </div>
-        <div className="flex items-center space-x-2 relative">
+        <div className="flex items-center space-x-2 relative" ref={mobileNotifRef}>
           {/* Ikon Lonceng Mobile */}
           <button
             onClick={() => setIsNotifOpen(!isNotifOpen)}
@@ -513,7 +537,7 @@ function Layout({ children, user, onLogout }) {
           )}
 
           <button
-            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            onClick={() => { setIsSidebarOpen(!isSidebarOpen); setIsNotifOpen(false); }}
             className="p-2 text-[#E8C766] hover:text-white hover:bg-white/10 rounded-lg transition"
           >
             {isSidebarOpen ? <X size={22} /> : <Menu size={22} />}
@@ -627,8 +651,7 @@ function Layout({ children, user, onLogout }) {
           </div>
           
           <div className="flex items-center space-x-5">
-            {/* Ikon Lonceng Desktop */}
-            <div className="relative">
+            <div className="relative" ref={desktopNotifRef}>
               <button 
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
                 className="p-2 text-slate-500 hover:text-[#0B4A3F] hover:bg-slate-100 rounded-full transition relative"
