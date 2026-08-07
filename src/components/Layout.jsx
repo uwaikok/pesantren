@@ -342,13 +342,14 @@ function Layout({ children, user, onLogout }) {
   return (
     <div className="bg-[#F5F5F0] flex flex-col md:flex-row md:h-screen md:overflow-hidden text-[#1A1A1A]">
       {/* SIDEBAR - DESKTOP */}
-      <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-[#0B4A3F] via-[#094137] to-[#083831] text-white shadow-2xl flex-shrink-0 no-print border-r border-[#D4AF37]/20 relative md:h-screen">
-        {/* Subtle accent border line */}
-        <div className="absolute top-0 right-0 w-[2px] h-full bg-gradient-to-b from-[#D4AF37] via-[#E8C766]/30 to-transparent"></div>
+      {/* SIDEBAR - DESKTOP */}
+      <aside className="hidden md:flex flex-col w-64 bg-gradient-to-b from-[#0F3D2E] via-[#0B2E22] to-[#082018] text-white shadow-2xl flex-shrink-0 no-print relative md:h-screen">
+        {/* Subtle accent border line at the right edge */}
+        <div className="absolute top-0 right-0 w-[1px] h-full bg-gradient-to-b from-[#D4AF37]/45 via-[#E8C766]/15 to-transparent"></div>
 
         {/* Brand Header */}
-        <div className="p-5 border-b border-white/10 bg-[#083831]/80 flex items-center space-x-3">
-          <div className="p-1.5 bg-[#0B4A3F] border border-[#D4AF37]/50 rounded-xl shadow-inner relative group">
+        <div className="p-6 pb-6 flex items-center space-x-3 relative">
+          <div className="p-1.5 bg-[#0B4A3F] border border-[#D4AF37]/50 rounded-xl shadow-[0_0_15px_rgba(212,175,55,0.2)] relative group flex-shrink-0">
             <img src="/logo.png" className="w-9 h-9 object-contain drop-shadow" alt="Logo Pesantren" />
             <div className="absolute inset-0 bg-[#D4AF37]/20 rounded-xl blur-md opacity-0 group-hover:opacity-100 transition duration-300"></div>
           </div>
@@ -356,65 +357,103 @@ function Layout({ children, user, onLogout }) {
             <h1 className="font-extrabold text-base font-serif tracking-wide text-white leading-tight">
               Miftahul Huda
             </h1>
-            <p className="text-[10px] text-[#E8C766] font-semibold tracking-wider uppercase">As-Syadzili • SIM</p>
+            <p className="text-[10px] text-[#E8C766] font-bold tracking-wider uppercase">As-Syadzili • SIM</p>
           </div>
+          {/* Elegant Gold Gradient Divider */}
+          <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-[#D4AF37]/35 to-transparent"></div>
         </div>
 
-        {/* User Profile Summary */}
-        <div className="p-4 border-b border-white/10 bg-[#083831]/40">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-full bg-[#0B4A3F] flex items-center justify-center font-bold text-white uppercase text-base border-2 border-[#D4AF37] shadow-md overflow-hidden relative">
-              {user?.fotoProfil ? (
-                <img
-                  src={user.fotoProfil.startsWith('data:') ? user.fotoProfil : `/${user.fotoProfil}`}
-                  alt={user.nama}
-                  className="w-full h-full object-cover"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              ) : (
-                user?.nama?.charAt(0)
-              )}
+        {/* User Profile Summary Card */}
+        <div className="p-4 relative">
+          <Link 
+            to="/profil"
+            className="flex items-center space-x-3 p-3.5 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] hover:border-[#D4AF37]/30 transition-all duration-300 group block cursor-pointer shadow-md"
+          >
+            <div className="relative flex-shrink-0">
+              <div className="w-10 h-10 rounded-full bg-[#0B4A3F] flex items-center justify-center font-bold text-white uppercase text-base border-2 border-[#D4AF37]/75 shadow-lg overflow-hidden relative">
+                {user?.fotoProfil ? (
+                  <img
+                    src={user.fotoProfil.startsWith('data:') ? user.fotoProfil : `/${user.fotoProfil}`}
+                    alt={user.nama}
+                    className="w-full h-full object-cover"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                ) : (
+                  user?.nama?.charAt(0)
+                )}
+              </div>
+              {/* Online Indicator Status */}
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-[#0B2E22] rounded-full shadow-sm"></span>
             </div>
-            <div className="overflow-hidden">
-              <h2 className="font-bold text-xs text-white truncate font-sans">{user?.nama}</h2>
-              <span className="inline-flex items-center space-x-1 text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#D4AF37]/20 text-[#E8C766] border border-[#D4AF37]/40 uppercase mt-1">
-                <Sparkles size={10} />
+            <div className="overflow-hidden flex-1">
+              <h2 className="font-bold text-xs text-white truncate font-sans group-hover:text-[#E8C766] transition-colors duration-250 leading-tight">{user?.nama}</h2>
+              <span className="inline-flex items-center space-x-1 text-[8px] font-extrabold px-2 py-0.5 rounded bg-gradient-to-r from-[#D4AF37]/30 to-[#E8C766]/15 text-[#E8C766] border border-[#D4AF37]/45 shadow-sm uppercase mt-1">
+                <Sparkles size={8} className="text-[#E8C766] animate-pulse" />
                 <span>{user?.role === 'ADMIN' ? 'Server / Admin' : `Santri ${user?.kelas || ''}`}</span>
               </span>
             </div>
-          </div>
+          </Link>
         </div>
 
-        {/* Navigation Links */}
-        <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-          {filteredNavItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all duration-200 ${
-                  isActive
-                    ? 'bg-[#083831] text-white shadow-lg border-l-4 border-[#D4AF37] translate-x-1'
-                    : 'text-emerald-100/70 hover:bg-white/10 hover:text-white'
-                }`}
-              >
-                <Icon size={18} className={isActive ? 'text-[#E8C766]' : 'text-emerald-200/80'} />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+        {/* Navigation Links Grouped */}
+        <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto">
+          {/* Group 1: Menu Utama */}
+          <div className="space-y-1">
+            <span className="px-3 text-[9px] font-extrabold text-[#8A8F98] tracking-widest uppercase block mb-2 opacity-60">MENU UTAMA</span>
+            {filteredNavItems.filter(item => ['Beranda', 'Profil'].includes(item.label)).map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center space-x-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group ${
+                    isActive
+                      ? 'bg-gradient-to-r from-[#D4AF37]/20 to-transparent text-[#E8C766] border-l-4 border-[#D4AF37] translate-x-1 shadow-md'
+                      : 'text-emerald-100/75 hover:bg-white/[0.05] hover:text-[#E8C766] hover:translate-x-1'
+                  }`}
+                >
+                  <Icon size={18} className={isActive ? 'text-[#E8C766]' : 'text-emerald-200/80 group-hover:text-[#E8C766] transition-colors duration-200'} />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
 
-          {/* Tombol Tambah Santri Baru (Aksi Khusus) */}
+          {/* Group 2: Layanan & Data */}
+          {filteredNavItems.filter(item => !['Beranda', 'Profil'].includes(item.label)).length > 0 && (
+            <div className="space-y-1 pt-1">
+              <span className="px-3 text-[9px] font-extrabold text-[#8A8F98] tracking-widest uppercase block mb-2 opacity-60">AKADEMIK & DATA</span>
+              {filteredNavItems.filter(item => !['Beranda', 'Profil'].includes(item.label)).map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`flex items-center space-x-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200 group ${
+                      isActive
+                        ? 'bg-gradient-to-r from-[#D4AF37]/20 to-transparent text-[#E8C766] border-l-4 border-[#D4AF37] translate-x-1 shadow-md'
+                        : 'text-emerald-100/75 hover:bg-white/[0.05] hover:text-[#E8C766] hover:translate-x-1'
+                    }`}
+                  >
+                    <Icon size={18} className={isActive ? 'text-[#E8C766]' : 'text-emerald-200/80 group-hover:text-[#E8C766] transition-colors duration-200'} />
+                    <span>{item.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Tombol Tambah Santri Baru (CTA Khusus) */}
           {user?.role === 'ADMIN' && (
-            <div className="pt-3 mt-1 border-t border-white/10">
+            <div className="pt-3 border-t border-white/[0.08]">
               <Link
                 to="/tambah-santri"
-                className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 ${
+                className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200 transform active:scale-95 shadow-md ${
                   isTambahSantriActive
-                    ? 'bg-[#D4AF37] text-[#083831] shadow-lg'
-                    : 'bg-[#D4AF37]/15 text-[#E8C766] hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40'
+                    ? 'bg-gradient-to-r from-[#D4AF37] to-[#B89327] text-[#083831] shadow-lg shadow-[#D4AF37]/20'
+                    : 'bg-[#D4AF37]/15 text-[#E8C766] hover:bg-[#D4AF37]/25 hover:text-[#FFF5D1] border border-[#D4AF37]/45'
                 }`}
               >
                 <UserPlus size={18} className={isTambahSantriActive ? 'text-[#083831]' : 'text-[#E8C766]'} />
@@ -424,13 +463,11 @@ function Layout({ children, user, onLogout }) {
           )}
         </nav>
 
-
-
         {/* Logout Button */}
-        <div className="p-4 border-t border-white/10 bg-[#083831]">
+        <div className="p-4 border-t border-white/[0.08] bg-[#082018]/70">
           <button
             onClick={handleLogoutClick}
-            className="flex items-center space-x-3 w-full px-4 py-2.5 text-xs font-bold text-rose-300 hover:bg-rose-950/40 hover:text-rose-200 rounded-xl transition-all border border-rose-500/20"
+            className="flex items-center space-x-3 w-full px-4 py-2.5 text-xs font-bold text-rose-300/80 hover:text-white hover:bg-rose-600/20 rounded-xl transition-all duration-200 border border-rose-500/15 hover:border-rose-500/35 active:scale-95 shadow-sm"
           >
             <LogOut size={16} />
             <span>Keluar Aplikasi</span>
@@ -549,71 +586,111 @@ function Layout({ children, user, onLogout }) {
       {isSidebarOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex no-print">
           <div className="fixed inset-0 bg-[#083831]/80 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
-          <aside className="relative flex flex-col w-64 bg-[#0B4A3F] text-white shadow-2xl z-10 animate-slide-in border-r border-[#D4AF37]/30">
+          <aside className="relative flex flex-col w-64 bg-gradient-to-b from-[#0F3D2E] via-[#0B2E22] to-[#082018] text-white shadow-2xl z-10 animate-slide-in border-r border-[#D4AF37]/30">
             <div 
               style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top))' }}
-              className="p-4 border-b border-white/10 bg-[#083831] flex items-center justify-between"
+              className="p-4 border-b border-white/[0.08] bg-[#082018]/90 flex items-center justify-between"
             >
               <span className="font-bold text-xs font-serif text-[#E8C766] uppercase tracking-wider">Menu Navigasi</span>
-              <button onClick={() => setIsSidebarOpen(false)} className="text-emerald-200 hover:text-white">
+              <button onClick={() => setIsSidebarOpen(false)} className="text-emerald-250 hover:text-white">
                 <X size={20} />
               </button>
             </div>
             
-            <div className="p-4 border-b border-white/10 bg-[#083831]/40">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-[#0B4A3F] flex items-center justify-center font-bold text-white uppercase border border-[#D4AF37] overflow-hidden">
-                  {user?.fotoProfil ? (
-                    <img
-                      src={user.fotoProfil.startsWith('data:') ? user.fotoProfil : `/${user.fotoProfil}`}
-                      alt={user.nama}
-                      className="w-full h-full object-cover"
-                      onError={(e) => { e.target.style.display = 'none'; }}
-                    />
-                  ) : (
-                    user?.nama?.charAt(0)
-                  )}
+            {/* User Profile Summary Card Mobile */}
+            <div className="p-4">
+              <Link 
+                to="/profil"
+                onClick={() => setIsSidebarOpen(false)}
+                className="flex items-center space-x-3 p-3 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.06] block cursor-pointer"
+              >
+                <div className="relative flex-shrink-0">
+                  <div className="w-10 h-10 rounded-full bg-[#0B4A3F] flex items-center justify-center font-bold text-white uppercase text-base border border-[#D4AF37] overflow-hidden relative">
+                    {user?.fotoProfil ? (
+                      <img
+                        src={user.fotoProfil.startsWith('data:') ? user.fotoProfil : `/${user.fotoProfil}`}
+                        alt={user.nama}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : (
+                      user?.nama?.charAt(0)
+                    )}
+                  </div>
+                  {/* Status Online Indicator Mobile */}
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-[#0B2E22] rounded-full"></span>
                 </div>
-                <div>
-                  <h2 className="font-bold text-xs text-white">{user?.nama}</h2>
-                  <span className="inline-block text-[9px] font-bold px-2 rounded-full bg-[#D4AF37]/20 text-[#E8C766] border border-[#D4AF37]/30 uppercase mt-0.5">
+                <div className="overflow-hidden flex-1">
+                  <h2 className="font-bold text-xs text-white truncate font-sans">{user?.nama}</h2>
+                  <span className="inline-flex items-center space-x-1 text-[8px] font-extrabold px-2 py-0.5 rounded bg-gradient-to-r from-[#D4AF37]/30 to-[#E8C766]/15 text-[#E8C766] border border-[#D4AF37]/45 uppercase mt-0.5">
                     {user?.role === 'ADMIN' ? 'Server / Admin' : `Santri ${user?.kelas || ''}`}
                   </span>
                 </div>
-              </div>
+              </Link>
             </div>
+ 
+            {/* Mobile Navigation Links Grouped */}
+            <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto">
+              {/* Group 1: Menu Utama */}
+              <div className="space-y-1">
+                <span className="px-3 text-[9px] font-extrabold text-[#8A8F98] tracking-widest uppercase block mb-1.5 opacity-60">MENU UTAMA</span>
+                {filteredNavItems.filter(item => ['Beranda', 'Profil'].includes(item.label)).map((item) => {
+                  const Icon = item.icon;
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onClick={() => setIsSidebarOpen(false)}
+                      className={`flex items-center space-x-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                        isActive
+                          ? 'bg-gradient-to-r from-[#D4AF37]/20 to-transparent text-[#E8C766] border-l-4 border-[#D4AF37]'
+                          : 'text-emerald-100/70 hover:bg-white/10 hover:text-white'
+                      }`}
+                    >
+                      <Icon size={18} className={isActive ? 'text-[#E8C766]' : 'text-emerald-200/80'} />
+                      <span>{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
 
-            <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
-              {filteredNavItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setIsSidebarOpen(false)}
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-[#083831] text-white border-l-4 border-[#D4AF37]'
-                        : 'text-emerald-100/70 hover:bg-white/10 hover:text-white'
-                    }`}
-                  >
-                    <Icon size={18} className={isActive ? 'text-[#E8C766]' : 'text-emerald-200/80'} />
-                    <span>{item.label}</span>
-                  </Link>
-                );
-              })}
+              {/* Group 2: Layanan & Data */}
+              {filteredNavItems.filter(item => !['Beranda', 'Profil'].includes(item.label)).length > 0 && (
+                <div className="space-y-1 pt-1">
+                  <span className="px-3 text-[9px] font-extrabold text-[#8A8F98] tracking-widest uppercase block mb-1.5 opacity-60">AKADEMIK & DATA</span>
+                  {filteredNavItems.filter(item => !['Beranda', 'Profil'].includes(item.label)).map((item) => {
+                    const Icon = item.icon;
+                    const isActive = location.pathname === item.path;
+                    return (
+                      <Link
+                        key={item.path}
+                        to={item.path}
+                        onClick={() => setIsSidebarOpen(false)}
+                        className={`flex items-center space-x-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
+                          isActive
+                            ? 'bg-gradient-to-r from-[#D4AF37]/20 to-transparent text-[#E8C766] border-l-4 border-[#D4AF37]'
+                            : 'text-emerald-100/70 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        <Icon size={18} className={isActive ? 'text-[#E8C766]' : 'text-emerald-200/80'} />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Tombol Tambah Santri Mobile */}
               {user?.role === 'ADMIN' && (
-                <div className="pt-3 mt-1 border-t border-white/10">
+                <div className="pt-3 border-t border-white/[0.08]">
                   <Link
                     to="/tambah-santri"
                     onClick={() => setIsSidebarOpen(false)}
                     className={`flex items-center space-x-3 px-4 py-3 rounded-xl text-xs font-bold transition-all ${
                       isTambahSantriActive
-                        ? 'bg-[#D4AF37] text-[#083831]'
-                        : 'bg-[#D4AF37]/15 text-[#E8C766] hover:bg-[#D4AF37]/30 border border-[#D4AF37]/40'
+                        ? 'bg-gradient-to-r from-[#D4AF37] to-[#B89327] text-[#083831] shadow-lg shadow-[#D4AF37]/20'
+                        : 'bg-[#D4AF37]/15 text-[#E8C766] hover:bg-[#D4AF37]/25 border border-[#D4AF37]/45'
                     }`}
                   >
                     <UserPlus size={18} className={isTambahSantriActive ? 'text-[#083831]' : 'text-[#E8C766]'} />
@@ -622,10 +699,12 @@ function Layout({ children, user, onLogout }) {
                 </div>
               )}
             </nav>
-            <div className="p-4 border-t border-white/10 bg-[#083831]">
+
+            {/* Logout Mobile */}
+            <div className="p-4 border-t border-white/[0.08] bg-[#082018]/70">
               <button
-                onClick={handleLogoutClick}
-                className="flex items-center space-x-3 w-full px-4 py-2.5 text-xs font-bold text-rose-300 hover:bg-rose-950/40 rounded-xl transition"
+                onClick={() => { setIsSidebarOpen(false); handleLogoutClick(); }}
+                className="flex items-center space-x-3 w-full px-4 py-2.5 text-xs font-bold text-rose-300/80 hover:text-white hover:bg-rose-600/20 rounded-xl transition border border-rose-500/15"
               >
                 <LogOut size={16} />
                 <span>Keluar Aplikasi</span>
