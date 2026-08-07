@@ -27,7 +27,8 @@ function Layout({ children, user, onLogout }) {
 
   // State untuk Notifikasi Lonceng
   const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const notifRef = useRef(null); // Ref untuk dropdown notifikasi
+  const mobileNotifRef = useRef(null); // Ref untuk dropdown notifikasi mobile
+  const desktopNotifRef = useRef(null); // Ref untuk dropdown notifikasi desktop
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   
@@ -60,19 +61,24 @@ function Layout({ children, user, onLogout }) {
   };
 
   // Tutup dropdown notifikasi saat klik di luar area notifikasi
+  // Menggunakan dua ref terpisah agar mobile & desktop tidak saling konflik
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (notifRef.current && !notifRef.current.contains(e.target)) {
+      const insideMobile = mobileNotifRef.current && mobileNotifRef.current.contains(e.target);
+      const insideDesktop = desktopNotifRef.current && desktopNotifRef.current.contains(e.target);
+      if (!insideMobile && !insideDesktop) {
         setIsNotifOpen(false);
       }
     };
     if (isNotifOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
+      // Gunakan 'mouseup' & 'touchend' (bukan mousedown/touchstart)
+      // agar user bisa berinteraksi penuh sebelum event close dipicu
+      document.addEventListener('mouseup', handleClickOutside);
+      document.addEventListener('touchend', handleClickOutside);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('mouseup', handleClickOutside);
+      document.removeEventListener('touchend', handleClickOutside);
     };
   }, [isNotifOpen]);
 
@@ -444,7 +450,7 @@ function Layout({ children, user, onLogout }) {
             <span className="text-[9px] text-[#E8C766] font-semibold">Miftahul Huda As-Syadzili</span>
           </div>
         </div>
-        <div className="flex items-center space-x-2 relative" ref={notifRef}>
+        <div className="flex items-center space-x-2 relative" ref={mobileNotifRef}>
           {/* Ikon Lonceng Mobile */}
           <button
             onClick={() => setIsNotifOpen(!isNotifOpen)}
@@ -646,7 +652,7 @@ function Layout({ children, user, onLogout }) {
           
           <div className="flex items-center space-x-5">
             {/* Ikon Lonceng Desktop */}
-            <div className="relative" ref={notifRef}>
+            <div className="relative" ref={desktopNotifRef}>
               <button 
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
                 className="p-2 text-slate-500 hover:text-[#0B4A3F] hover:bg-slate-100 rounded-full transition relative"
