@@ -401,12 +401,12 @@ function Profil({ user, onUserUpdate }) {
         </div>
       )}
       {/* HEADER CARD PROFIL */}
-      <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37]">
+      <div className="bg-gradient-to-br from-white to-[#DCFCE7]/20 p-6 rounded-2xl shadow-md border border-slate-200/80 border-t-4 border-t-[#D4AF37]">
         <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 text-center sm:text-left">
           
           {/* FOTO PROFIL DENGAN GOLD RING & GLOW */}
-          <div className="relative group flex-shrink-0">
-            <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#0B4A3F] to-[#083831] text-white flex items-center justify-center font-bold text-3xl shadow-lg border-4 border-white ring-2 ring-[#D4AF37]/50">
+          <div className="relative group flex-shrink-0 p-1 bg-white rounded-full ring-2 ring-[#D4AF37] shadow-lg">
+            <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-[#0B4A3F] to-[#083831] text-white flex items-center justify-center font-bold text-3xl">
               {(previewFoto || profileData.user.fotoProfil) ? (
                 <img
                   src={previewFoto || (profileData.user.fotoProfil?.startsWith('data:') ? profileData.user.fotoProfil : `/${profileData.user.fotoProfil}`)}
@@ -431,7 +431,7 @@ function Profil({ user, onUserUpdate }) {
                 />
                 <label
                   htmlFor="foto-profil-input"
-                  className={`absolute inset-0 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 ${
+                  className={`absolute inset-1 rounded-full flex items-center justify-center cursor-pointer transition-all duration-200 ${
                     fotoLoading 
                       ? 'bg-black/50' 
                       : 'bg-black/0 group-hover:bg-black/50'
@@ -449,9 +449,9 @@ function Profil({ user, onUserUpdate }) {
                   <button
                     onClick={handleDeleteFoto}
                     title="Hapus foto profil"
-                    className="absolute -top-1 -right-1 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-md transition-all duration-200 hover:scale-110 z-10 border border-white flex items-center justify-center"
+                    className="absolute -top-0.5 -right-0.5 bg-rose-500 hover:bg-rose-600 text-white p-1 rounded-full shadow-md transition-all duration-200 hover:scale-105 active:scale-95 z-10 border border-white flex items-center justify-center"
                   >
-                    <Trash2 size={12} />
+                    <Trash2 size={10} />
                   </button>
                 )}
               </>
@@ -459,15 +459,22 @@ function Profil({ user, onUserUpdate }) {
           </div>
 
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-[#0B4A3F] font-serif">{profileData.user.nama}</h1>
-            <p className="text-xs text-slate-500 mt-0.5">{profileData.user.email}</p>
-            <div className="mt-2.5 flex flex-wrap justify-center sm:justify-start gap-2">
-              <span className="inline-flex items-center space-x-1 text-[10px] font-extrabold px-3 py-0.5 rounded-full bg-[#DCFCE7] text-[#16A34A] border border-[#16A34A]/30 uppercase">
+            <h1 className="text-2xl font-bold text-[#0B4A3F] font-serif tracking-wide">{profileData.user.nama}</h1>
+            <p className="text-xs text-slate-400 mt-1 flex items-center justify-center sm:justify-start space-x-1.5">
+              <Mail size={12} className="text-slate-400 flex-shrink-0" />
+              <span>{profileData.user.email}</span>
+            </p>
+            <div className="mt-3 flex flex-wrap justify-center sm:justify-start gap-2">
+              <span className="inline-flex items-center space-x-1.5 text-[10px] font-bold px-3 py-1 rounded-full bg-[#DCFCE7]/70 text-[#16A34A] border border-[#16A34A]/25 shadow-sm uppercase tracking-wide">
                 <Sparkles size={10} />
                 <span>{profileData.user.role === 'ADMIN' ? 'Admin / Pengurus' : `Santri (${profileData.user.kelas || '-'})`}</span>
               </span>
-              <span className="inline-block text-[10px] font-extrabold px-3 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200 uppercase">
-                STATUS: {profileData.user.status}
+              <span className="inline-flex items-center space-x-1.5 text-[10px] font-bold px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200/50 shadow-sm uppercase tracking-wide">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-blue-500"></span>
+                </span>
+                <span>STATUS: {profileData.user.status}</span>
               </span>
             </div>
             {fotoSuccess && (
@@ -485,7 +492,11 @@ function Profil({ user, onUserUpdate }) {
             {/* Tombol Edit Biodata - selalu tampil untuk admin */}
             <button
               onClick={() => setIsEditing(!isEditing)}
-              className="bg-[#DCFCE7] hover:bg-emerald-200 text-[#0B4A3F] px-4 py-2.5 rounded-xl font-bold text-xs shadow-sm transition border border-[#16A34A]/30 flex items-center space-x-1.5"
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all duration-200 transform hover:-translate-y-0.5 flex items-center space-x-1.5 border ${
+                isEditing 
+                  ? 'bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-500 text-white border-rose-650 shadow-rose-100' 
+                  : 'bg-gradient-to-r from-[#0B4A3F] to-[#115C4E] hover:from-[#115C4E] hover:to-[#0B4A3F] text-white border-[#0B4A3F]/25 shadow-emerald-150'
+              }`}
             >
               <Edit size={14} />
               <span>{isEditing ? 'Batal Edit' : 'Edit Biodata'}</span>
@@ -1007,10 +1018,10 @@ function Profil({ user, onUserUpdate }) {
             <span>Informasi Detail Akun Pengurus</span>
           </h2>
 
-          <div className="mt-5 grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
+          <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-8 text-xs">
             
             {/* Sisi Kiri: Biodata Admin (Editable jika isEditing true) */}
-            <div className="lg:col-span-2 space-y-5 border-r border-slate-100 pr-0 lg:pr-6">
+            <div className="lg:col-span-2 space-y-6 border-r-0 lg:border-r border-slate-100 pr-0 lg:pr-6 pb-6 lg:pb-0">
               {isEditing ? (
                 <form onSubmit={handleSaveBiodata} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1082,80 +1093,135 @@ function Profil({ user, onUserUpdate }) {
                   </button>
                 </form>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-slate-100 rounded-xl text-[#0B4A3F]"><User size={16} /></div>
+                    
+                    <div className="flex items-center space-x-3.5 p-3 rounded-2xl hover:bg-slate-50/70 border border-transparent hover:border-slate-100 hover:shadow-xs transition-all duration-200">
+                      <div className="p-2.5 bg-emerald-50 text-[#0B4A3F] rounded-xl border border-emerald-100/50 flex-shrink-0"><User size={16} /></div>
                       <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase">Nama Lengkap</p>
-                        <h4 className="font-bold text-slate-800 text-xs">{profileData.user.nama}</h4>
+                        <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Nama Lengkap</p>
+                        <h4 className="font-bold text-slate-800 text-sm mt-0.5">{profileData.user.nama}</h4>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-slate-100 rounded-xl text-[#0B4A3F]"><Mail size={16} /></div>
+
+                    <div className="flex items-center space-x-3.5 p-3 rounded-2xl hover:bg-slate-50/70 border border-transparent hover:border-slate-100 hover:shadow-xs transition-all duration-200">
+                      <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl border border-blue-100/50 flex-shrink-0"><Mail size={16} /></div>
                       <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase">Alamat Email</p>
-                        <h4 className="font-semibold text-slate-800 text-xs">{profileData.user.email}</h4>
+                        <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Alamat Email</p>
+                        <h4 className="font-semibold text-slate-800 text-sm mt-0.5">{profileData.user.email}</h4>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-slate-100 rounded-xl text-[#0B4A3F]"><ShieldCheck size={16} /></div>
+
+                    <div className="flex items-center space-x-3.5 p-3 rounded-2xl hover:bg-slate-50/70 border border-transparent hover:border-slate-100 hover:shadow-xs transition-all duration-200">
+                      <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl border border-amber-100/50 flex-shrink-0"><ShieldCheck size={16} /></div>
                       <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase">Level Hak Akses</p>
-                        <h4 className="font-extrabold text-[#D4AF37] text-xs">SERVER ADMINISTRATOR</h4>
+                        <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Level Hak Akses</p>
+                        <h4 className="font-extrabold text-[#D4AF37] text-xs shadow-xs bg-[#FEF3C7]/40 px-2 py-0.5 rounded border border-[#D4AF37]/35 w-fit mt-0.5">SERVER ADMINISTRATOR</h4>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-slate-100 rounded-xl text-[#0B4A3F]"><Phone size={16} /></div>
+
+                    <div className="flex items-center space-x-3.5 p-3 rounded-2xl hover:bg-slate-50/70 border border-transparent hover:border-slate-100 hover:shadow-xs transition-all duration-200">
+                      <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100/50 flex-shrink-0"><Phone size={16} /></div>
                       <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase">Nomor HP</p>
-                        <h4 className="font-semibold text-slate-800 text-xs">{profileData.user.noHp}</h4>
+                        <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Nomor HP</p>
+                        <h4 className="font-semibold text-slate-800 text-sm mt-0.5">{profileData.user.noHp}</h4>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-slate-100 rounded-xl text-[#0B4A3F]"><Calendar size={16} /></div>
+
+                    <div className="flex items-center space-x-3.5 p-3 rounded-2xl hover:bg-slate-50/70 border border-transparent hover:border-slate-100 hover:shadow-xs transition-all duration-200">
+                      <div className="p-2.5 bg-rose-50 text-rose-600 rounded-xl border border-rose-100/50 flex-shrink-0"><Calendar size={16} /></div>
                       <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase">Tanggal Bergabung</p>
-                        <h4 className="font-bold text-slate-800 text-xs">{formatTanggalIndo(profileData.user.createdAt)}</h4>
+                        <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Tanggal Bergabung</p>
+                        <h4 className="font-bold text-slate-800 text-sm mt-0.5">{formatTanggalIndo(profileData.user.createdAt)}</h4>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2.5 bg-slate-100 rounded-xl text-[#0B4A3F]"><Activity size={16} /></div>
+
+                    <div className="flex items-center space-x-3.5 p-3 rounded-2xl hover:bg-slate-50/70 border border-transparent hover:border-slate-100 hover:shadow-xs transition-all duration-200">
+                      <div className="p-2.5 bg-teal-50 text-teal-600 rounded-xl border border-teal-100/50 flex-shrink-0"><Activity size={16} /></div>
                       <div>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase">Terakhir Masuk</p>
-                        <h4 className="font-bold text-slate-800 text-xs">Hari ini, {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</h4>
+                        <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Terakhir Masuk</p>
+                        <h4 className="font-bold text-slate-800 text-sm mt-0.5">Hari ini, {new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB</h4>
                       </div>
                     </div>
                   </div>
                   
                   <div className="pt-2">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase">Alamat Instansi/Kantor</p>
-                    <p className="font-semibold text-slate-800 mt-1 leading-relaxed">{profileData.user.alamat}</p>
+                    <div className="p-4 bg-emerald-50/20 border border-emerald-100/60 rounded-xl shadow-xs">
+                      <p className="text-[10px] font-extrabold text-slate-400 tracking-wider uppercase">Alamat Instansi/Kantor</p>
+                      <p className="font-semibold text-slate-700 mt-1.5 leading-relaxed text-xs">{profileData.user.alamat}</p>
+                    </div>
                   </div>
 
-                    {/* LOG AKTIVITAS SERVER ADMIN */}
-                  <div className="pt-4 border-t border-slate-100">
-                    <h3 className="text-xs font-bold text-[#0B4A3F] uppercase tracking-wider mb-3 flex items-center space-x-1.5">
+                  {/* LOG AKTIVITAS SERVER ADMIN */}
+                  <div className="pt-5 border-t border-slate-100">
+                    <h3 className="text-xs font-extrabold text-[#0B4A3F] uppercase tracking-wider mb-4 flex items-center space-x-1.5">
                       <Activity size={15} className="text-[#D4AF37]" />
                       <span>Log Aktivitas Server</span>
                     </h3>
-                    <div className="space-y-2 text-[10px]">
-                      <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                        <span className="text-slate-600">🟢 Server backend berjalan normal di <strong>localhost:5000</strong></span>
-                        <span className="text-slate-400">Aktif</span>
+                    
+                    <div className="space-y-3">
+                      
+                      <div className="p-3.5 bg-white border border-slate-100 hover:border-slate-200/80 rounded-xl flex items-center justify-between shadow-xs hover:shadow-sm transition-all duration-200">
+                        <div className="flex items-center space-x-3">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          <span className="text-slate-600 text-xs">
+                            Server backend berjalan normal di <code className="px-1.5 py-0.5 bg-slate-100 text-slate-700 font-mono text-[9px] rounded border border-slate-200/60 font-semibold">localhost:5000</code>
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2.5">
+                          <span className="text-[9px] text-slate-400">Baru saja</span>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/50 uppercase shadow-xs">Aktif</span>
+                        </div>
                       </div>
-                      <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                        <span className="text-slate-600">🟢 Koneksi database <strong>PostgreSQL (Neon)</strong> terhubung</span>
-                        <span className="text-slate-400">Online</span>
+
+                      <div className="p-3.5 bg-white border border-slate-100 hover:border-slate-200/80 rounded-xl flex items-center justify-between shadow-xs hover:shadow-sm transition-all duration-200">
+                        <div className="flex items-center space-x-3">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                          </span>
+                          <span className="text-slate-600 text-xs">
+                            Koneksi database <code className="px-1.5 py-0.5 bg-slate-100 text-slate-700 font-mono text-[9px] rounded border border-slate-200/60 font-semibold">PostgreSQL (Neon)</code> terhubung
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2.5">
+                          <span className="text-[9px] text-slate-400">2 menit lalu</span>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/50 uppercase shadow-xs">Online</span>
+                        </div>
                       </div>
-                      <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                        <span className="text-slate-600">🟡 Sesi login admin aktif sejak <strong>{new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</strong></span>
-                        <span className="text-slate-400">Hari ini</span>
+
+                      <div className="p-3.5 bg-white border border-slate-100 hover:border-slate-200/80 rounded-xl flex items-center justify-between shadow-xs hover:shadow-sm transition-all duration-200">
+                        <div className="flex items-center space-x-3">
+                          <span className="h-2 w-2 rounded-full bg-amber-400"></span>
+                          <span className="text-slate-600 text-xs">
+                            Sesi login admin aktif sejak <code className="px-1.5 py-0.5 bg-slate-100 text-slate-700 font-mono text-[9px] rounded border border-slate-200/60 font-semibold">{new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</code>
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2.5">
+                          <span className="text-[9px] text-slate-400">1 jam lalu</span>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-amber-50 text-amber-700 border border-amber-200/50 uppercase shadow-xs">Hari ini</span>
+                        </div>
                       </div>
-                      <div className="p-2.5 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between">
-                        <span className="text-slate-600">🔵 API endpoint <strong>/api</strong> merespons dengan baik</span>
-                        <span className="text-slate-400">200 OK</span>
+
+                      <div className="p-3.5 bg-white border border-slate-100 hover:border-slate-200/80 rounded-xl flex items-center justify-between shadow-xs hover:shadow-sm transition-all duration-200">
+                        <div className="flex items-center space-x-3">
+                          <span className="relative flex h-2 w-2">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                          </span>
+                          <span className="text-slate-600 text-xs">
+                            API endpoint <code className="px-1.5 py-0.5 bg-slate-100 text-slate-700 font-mono text-[9px] rounded border border-slate-200/60 font-semibold">/api</code> merespons dengan baik
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-2.5">
+                          <span className="text-[9px] text-slate-400">5 menit lalu</span>
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-blue-50 text-blue-700 border border-blue-200/50 uppercase shadow-xs">200 OK</span>
+                        </div>
                       </div>
+
                     </div>
                   </div>
                 </div>
@@ -1163,33 +1229,54 @@ function Profil({ user, onUserUpdate }) {
             </div>
 
             {/* Sisi Kanan: Informasi Sistem */}
-            <div className="lg:col-span-1 space-y-4">
-              <div className="bg-slate-50 border border-slate-200/80 p-5 rounded-2xl">
-                <h3 className="text-xs font-bold text-[#0B4A3F] uppercase tracking-wider mb-4 flex items-center space-x-1.5">
-                  <ShieldCheck size={15} className="text-[#D4AF37]" />
+            <div className="lg:col-span-1 space-y-4 lg:sticky lg:top-24 self-start">
+              <div className="bg-slate-50 border border-slate-200/80 p-5 rounded-2xl shadow-md">
+                <h3 className="text-xs font-extrabold text-[#0B4A3F] uppercase tracking-wider mb-4 flex items-center space-x-2">
+                  <div className="p-1.5 bg-[#FEF3C7] rounded-full text-[#D4AF37] flex items-center justify-center shadow-xs">
+                    <ShieldCheck size={16} />
+                  </div>
                   <span>Status Sistem</span>
                 </h3>
-                <div className="space-y-3 text-[10px]">
-                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
-                    <span className="text-slate-600 font-medium">Backend Server</span>
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">AKTIF</span>
+                
+                <div className="divide-y divide-slate-200/60 text-[10px]">
+                  
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-slate-600 font-bold text-xs">Backend Server</span>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                      </span>
+                      <span className="px-2.5 py-1 bg-[#DCFCE7]/70 text-[#16A34A] rounded-full font-bold text-[9px] border border-emerald-200/40 uppercase shadow-xs">AKTIF</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
-                    <span className="text-slate-600 font-medium">Database</span>
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">TERHUBUNG</span>
+
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-slate-600 font-bold text-xs">Database</span>
+                    <div className="flex items-center space-x-1.5">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                      </span>
+                      <span className="px-2.5 py-1 bg-[#DCFCE7]/70 text-[#16A34A] rounded-full font-bold text-[9px] border border-emerald-200/40 uppercase shadow-xs">TERHUBUNG</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
-                    <span className="text-slate-600 font-medium">Autentikasi JWT</span>
-                    <span className="px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold">AMAN</span>
+
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-slate-600 font-bold text-xs">Autentikasi JWT</span>
+                    <span className="px-2.5 py-1 bg-[#DCFCE7]/70 text-[#16A34A] rounded-full font-bold text-[9px] border border-emerald-200/40 uppercase shadow-xs">AMAN</span>
                   </div>
-                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
-                    <span className="text-slate-600 font-medium">Hak Akses</span>
-                    <span className="px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full font-bold">ADMIN PENUH</span>
+
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-slate-600 font-bold text-xs">Hak Akses</span>
+                    <span className="px-2.5 py-1 bg-[#FEF3C7] text-[#D97706] rounded-full font-extrabold text-[9px] border border-amber-300 uppercase shadow-xs">ADMIN PENUH</span>
                   </div>
-                  <div className="flex items-center justify-between p-2 bg-white border border-slate-100 rounded-xl">
-                    <span className="text-slate-600 font-medium">Versi Sistem</span>
-                    <span className="text-slate-500 font-bold">v1.0.0</span>
+
+                  <div className="flex items-center justify-between py-3">
+                    <span className="text-slate-600 font-bold text-xs">Versi Sistem</span>
+                    <span className="text-slate-500 font-bold text-[9px] bg-slate-100 px-2 py-0.5 rounded border border-slate-200">v1.0.0</span>
                   </div>
+
                 </div>
               </div>
             </div>
