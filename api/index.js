@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 
 // Load environment variables (locally from backend/.env, on Vercel from env vars)
@@ -11,8 +12,13 @@ const routes = require('../backend/src/routes/index.js');
 
 const app = express();
 
+app.use(cookieParser());
 app.use(cors({
-  origin: '*',
+  origin: (origin, callback) => {
+    // Izinkan origin request secara dinamis demi kredensial cookie
+    callback(null, true);
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));

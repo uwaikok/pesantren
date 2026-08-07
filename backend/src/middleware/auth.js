@@ -1,8 +1,14 @@
 const jwt = require('jsonwebtoken');
 
 const verifyToken = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  // 1. Coba ambil dari cookie httpOnly (lebih aman dari XSS)
+  let token = req.cookies ? req.cookies.simesra_token : null;
+
+  // 2. Fallback: Ambil dari Authorization Header (dukungan untuk Capacitor mobile app)
+  if (!token) {
+    const authHeader = req.headers['authorization'];
+    token = authHeader && authHeader.split(' ')[1];
+  }
 
   if (!token) {
     return res.status(401).json({ message: 'Akses ditolak: Token tidak disediakan' });

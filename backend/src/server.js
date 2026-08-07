@@ -16,6 +16,7 @@ if (missingEnvVars.length > 0) {
 
 const express = require('express');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const routes = require('./routes');
 
@@ -23,8 +24,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+app.use(cookieParser());
 app.use(cors({
-  origin: '*', // Untuk kemudahan development, izinkan dari origin mana pun
+  origin: (origin, callback) => {
+    // Izinkan origin request secara dinamis demi kredensial cookie
+    callback(null, true);
+  },
+  credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));

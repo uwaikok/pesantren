@@ -15,6 +15,7 @@ const notificationController = require('../controllers/notificationController');
 
 // --- AUTENTIKASI ---
 router.post('/auth/login', loginRateLimiter, authController.login);
+router.post('/auth/logout', authController.logout);
 router.get('/auth/me', verifyToken, authController.getMe);
 router.post('/auth/change-password', verifyToken, authController.changePassword);
 

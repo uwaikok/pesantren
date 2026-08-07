@@ -54,6 +54,14 @@ const login = async (req, res) => {
     // Reset rate limiter counter untuk IP+email ini setelah login berhasil
     resetLoginLimiter(req);
 
+    // Set token di httpOnly cookie demi perlindungan XSS di web
+    res.cookie('simesra_token', token, {
+      httpOnly: true,
+      secure: true, // Wajib true karena client-server lintas origin (HTTPS Vercel)
+      sameSite: 'none', // Wajib 'none' untuk CORS cookies
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 hari
+    });
+
     res.json({
       message: 'Login berhasil',
       token,
@@ -153,9 +161,19 @@ const changePassword = async (req, res) => {
   }
 };
 
+const logout = async (req, res) => {
+  res.clearCookie('simesra_token', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none'
+  });
+  res.json({ message: 'Logout berhasil' });
+};
+
 module.exports = {
   login,
   getMe,
-  changePassword
+  changePassword,
+  logout
 };
 

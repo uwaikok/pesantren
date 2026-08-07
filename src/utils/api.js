@@ -39,6 +39,7 @@ console.log('[SIM Pesantren] API Base URL:', BASE_URL, '| Native:', isCapacitorN
 const api = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
+  withCredentials: true, // Izinkan browser mengirim cookie secara otomatis (httpOnly)
 });
 
 // Interceptor untuk menyisipkan token JWT di setiap request

@@ -36,7 +36,12 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await api.post('/auth/logout');
+    } catch (err) {
+      console.warn('Gagal membersihkan cookie di server:', err.message);
+    }
     localStorage.removeItem('simesra_token');
     setUser(null);
   };
