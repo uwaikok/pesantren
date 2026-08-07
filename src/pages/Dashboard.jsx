@@ -19,10 +19,39 @@ import {
   Award,
   Database,
   RefreshCw,
-  UserX
+  UserX,
+  ArrowUpRight,
+  TrendingUp
 } from 'lucide-react';
 import api from '../utils/api';
 import { confirmDialog, alertDialog } from '../utils/dialog';
+
+function AnimatedNumber({ value }) {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    let start = 0;
+    const end = parseInt(value) || 0;
+    if (end === 0) {
+      setCount(0);
+      return;
+    }
+    const duration = 1000; // ms
+    const increment = Math.ceil(end / (duration / 16)); // ~60fps
+    const timer = setInterval(() => {
+      start += increment;
+      if (start >= end) {
+        clearInterval(timer);
+        setCount(end);
+      } else {
+        setCount(start);
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [value]);
+
+  return <>{count.toLocaleString('id-ID')}</>;
+}
 
 function Dashboard({ user }) {
   const formatDateForInput = (dateStr) => {
@@ -549,59 +578,143 @@ function Dashboard({ user }) {
         </div>
       </div>
 
-      {/* Stats Grid dengan Border Top Emas Tipis & Soft Circle Background Icon */}
-      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Grid dengan Desain Modern Premium */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Total Santri */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
-          <div className="order-2 sm:order-1 min-w-0">
-            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">TOTAL SANTRI TERDAFTAR</span>
-            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-[#0B4A3F] font-serif">{stats?.totalSantri || 0}</h3>
+        <div className="bg-white border-l-4 border-l-sky-500 p-5 sm:p-6 rounded-2xl shadow-soft hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36">
+          {/* Subtle background sparkline graph decoration */}
+          <svg className="absolute bottom-0 right-0 left-0 h-12 w-full text-sky-100 opacity-20 pointer-events-none" viewBox="0 0 100 20" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="grad-blue" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#3B82F6" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M 0 15 Q 10 10 20 12 T 40 8 T 60 14 T 80 6 T 100 10 L 100 20 L 0 20 Z" fill="url(#grad-blue)" />
+            <path d="M 0 15 Q 10 10 20 12 T 40 8 T 60 14 T 80 6 T 100 10" fill="none" stroke="#3B82F6" strokeWidth="1" />
+          </svg>
+
+          <div className="flex justify-between items-start z-10 w-full">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">TOTAL SANTRI TERDAFTAR</span>
+              <h3 className="text-3xl sm:text-4xl font-extrabold mt-1 text-[#0B4A3F] font-serif tracking-tight">
+                <AnimatedNumber value={stats?.totalSantri || 0} />
+              </h3>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-50 to-sky-100/50 border border-sky-100/80 text-sky-600 flex items-center justify-center shadow-inner flex-shrink-0">
+              <Users size={22} className="stroke-[2.2]" />
+            </div>
           </div>
-          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
-            <Users size={20} />
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-sky-600 font-bold z-10">
+            <TrendingUp size={14} />
+            <span className="text-slate-400 font-semibold">Registrasi keseluruhan terdata</span>
           </div>
         </div>
 
         {/* Santri Aktif */}
-        <div className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3">
-          <div className="order-2 sm:order-1 min-w-0">
-            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">SANTRI STATUS AKTIF</span>
-            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-[#0B4A3F] font-serif">{stats?.activeSantri || 0}</h3>
+        <div className="bg-white border-l-4 border-l-emerald-500 p-5 sm:p-6 rounded-2xl shadow-soft hover:shadow-lg hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36">
+          {/* Subtle background sparkline graph decoration */}
+          <svg className="absolute bottom-0 right-0 left-0 h-12 w-full text-emerald-100 opacity-20 pointer-events-none" viewBox="0 0 100 20" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="grad-green" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#10B981" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M 0 12 Q 15 16 30 10 T 60 14 T 90 8 T 100 6 L 100 20 L 0 20 Z" fill="url(#grad-green)" />
+            <path d="M 0 12 Q 15 16 30 10 T 60 14 T 90 8 T 100 6" fill="none" stroke="#10B981" strokeWidth="1" />
+          </svg>
+
+          <div className="flex justify-between items-start z-10 w-full">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">SANTRI STATUS AKTIF</span>
+              <h3 className="text-3xl sm:text-4xl font-extrabold mt-1 text-[#0B4A3F] font-serif tracking-tight">
+                <AnimatedNumber value={stats?.activeSantri || 0} />
+              </h3>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-50 to-emerald-100/50 border border-emerald-100/80 text-emerald-600 flex items-center justify-center shadow-inner flex-shrink-0">
+              <UserCheck size={22} className="stroke-[2.2]" />
+            </div>
           </div>
-          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#0B4A3F] flex items-center justify-center flex-shrink-0">
-            <UserCheck size={20} />
+          <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-emerald-600 font-bold z-10">
+            <Check size={14} className="bg-emerald-100 rounded-full p-0.5" />
+            <span className="text-slate-400 font-semibold">Aktif mengikuti pendidikan</span>
           </div>
         </div>
 
         {/* Santri Beasiswa */}
         <div 
           onClick={() => handleCardClick('BEASISWA')}
-          className="bg-white border-t-3 border-t-[#D4AF37] p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="bg-white border-l-4 border-l-[#D4AF37] p-5 sm:p-6 rounded-2xl shadow-soft hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36 cursor-pointer group active:scale-[0.98]"
           title="Klik untuk melihat daftar nama santri beasiswa"
         >
-          <div className="order-2 sm:order-1 min-w-0">
-            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">SANTRI BEASISWA</span>
-            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-[#16A34A] font-serif">{stats?.totalBeasiswa || 0}</h3>
-            <span className="text-[8px] text-emerald-400 font-semibold">Klik untuk lihat daftar</span>
+          {/* Subtle background sparkline graph decoration */}
+          <svg className="absolute bottom-0 right-0 left-0 h-12 w-full text-amber-100 opacity-20 pointer-events-none" viewBox="0 0 100 20" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="grad-gold" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#D4AF37" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#D4AF37" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M 0 18 Q 20 8 40 14 T 80 6 T 100 12 L 100 20 L 0 20 Z" fill="url(#grad-gold)" />
+            <path d="M 0 18 Q 20 8 40 14 T 80 6 T 100 12" fill="none" stroke="#D4AF37" strokeWidth="1" />
+          </svg>
+
+          <div className="flex justify-between items-start z-10 w-full">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">SANTRI BEASISWA</span>
+              <h3 className="text-3xl sm:text-4xl font-extrabold mt-1 text-[#D4AF37] font-serif tracking-tight">
+                <AnimatedNumber value={stats?.totalBeasiswa || 0} />
+              </h3>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-amber-50 to-amber-100/50 border border-amber-100/80 text-[#D4AF37] flex items-center justify-center shadow-inner flex-shrink-0">
+              <Award size={22} className="stroke-[2.2]" />
+            </div>
           </div>
-          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#DCFCE7] text-[#16A34A] flex items-center justify-center flex-shrink-0">
-            <Award size={20} />
+          <div className="flex items-center justify-between z-10 w-full">
+            <div className="flex items-center gap-1 text-[10px] sm:text-xs text-[#D4AF37] font-bold">
+              <Award size={14} />
+              <span className="text-slate-400 group-hover:text-[#D4AF37] group-hover:underline transition duration-150">Klik untuk lihat daftar</span>
+            </div>
+            <ArrowUpRight size={16} className="text-[#D4AF37] opacity-0 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0 transition-all duration-200" />
           </div>
         </div>
 
         {/* Santri Tidak Aktif */}
         <div 
           onClick={() => handleCardClick('INACTIVE')}
-          className="bg-white border-t-3 border-t-rose-500 p-3.5 sm:p-5 rounded-2xl shadow-soft card-hover flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-3 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="bg-white border-l-4 border-l-rose-500 p-5 sm:p-6 rounded-2xl shadow-soft hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative overflow-hidden flex flex-col justify-between h-36 cursor-pointer group active:scale-[0.98]"
           title="Klik untuk melihat daftar nama santri tidak aktif"
         >
-          <div className="order-2 sm:order-1 min-w-0">
-            <span className="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-wider block truncate">STATUS TIDAK AKTIF</span>
-            <h3 className="text-2xl sm:text-3xl font-extrabold mt-1 text-rose-600 font-serif">{stats?.inactiveSantri || 0}</h3>
-            <span className="text-[8px] text-rose-400 font-semibold">Klik untuk lihat daftar</span>
+          {/* Subtle background sparkline graph decoration */}
+          <svg className="absolute bottom-0 right-0 left-0 h-12 w-full text-rose-100 opacity-20 pointer-events-none" viewBox="0 0 100 20" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="grad-red" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#EF4444" stopOpacity="0.4" />
+                <stop offset="100%" stopColor="#EF4444" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            <path d="M 0 10 Q 30 18 60 8 T 95 14 T 100 12 L 100 20 L 0 20 Z" fill="url(#grad-red)" />
+            <path d="M 0 10 Q 30 18 60 8 T 95 14 T 100 12" fill="none" stroke="#EF4444" strokeWidth="1" />
+          </svg>
+
+          <div className="flex justify-between items-start z-10 w-full">
+            <div className="min-w-0">
+              <span className="text-[10px] sm:text-xs font-bold text-[#8A8F98] uppercase tracking-wider block">STATUS TIDAK AKTIF</span>
+              <h3 className="text-3xl sm:text-4xl font-extrabold mt-1 text-rose-600 font-serif tracking-tight">
+                <AnimatedNumber value={stats?.inactiveSantri || 0} />
+              </h3>
+            </div>
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-rose-50 to-rose-100/50 border border-rose-100/80 text-rose-600 flex items-center justify-center shadow-inner flex-shrink-0">
+              <UserX size={22} className="stroke-[2.2]" />
+            </div>
           </div>
-          <div className="order-1 sm:order-2 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center flex-shrink-0">
-            <UserX size={20} />
+          <div className="flex items-center justify-between z-10 w-full">
+            <div className="flex items-center gap-1 text-[10px] sm:text-xs text-rose-600 font-bold">
+              <UserX size={14} />
+              <span className="text-slate-400 group-hover:text-rose-550 group-hover:underline transition duration-150">Klik untuk lihat daftar</span>
+            </div>
+            <ArrowUpRight size={16} className="text-rose-500 opacity-0 group-hover:opacity-100 transform translate-y-1 group-hover:translate-y-0 transition-all duration-200" />
           </div>
         </div>
       </div>
