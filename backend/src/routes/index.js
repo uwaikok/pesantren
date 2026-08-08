@@ -105,6 +105,7 @@ router.get('/admin/stats', verifyToken, isAdmin, adminController.getStats);
 router.get('/admin/santri', verifyToken, isAdmin, adminController.getSantriList);
 router.post('/admin/santri', verifyToken, isAdmin, adminController.createSantri);
 router.put('/admin/santri/promote/bulk', verifyToken, isAdmin, adminController.promoteBulk);
+router.put('/admin/santri/batch-update', verifyToken, isAdmin, adminController.batchUpdate);
 router.put('/admin/santri/:id', verifyToken, isAdmin, adminController.updateSantri);
 router.delete('/admin/santri/:id', verifyToken, isAdmin, adminController.deleteSantri);
 

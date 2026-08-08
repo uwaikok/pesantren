@@ -93,6 +93,10 @@ const createSantri = async (req, res) => {
       return res.status(400).json({ message: 'Nama wajib diisi' });
     }
 
+    if (!kelas || kelas.trim() === '') {
+      return res.status(400).json({ message: 'Kelas/Rombel wajib diisi' });
+    }
+
     if (noHp) {
       const numericPhone = /^[0-9]+$/;
       if (!numericPhone.test(noHp)) {
@@ -314,6 +318,34 @@ const promoteBulk = async (req, res) => {
   }
 };
 
+const batchUpdate = async (req, res) => {
+  try {
+    const { updates } = req.body;
+    if (!updates || !Array.isArray(updates)) {
+      return res.status(400).json({ message: 'updates harus berupa array' });
+    }
+
+    // Jalankan seluruh pembaruan dalam satu transaksi batch agar cepat dan konsisten
+    await prisma.$transaction(
+      updates.map(u => {
+        const data = {};
+        if (u.kelas !== undefined) data.kelas = u.kelas;
+        if (u.status !== undefined) data.status = u.status;
+
+        return prisma.santri.update({
+          where: { id: parseInt(u.id) },
+          data
+        });
+      })
+    );
+
+    res.json({ message: 'Pembaruan massal berhasil diproses' });
+  } catch (error) {
+    console.error('Batch update error:', error);
+    res.status(500).json({ message: 'Gagal memproses pembaruan massal' });
+  }
+};
+
 const uploadFotoProfil = async (req, res) => {
   try {
     const { id } = req.params;
@@ -440,6 +472,7 @@ module.exports = {
   deleteSantri,
   getStats,
   promoteBulk,
+  batchUpdate,
   uploadFotoProfil,
   deleteFotoProfil,
   upload,

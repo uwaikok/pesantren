@@ -59,6 +59,7 @@ function KelasRombel() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const [selectedIds, setSelectedIds] = useState([]);
 
   useEffect(() => {
     fetchStudents();
@@ -71,11 +72,28 @@ function KelasRombel() {
       // Fetch all students (only active)
       const list = await api.get('/admin/santri');
       setStudents(list.filter(s => s.status === 'ACTIVE'));
+      setSelectedIds([]); // Reset selection on refresh
     } catch (err) {
       console.error(err);
       setError('Gagal memuat data santri');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSelectStudent = (id) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllInClass = (className, classStudents) => {
+    const classIds = classStudents.map(s => s.id);
+    const allSelected = classIds.every(id => selectedIds.includes(id));
+    if (allSelected) {
+      setSelectedIds(prev => prev.filter(id => !classIds.includes(id)));
+    } else {
+      setSelectedIds(prev => [...new Set([...prev, ...classIds])]);
     }
   };
 
@@ -152,6 +170,93 @@ function KelasRombel() {
     }
   };
 
+  const handleBulkAction = async (actionType, targetClass = null) => {
+    if (selectedIds.length === 0) return;
+
+    const selectedStudents = students.filter(s => selectedIds.includes(s.id));
+    const studentCount = selectedIds.length;
+    const updates = [];
+    let confirmMsg = '';
+
+    if (actionType === 'PROMOTE') {
+      selectedStudents.forEach(s => {
+        const next = getNextClass(s.kelas);
+        if (next) {
+          if (next === 'LULUS') {
+            updates.push({ id: s.id, status: 'INACTIVE' });
+          } else {
+            updates.push({ id: s.id, kelas: next });
+          }
+        }
+      });
+      confirmMsg = `Anda akan menaikkan ${studentCount} santri terpilih ke tingkatan kelas berikutnya.`;
+    } else if (actionType === 'DEMOTE') {
+      selectedStudents.forEach(s => {
+        const prev = getPrevClass(s.kelas, s.nama);
+        if (prev) {
+          updates.push({ id: s.id, kelas: prev });
+        }
+      });
+      confirmMsg = `Anda akan menurunkan ${studentCount} santri terpilih ke tingkatan kelas sebelumnya.`;
+    } else if (actionType === 'KEEP') {
+      selectedStudents.forEach(s => {
+        updates.push({ id: s.id, kelas: s.kelas });
+      });
+      confirmMsg = `Anda akan menandai ${studentCount} santri terpilih tetap berada di rombel kelas saat ini untuk tahun ajaran baru.`;
+    } else if (actionType === 'MOVE' && targetClass) {
+      selectedStudents.forEach(s => {
+        if (targetClass === 'LULUS') {
+          updates.push({ id: s.id, status: 'INACTIVE' });
+        } else {
+          updates.push({ id: s.id, kelas: targetClass });
+        }
+      });
+      confirmMsg = `Anda akan memindahkan ${studentCount} santri terpilih ke kelas ${targetClass === 'LULUS' ? 'Alumni / Lulus' : targetClass}.`;
+    }
+
+    if (updates.length === 0) {
+      setError('Tidak ada tindakan yang valid untuk santri terpilih.');
+      return;
+    }
+
+    // List names, showing max 10 to keep confirm box readable
+    const nameList = selectedStudents.length <= 10
+      ? selectedStudents.map(s => `• ${s.nama}`).join('\n')
+      : selectedStudents.slice(0, 10).map(s => `• ${s.nama}`).join('\n') + `\n• ... dan ${selectedStudents.length - 10} santri lainnya`;
+
+    const fullConfirmMsg = `${confirmMsg}\n\nDaftar santri yang terpengaruh:\n${nameList}\n\nLanjutkan?`;
+
+    if (!await confirmDialog(fullConfirmMsg)) return;
+
+    try {
+      setError('');
+      setSuccessMsg('');
+      setLoading(true);
+
+      await api.put('/admin/santri/batch-update', { updates });
+
+      const targetClassName = targetClass ? (targetClass === 'LULUS' ? 'Alumni' : targetClass) : 'tingkatan baru';
+      setSuccessMsg(`${studentCount} santri berhasil dipindahkan.`);
+      setSelectedIds([]);
+      fetchStudents();
+    } catch (err) {
+      setError(err.message || 'Gagal memproses aksi massal');
+      setLoading(false);
+    }
+  };
+
+  const getCommonClass = () => {
+    if (selectedIds.length === 0) return null;
+    const selectedStudents = students.filter(s => selectedIds.includes(s.id));
+    const firstClass = selectedStudents[0]?.kelas;
+    const allSame = selectedStudents.every(s => s.kelas === firstClass);
+    return allSame ? firstClass : null;
+  };
+
+  const commonClass = getCommonClass();
+  const nextTargetClass = commonClass ? getNextClass(commonClass) : null;
+  const prevTargetClass = commonClass ? getPrevClass(commonClass, '') : null; // Blank name bypass for generic prev label
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -161,7 +266,7 @@ function KelasRombel() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Page Header */}
       <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37]">
         <h2 className="text-lg font-bold text-[#0B4A3F] font-serif flex items-center space-x-2">
@@ -226,6 +331,14 @@ function KelasRombel() {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                        <th className="py-2.5 px-4 text-center w-12">
+                          <input 
+                            type="checkbox"
+                            className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-550 cursor-pointer"
+                            checked={classStudents.length > 0 && classStudents.every(s => selectedIds.includes(s.id))}
+                            onChange={() => handleSelectAllInClass(className, classStudents)}
+                          />
+                        </th>
                         <th className="py-2.5 px-6">NAMA LENGKAP</th>
                         <th className="py-2.5 px-6">NOMOR HP WALI</th>
                         <th className="py-2.5 px-6">ALAMAT</th>
@@ -234,7 +347,15 @@ function KelasRombel() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {classStudents.map((s) => (
-                        <tr key={s.id} className="hover:bg-slate-50/50 transition">
+                        <tr key={s.id} className={`hover:bg-slate-50/50 transition ${selectedIds.includes(s.id) ? 'bg-emerald-50/30' : ''}`}>
+                          <td className="py-3 px-4 text-center">
+                            <input 
+                              type="checkbox"
+                              className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-550 cursor-pointer"
+                              checked={selectedIds.includes(s.id)}
+                              onChange={() => handleSelectStudent(s.id)}
+                            />
+                          </td>
                           <td className="py-3 px-6 font-bold text-slate-800">{s.nama}</td>
                           <td className="py-3 px-6 text-slate-500 font-mono">{s.noHp || '-'}</td>
                           <td className="py-3 px-6 text-slate-550 max-w-xs truncate">{s.alamat || '-'}</td>
@@ -312,6 +433,14 @@ function KelasRombel() {
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                      <th className="py-2.5 px-4 text-center w-12">
+                        <input 
+                          type="checkbox"
+                          className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-550 cursor-pointer"
+                          checked={unsorted.length > 0 && unsorted.every(s => selectedIds.includes(s.id))}
+                          onChange={() => handleSelectAllInClass('unsorted', unsorted)}
+                        />
+                      </th>
                       <th className="py-2.5 px-6">NAMA LENGKAP</th>
                       <th className="py-2.5 px-6">KELAS SAAT INI</th>
                       <th className="py-2.5 px-6 text-center">TENTUKAN KELAS</th>
@@ -319,7 +448,15 @@ function KelasRombel() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {unsorted.map((s) => (
-                      <tr key={s.id} className="hover:bg-slate-50/50 transition">
+                      <tr key={s.id} className={`hover:bg-slate-50/50 transition ${selectedIds.includes(s.id) ? 'bg-emerald-50/30' : ''}`}>
+                        <td className="py-3 px-4 text-center">
+                          <input 
+                            type="checkbox"
+                            className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-550 cursor-pointer"
+                            checked={selectedIds.includes(s.id)}
+                            onChange={() => handleSelectStudent(s.id)}
+                          />
+                        </td>
                         <td className="py-3 px-6 font-bold text-slate-800">{s.nama}</td>
                         <td className="py-3 px-6 text-slate-500 font-medium italic">{s.kelas || 'Belum Ditentukan'}</td>
                         <td className="py-3 px-6 text-center">
@@ -345,6 +482,71 @@ function KelasRombel() {
           );
         })()}
       </div>
+
+      {/* Floating Bulk Action Toolbar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-[#0B4A3F]/95 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.3)] border border-[#D4AF37]/30 flex flex-col md:flex-row items-center gap-4 max-w-full w-[95%] sm:w-[90%] md:w-auto animate-fade-in-up">
+          <div className="flex items-center space-x-3">
+            <div className="bg-[#D4AF37] text-[#0B4A3F] text-xs font-black w-6 h-6 rounded-full flex items-center justify-center">
+              {selectedIds.length}
+            </div>
+            <span className="text-xs font-bold font-serif tracking-wide text-slate-100">
+              santri terpilih
+            </span>
+          </div>
+
+          <div className="h-px w-full md:h-6 md:w-px bg-slate-200/20"></div>
+
+          <div className="flex flex-wrap items-center gap-2 justify-center">
+            {/* Naik Kelas */}
+            <button
+              onClick={() => handleBulkAction('PROMOTE')}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition uppercase flex items-center space-x-1 shadow-sm"
+            >
+              <span>{commonClass && nextTargetClass ? `Naikkan ke ${nextTargetClass}` : 'Naikkan Kelas'}</span>
+            </button>
+
+            {/* Turun Kelas */}
+            <button
+              onClick={() => handleBulkAction('DEMOTE')}
+              disabled={commonClass && !prevTargetClass}
+              className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition uppercase flex items-center space-x-1 shadow-sm"
+            >
+              <span>{commonClass && prevTargetClass ? `Turunkan ke ${prevTargetClass}` : 'Turun Kelas'}</span>
+            </button>
+
+            {/* Tetap di Kelas */}
+            <button
+              onClick={() => handleBulkAction('KEEP')}
+              className="bg-slate-500 hover:bg-slate-600 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition uppercase flex items-center space-x-1 shadow-sm"
+            >
+              <span>Tetap di Kelas</span>
+            </button>
+
+            {/* Pindahkan Ke */}
+            <select
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleBulkAction('MOVE', e.target.value);
+                  e.target.value = '';
+                }
+              }}
+              className="bg-slate-800 border border-slate-700 text-slate-100 text-[10px] font-extrabold py-2 px-3 rounded-xl outline-none cursor-pointer"
+            >
+              <option value="">Pindahkan ke...</option>
+              {CLASS_ORDER.map(c => <option key={c} value={c}>{c}</option>)}
+              <option value="LULUS">Lulus / Alumni</option>
+            </select>
+
+            <button
+              onClick={clearSelection}
+              className="text-[10px] font-bold text-slate-350 hover:text-white px-2 py-2 transition"
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

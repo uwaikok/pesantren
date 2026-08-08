@@ -25,6 +25,12 @@ function TambahSantri() {
     setError('');
     setLoading(true);
     
+    if (!formData.kelas || formData.kelas.trim() === '') {
+      setError('Kelas/Rombel wajib diisi');
+      setLoading(false);
+      return;
+    }
+    
     if (formData.noHp) {
       const numeric = /^[0-9]+$/;
       if (!numeric.test(formData.noHp)) {
