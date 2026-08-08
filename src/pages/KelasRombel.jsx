@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, GraduationCap, ChevronRight, ChevronLeft, AlertCircle, ArrowUpCircle, CheckCircle } from 'lucide-react';
+import { GraduationCap, AlertCircle, ArrowUpCircle, CheckCircle } from 'lucide-react';
 import api from '../utils/api';
 import { confirmDialog } from '../utils/dialog';
 
@@ -29,9 +29,7 @@ const PROGRESSION_MAP = {
   'Tsanawi 3': 'LULUS'
 };
 
-const getNextClass = (currentClass) => {
-  return PROGRESSION_MAP[currentClass] || null;
-};
+const getNextClass = (currentClass) => PROGRESSION_MAP[currentClass] || null;
 
 const getPrevClass = (currentClass, studentName) => {
   const prevMap = {
@@ -44,7 +42,6 @@ const getPrevClass = (currentClass, studentName) => {
     'Tsanawi 2': 'Tsanawi 1',
     'Tsanawi 3': 'Tsanawi 2'
   };
-
   let prev = prevMap[currentClass] || null;
   if (prev === 'IBTIDA_2') {
     const nameLower = String(studentName).toLowerCase();
@@ -61,18 +58,15 @@ function KelasRombel() {
   const [successMsg, setSuccessMsg] = useState('');
   const [selectedIds, setSelectedIds] = useState([]);
 
-  useEffect(() => {
-    fetchStudents();
-  }, []);
+  useEffect(() => { fetchStudents(); }, []);
 
   const fetchStudents = async () => {
     setLoading(true);
     setError('');
     try {
-      // Fetch all students (only active)
       const list = await api.get('/admin/santri');
       setStudents(list.filter(s => s.status === 'ACTIVE'));
-      setSelectedIds([]); // Reset selection on refresh
+      setSelectedIds([]);
     } catch (err) {
       console.error(err);
       setError('Gagal memuat data santri');
@@ -82,7 +76,7 @@ function KelasRombel() {
   };
 
   const handleSelectStudent = (id) => {
-    setSelectedIds(prev => 
+    setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
     );
   };
@@ -99,72 +93,38 @@ function KelasRombel() {
 
   const clearSelection = () => setSelectedIds([]);
 
-  const handleDemoteIndividual = async (id, currentClass, studentName) => {
-    const prev = getPrevClass(currentClass, studentName);
-    if (!prev) return;
-
-    if (!await confirmDialog(`Turunkan santri ke kelas ${prev}?`)) return;
-
-    try {
-      setError('');
-      setSuccessMsg('');
-      await api.put(`/admin/santri/${id}`, { kelas: prev });
-      setSuccessMsg('Penurunan kelas berhasil diproses');
-      fetchStudents();
-    } catch (err) {
-      setError(err.message || 'Gagal memproses penurunan kelas');
-    }
-  };
-
-  const handlePromoteIndividual = async (id, currentClass, nextClassOverride) => {
-    const next = nextClassOverride || getNextClass(currentClass);
-    if (!next) return;
-
-    const confirmMsg = next === 'LULUS'
-      ? 'Santri akan diluluskan dan dinonaktifkan dari daftar aktif. Lanjutkan?'
-      : `Promosikan santri ke kelas ${next}?`;
-
+  // Masih digunakan oleh seksi "Rombel Tidak Valid" untuk assign kelas awal
+  const handleAssignClass = async (id, targetClass) => {
+    if (!targetClass) return;
+    const confirmMsg = `Tentukan kelas santri ini menjadi ${targetClass}?`;
     if (!await confirmDialog(confirmMsg)) return;
-
     try {
-      setError('');
-      setSuccessMsg('');
-      if (next === 'LULUS') {
-        await api.put(`/admin/santri/${id}`, { status: 'INACTIVE' });
-      } else {
-        await api.put(`/admin/santri/${id}`, { kelas: next });
-      }
-      setSuccessMsg('Kenaikan kelas berhasil diproses');
+      setError(''); setSuccessMsg('');
+      await api.put(`/admin/santri/${id}`, { kelas: targetClass });
+      setSuccessMsg('Kelas santri berhasil ditentukan');
       fetchStudents();
     } catch (err) {
-      setError(err.message || 'Gagal memproses kenaikan kelas');
+      setError(err.message || 'Gagal menentukan kelas santri');
     }
   };
 
   const handlePromoteBulk = async (className) => {
     const classStudents = students.filter(s => s.kelas === className);
     if (classStudents.length === 0) return;
-
     const next = getNextClass(className);
     if (!next) return;
-
     const confirmMsg = next === 'LULUS'
-      ? `Apakah Anda yakin ingin meluluskan (menonaktifkan) seluruh santri (${classStudents.length} orang) di kelas ${className}?`
+      ? `Apakah Anda yakin ingin meluluskan seluruh santri (${classStudents.length} orang) di kelas ${className}?`
       : `Apakah Anda yakin ingin menaikkan seluruh santri (${classStudents.length} orang) dari kelas ${className} ke ${next}?`;
-
     if (!await confirmDialog(confirmMsg)) return;
-
     try {
-      setError('');
-      setSuccessMsg('');
+      setError(''); setSuccessMsg('');
       const studentIds = classStudents.map(s => s.id);
-
       if (next === 'LULUS') {
         await api.put('/admin/santri/promote/bulk', { studentIds, status: 'INACTIVE' });
       } else {
         await api.put('/admin/santri/promote/bulk', { studentIds, nextClass: next });
       }
-
       setSuccessMsg(`Berhasil menaikkan seluruh santri kelas ${className}`);
       fetchStudents();
     } catch (err) {
@@ -174,7 +134,6 @@ function KelasRombel() {
 
   const handleBulkAction = async (actionType, targetClass = null) => {
     if (selectedIds.length === 0) return;
-
     const selectedStudents = students.filter(s => selectedIds.includes(s.id));
     const studentCount = selectedIds.length;
     const updates = [];
@@ -183,61 +142,36 @@ function KelasRombel() {
     if (actionType === 'PROMOTE') {
       selectedStudents.forEach(s => {
         const next = getNextClass(s.kelas);
-        if (next) {
-          if (next === 'LULUS') {
-            updates.push({ id: s.id, status: 'INACTIVE' });
-          } else {
-            updates.push({ id: s.id, kelas: next });
-          }
-        }
+        if (next) updates.push(next === 'LULUS' ? { id: s.id, status: 'INACTIVE' } : { id: s.id, kelas: next });
       });
       confirmMsg = `Anda akan menaikkan ${studentCount} santri terpilih ke tingkatan kelas berikutnya.`;
     } else if (actionType === 'DEMOTE') {
       selectedStudents.forEach(s => {
         const prev = getPrevClass(s.kelas, s.nama);
-        if (prev) {
-          updates.push({ id: s.id, kelas: prev });
-        }
+        if (prev) updates.push({ id: s.id, kelas: prev });
       });
       confirmMsg = `Anda akan menurunkan ${studentCount} santri terpilih ke tingkatan kelas sebelumnya.`;
     } else if (actionType === 'KEEP') {
-      selectedStudents.forEach(s => {
-        updates.push({ id: s.id, kelas: s.kelas });
-      });
-      confirmMsg = `Anda akan menandai ${studentCount} santri terpilih tetap berada di rombel kelas saat ini untuk tahun ajaran baru.`;
+      selectedStudents.forEach(s => updates.push({ id: s.id, kelas: s.kelas }));
+      confirmMsg = `Anda akan menandai ${studentCount} santri terpilih tetap berada di rombel kelas saat ini.`;
     } else if (actionType === 'MOVE' && targetClass) {
       selectedStudents.forEach(s => {
-        if (targetClass === 'LULUS') {
-          updates.push({ id: s.id, status: 'INACTIVE' });
-        } else {
-          updates.push({ id: s.id, kelas: targetClass });
-        }
+        updates.push(targetClass === 'LULUS' ? { id: s.id, status: 'INACTIVE' } : { id: s.id, kelas: targetClass });
       });
       confirmMsg = `Anda akan memindahkan ${studentCount} santri terpilih ke kelas ${targetClass === 'LULUS' ? 'Alumni / Lulus' : targetClass}.`;
     }
 
-    if (updates.length === 0) {
-      setError('Tidak ada tindakan yang valid untuk santri terpilih.');
-      return;
-    }
+    if (updates.length === 0) { setError('Tidak ada tindakan yang valid untuk santri terpilih.'); return; }
 
-    // List names, showing max 10 to keep confirm box readable
     const nameList = selectedStudents.length <= 10
       ? selectedStudents.map(s => `• ${s.nama}`).join('\n')
       : selectedStudents.slice(0, 10).map(s => `• ${s.nama}`).join('\n') + `\n• ... dan ${selectedStudents.length - 10} santri lainnya`;
 
-    const fullConfirmMsg = `${confirmMsg}\n\nDaftar santri yang terpengaruh:\n${nameList}\n\nLanjutkan?`;
-
-    if (!await confirmDialog(fullConfirmMsg)) return;
+    if (!await confirmDialog(`${confirmMsg}\n\nDaftar santri yang terpengaruh:\n${nameList}\n\nLanjutkan?`)) return;
 
     try {
-      setError('');
-      setSuccessMsg('');
-      setLoading(true);
-
+      setError(''); setSuccessMsg(''); setLoading(true);
       await api.put('/admin/santri/batch-update', { updates });
-
-      const targetClassName = targetClass ? (targetClass === 'LULUS' ? 'Alumni' : targetClass) : 'tingkatan baru';
       setSuccessMsg(`${studentCount} santri berhasil dipindahkan.`);
       setSelectedIds([]);
       fetchStudents();
@@ -247,17 +181,14 @@ function KelasRombel() {
     }
   };
 
-  const getCommonClass = () => {
+  const commonClass = (() => {
     if (selectedIds.length === 0) return null;
-    const selectedStudents = students.filter(s => selectedIds.includes(s.id));
-    const firstClass = selectedStudents[0]?.kelas;
-    const allSame = selectedStudents.every(s => s.kelas === firstClass);
-    return allSame ? firstClass : null;
-  };
-
-  const commonClass = getCommonClass();
+    const sel = students.filter(s => selectedIds.includes(s.id));
+    const first = sel[0]?.kelas;
+    return sel.every(s => s.kelas === first) ? first : null;
+  })();
   const nextTargetClass = commonClass ? getNextClass(commonClass) : null;
-  const prevTargetClass = commonClass ? getPrevClass(commonClass, '') : null; // Blank name bypass for generic prev label
+  const prevTargetClass = commonClass ? getPrevClass(commonClass, '') : null;
 
   if (loading) {
     return (
@@ -268,7 +199,7 @@ function KelasRombel() {
   }
 
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-6 pb-28">
       {/* Page Header */}
       <div className="bg-white p-6 rounded-2xl shadow-soft border border-slate-200/80 border-t-3 border-t-[#D4AF37]">
         <h2 className="text-lg font-bold text-[#0B4A3F] font-serif flex items-center space-x-2">
@@ -276,24 +207,20 @@ function KelasRombel() {
           <span>Kenaikan Kelas & Manajemen Rombel</span>
         </h2>
         <p className="text-xs text-slate-500 mt-1">
-          Halaman ini digunakan setiap akhir tahun ajaran untuk menentukan kenaikan kelas santri secara bulk (massal) maupun individu berdasarkan demografi tingkatan kelas.
+          Gunakan checkbox untuk memilih santri, lalu gunakan toolbar aksi massal di bawah untuk menaikkan, menurunkan, atau memindahkan kelas santri terpilih sekaligus.
         </p>
       </div>
 
       {error && (
-        <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-700 p-4 rounded-xl text-xs font-semibold">
-          ⚠️ {error}
-        </div>
+        <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-700 p-4 rounded-xl text-xs font-semibold">⚠️ {error}</div>
       )}
-
       {successMsg && (
         <div className="bg-emerald-50 border-l-4 border-emerald-500 text-emerald-700 p-4 rounded-xl text-xs font-semibold flex items-center space-x-2">
-          <CheckCircle size={16} />
-          <span>{successMsg}</span>
+          <CheckCircle size={16} /><span>{successMsg}</span>
         </div>
       )}
 
-      {/* Class list loop ordered by demographics */}
+      {/* Class list */}
       <div className="space-y-6">
         {CLASS_ORDER.map((className) => {
           const classStudents = students.filter(s => s.kelas === className);
@@ -314,8 +241,7 @@ function KelasRombel() {
                     </p>
                   </div>
                 </div>
-
-                {/* Bulk promotion button */}
+                {/* Tombol Naikkan Semua — tetap dipertahankan */}
                 {classStudents.length > 0 && nextClass && (
                   <button
                     onClick={() => handlePromoteBulk(className)}
@@ -327,98 +253,59 @@ function KelasRombel() {
                 )}
               </div>
 
-              {/* Card Body - Students List */}
+              {/* Tabel Santri — hanya 4 kolom: Checkbox, Nama, HP, Alamat */}
               <div className="p-0 overflow-x-auto">
                 {classStudents.length > 0 ? (
                   <table className="w-full text-left text-xs border-collapse">
                     <thead>
                       <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                         <th className="py-2.5 px-4 text-center w-12">
-                          <input 
+                          <input
                             type="checkbox"
-                            className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-550 cursor-pointer"
+                            className="w-4 h-4 rounded cursor-pointer accent-[#0B4A3F]"
                             checked={classStudents.length > 0 && classStudents.every(s => selectedIds.includes(s.id))}
                             onChange={() => handleSelectAllInClass(className, classStudents)}
                           />
                         </th>
                         <th className="py-2.5 px-6">NAMA LENGKAP</th>
-                        <th className="py-2.5 px-6">NOMOR HP WALI</th>
+                        <th className="py-2.5 px-6 w-48">NOMOR HP WALI</th>
                         <th className="py-2.5 px-6">ALAMAT</th>
-                        <th className="py-2.5 px-6 text-center">AKSI PROMOSI KELAS</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {classStudents.map((s) => (
-                        <tr key={s.id} className={`hover:bg-slate-50/50 transition ${selectedIds.includes(s.id) ? 'bg-emerald-50/30' : ''}`}>
-                          <td className="py-3 px-4 text-center">
-                            <input 
+                        <tr
+                          key={s.id}
+                          className={`hover:bg-slate-50/60 transition cursor-pointer ${selectedIds.includes(s.id) ? 'bg-emerald-50/40' : ''}`}
+                          onClick={() => handleSelectStudent(s.id)}
+                        >
+                          <td className="py-3 px-4 text-center" onClick={e => e.stopPropagation()}>
+                            <input
                               type="checkbox"
-                              className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-550 cursor-pointer"
+                              className="w-4 h-4 rounded cursor-pointer accent-[#0B4A3F]"
                               checked={selectedIds.includes(s.id)}
                               onChange={() => handleSelectStudent(s.id)}
                             />
                           </td>
                           <td className="py-3 px-6 font-bold text-slate-800">{s.nama}</td>
-                          <td className="py-3 px-6 text-slate-500 font-mono">{s.noHp || '-'}</td>
-                          <td className="py-3 px-6 text-slate-550 max-w-xs truncate">{s.alamat || '-'}</td>
-                          <td className="py-3 px-6 text-center">
-                            <div className="flex items-center justify-center space-x-2">
-                              {/* Tombol Turun Kelas */}
-                              {getPrevClass(className, s.nama) && (
-                                <button
-                                  onClick={() => handleDemoteIndividual(s.id, className, s.nama)}
-                                  className="bg-amber-50 hover:bg-amber-100 text-amber-700 text-[10px] font-extrabold px-3 py-1.5 rounded-full border border-amber-550/20 transition flex items-center space-x-1 uppercase"
-                                >
-                                  <ChevronLeft size={10} />
-                                  <span>Turun Kelas</span>
-                                </button>
-                              )}
-
-                              {/* Tombol Naik Kelas */}
-                              {nextClass && (
-                                <button
-                                  onClick={() => handlePromoteIndividual(s.id, className)}
-                                  className="bg-emerald-50 hover:bg-[#DCFCE7] text-[#16A34A] text-[10px] font-extrabold px-3 py-1.5 rounded-full border border-[#16A34A]/20 transition flex items-center space-x-1 uppercase"
-                                >
-                                  <span>Naik Kelas</span>
-                                  <ChevronRight size={10} />
-                                </button>
-                              )}
-
-                              <select
-                                onChange={(e) => {
-                                  if (e.target.value) {
-                                    handlePromoteIndividual(s.id, className, e.target.value);
-                                    e.target.value = "";
-                                  }
-                                }}
-                                className="bg-slate-50 border border-slate-200 text-slate-650 text-[10px] font-bold py-1 px-2 rounded-lg outline-none"
-                              >
-                                <option value="">Ubah ke...</option>
-                                {CLASS_ORDER.map(c => c !== className && <option key={c} value={c}>{c}</option>)}
-                                <option value="LULUS">Lulus / Alumni</option>
-                              </select>
-                            </div>
-                          </td>
+                          <td className="py-3 px-6 text-slate-500 font-mono w-48">{s.noHp || '-'}</td>
+                          <td className="py-3 px-6 text-slate-500">{s.alamat || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 ) : (
-                  <div className="p-6 text-center text-slate-400 text-xs">
-                    Tidak ada santri di rombel kelas ini.
-                  </div>
+                  <div className="p-6 text-center text-slate-400 text-xs">Tidak ada santri di rombel kelas ini.</div>
                 )}
               </div>
             </div>
           );
         })}
 
-        {/* Students with undefined class */}
+        {/* Santri belum punya kelas valid */}
         {(() => {
           const unsorted = students.filter(s => !s.kelas || !CLASS_ORDER.includes(s.kelas));
           if (unsorted.length === 0) return null;
-
           return (
             <div className="bg-white rounded-2xl shadow-soft border border-slate-200/80 overflow-hidden">
               <div className="p-5 bg-gradient-to-r from-amber-50/50 to-white border-b border-slate-100">
@@ -426,19 +313,16 @@ function KelasRombel() {
                   <AlertCircle size={16} />
                   <span>Rombel Tidak Valid / Belum Ditentukan</span>
                 </h3>
-                <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-wider">
-                  {unsorted.length} Santri
-                </p>
+                <p className="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-wider">{unsorted.length} Santri</p>
               </div>
-
               <div className="p-0 overflow-x-auto">
                 <table className="w-full text-left text-xs border-collapse">
                   <thead>
                     <tr className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                       <th className="py-2.5 px-4 text-center w-12">
-                        <input 
+                        <input
                           type="checkbox"
-                          className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-550 cursor-pointer"
+                          className="w-4 h-4 rounded cursor-pointer accent-[#0B4A3F]"
                           checked={unsorted.length > 0 && unsorted.every(s => selectedIds.includes(s.id))}
                           onChange={() => handleSelectAllInClass('unsorted', unsorted)}
                         />
@@ -450,11 +334,11 @@ function KelasRombel() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {unsorted.map((s) => (
-                      <tr key={s.id} className={`hover:bg-slate-50/50 transition ${selectedIds.includes(s.id) ? 'bg-emerald-50/30' : ''}`}>
+                      <tr key={s.id} className={`hover:bg-slate-50/50 transition ${selectedIds.includes(s.id) ? 'bg-emerald-50/40' : ''}`}>
                         <td className="py-3 px-4 text-center">
-                          <input 
+                          <input
                             type="checkbox"
-                            className="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-550 cursor-pointer"
+                            className="w-4 h-4 rounded cursor-pointer accent-[#0B4A3F]"
                             checked={selectedIds.includes(s.id)}
                             onChange={() => handleSelectStudent(s.id)}
                           />
@@ -463,13 +347,8 @@ function KelasRombel() {
                         <td className="py-3 px-6 text-slate-500 font-medium italic">{s.kelas || 'Belum Ditentukan'}</td>
                         <td className="py-3 px-6 text-center">
                           <select
-                            onChange={(e) => {
-                              if (e.target.value) {
-                                handlePromoteIndividual(s.id, null, e.target.value);
-                                e.target.value = "";
-                              }
-                            }}
-                            className="bg-slate-50 border border-slate-200 text-slate-650 text-[10px] font-bold py-1 px-2.5 rounded-lg outline-none"
+                            onChange={(e) => { if (e.target.value) { handleAssignClass(s.id, e.target.value); e.target.value = ''; } }}
+                            className="bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold py-1 px-2.5 rounded-lg outline-none cursor-pointer"
                           >
                             <option value="">Pilih Kelas...</option>
                             {CLASS_ORDER.map(c => <option key={c} value={c}>{c}</option>)}
@@ -485,55 +364,49 @@ function KelasRombel() {
         })()}
       </div>
 
-      {/* Floating Bulk Action Toolbar */}
+      {/* ─── Floating Bulk Action Toolbar ─── */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-[#0B4A3F]/95 backdrop-blur-md text-white px-6 py-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.3)] border border-[#D4AF37]/30 flex flex-col md:flex-row items-center gap-4 max-w-full w-[95%] sm:w-[90%] md:w-auto animate-fade-in-up">
-          <div className="flex items-center space-x-3">
-            <div className="bg-[#D4AF37] text-[#0B4A3F] text-xs font-black w-6 h-6 rounded-full flex items-center justify-center">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#0B4A3F]/96 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.35)] border border-[#D4AF37]/30 flex flex-col md:flex-row items-center gap-3 w-[95%] sm:w-auto max-w-3xl">
+          {/* Counter */}
+          <div className="flex items-center space-x-2 shrink-0">
+            <div className="bg-[#D4AF37] text-[#0B4A3F] text-xs font-black min-w-6 h-6 rounded-full flex items-center justify-center px-1.5">
               {selectedIds.length}
             </div>
-            <span className="text-xs font-bold font-serif tracking-wide text-slate-100">
-              santri terpilih
-            </span>
+            <span className="text-xs font-semibold text-slate-200 whitespace-nowrap">santri terpilih</span>
           </div>
 
-          <div className="h-px w-full md:h-6 md:w-px bg-slate-200/20"></div>
+          <div className="hidden md:block h-5 w-px bg-white/20 shrink-0"></div>
 
+          {/* Action buttons */}
           <div className="flex flex-wrap items-center gap-2 justify-center">
-            {/* Naik Kelas */}
             <button
               onClick={() => handleBulkAction('PROMOTE')}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition uppercase flex items-center space-x-1 shadow-sm"
+              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition-all uppercase shadow-sm whitespace-nowrap"
             >
-              <span>{commonClass && nextTargetClass ? `Naikkan ke ${nextTargetClass}` : 'Naikkan Kelas'}</span>
+              {commonClass && nextTargetClass && nextTargetClass !== 'LULUS'
+                ? `Naikkan ke ${nextTargetClass}`
+                : 'Naikkan Kelas'}
             </button>
 
-            {/* Turun Kelas */}
             <button
               onClick={() => handleBulkAction('DEMOTE')}
-              disabled={commonClass && !prevTargetClass}
-              className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition uppercase flex items-center space-x-1 shadow-sm"
+              className="bg-amber-600 hover:bg-amber-700 active:scale-95 disabled:opacity-40 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition-all uppercase shadow-sm whitespace-nowrap"
             >
-              <span>{commonClass && prevTargetClass ? `Turunkan ke ${prevTargetClass}` : 'Turun Kelas'}</span>
+              {commonClass && prevTargetClass
+                ? `Turunkan ke ${prevTargetClass}`
+                : 'Turun Kelas'}
             </button>
 
-            {/* Tetap di Kelas */}
             <button
               onClick={() => handleBulkAction('KEEP')}
-              className="bg-slate-500 hover:bg-slate-600 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition uppercase flex items-center space-x-1 shadow-sm"
+              className="bg-slate-500 hover:bg-slate-600 active:scale-95 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition-all uppercase shadow-sm whitespace-nowrap"
             >
-              <span>Tetap di Kelas</span>
+              Tetap di Kelas
             </button>
 
-            {/* Pindahkan Ke */}
             <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleBulkAction('MOVE', e.target.value);
-                  e.target.value = '';
-                }
-              }}
-              className="bg-slate-800 border border-slate-700 text-slate-100 text-[10px] font-extrabold py-2 px-3 rounded-xl outline-none cursor-pointer"
+              onChange={(e) => { if (e.target.value) { handleBulkAction('MOVE', e.target.value); e.target.value = ''; } }}
+              className="bg-slate-800 border border-slate-600 text-slate-100 text-[10px] font-bold py-2 px-3 rounded-xl outline-none cursor-pointer"
             >
               <option value="">Pindahkan ke...</option>
               {CLASS_ORDER.map(c => <option key={c} value={c}>{c}</option>)}
@@ -542,7 +415,7 @@ function KelasRombel() {
 
             <button
               onClick={clearSelection}
-              className="text-[10px] font-bold text-slate-350 hover:text-white px-2 py-2 transition"
+              className="text-[10px] font-semibold text-slate-300 hover:text-white px-2 py-2 transition-colors underline underline-offset-2"
             >
               Batal
             </button>
