@@ -97,6 +97,8 @@ function KelasRombel() {
     }
   };
 
+  const clearSelection = () => setSelectedIds([]);
+
   const handleDemoteIndividual = async (id, currentClass, studentName) => {
     const prev = getPrevClass(currentClass, studentName);
     if (!prev) return;
