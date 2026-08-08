@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { GraduationCap, AlertCircle, ArrowUpCircle, CheckCircle } from 'lucide-react';
+import { GraduationCap, AlertCircle, ArrowUpCircle, CheckCircle, ArrowUp, ArrowDown, Minus, ArrowLeftRight, X } from 'lucide-react';
 import api from '../utils/api';
 import { confirmDialog } from '../utils/dialog';
 
@@ -364,61 +364,100 @@ function KelasRombel() {
         })()}
       </div>
 
-      {/* ─── Floating Bulk Action Toolbar ─── */}
+      {/* ─── Floating Bulk Action Toolbar (Redesigned) ─── */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#0B4A3F]/96 backdrop-blur-md text-white px-5 py-3.5 rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.35)] border border-[#D4AF37]/30 flex flex-col md:flex-row items-center gap-3 w-[95%] sm:w-auto max-w-3xl">
-          {/* Counter */}
-          <div className="flex items-center space-x-2 shrink-0">
-            <div className="bg-[#D4AF37] text-[#0B4A3F] text-xs font-black min-w-6 h-6 rounded-full flex items-center justify-center px-1.5">
-              {selectedIds.length}
+        <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 w-[96%] max-w-3xl">
+          <div className="bg-[#083831] backdrop-blur-xl text-white rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.45)] border border-[#D4AF37]/25 overflow-hidden">
+
+            {/* ── Baris 1: Counter + Tombol Utama + Batal ── */}
+            <div className="flex items-center gap-3 px-4 pt-3.5 pb-2 flex-wrap">
+
+              {/* Kiri: Counter badge */}
+              <div className="flex items-center gap-2.5 shrink-0 mr-1">
+                <div className="bg-[#D4AF37] text-[#0B4A3F] font-black text-sm w-8 h-8 rounded-full flex items-center justify-center shadow-md shrink-0">
+                  {selectedIds.length}
+                </div>
+                <div className="leading-tight">
+                  <p className="text-xs font-bold text-white">santri terpilih</p>
+                  <p className="text-[9px] text-emerald-400/80 font-medium">siap diproses</p>
+                </div>
+              </div>
+
+              {/* Separator */}
+              <div className="hidden sm:block w-px h-9 bg-white/15 shrink-0"></div>
+
+              {/* Tombol PRIMER — paling menonjol */}
+              <button
+                onClick={() => handleBulkAction('PROMOTE')}
+                className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white text-xs font-extrabold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-emerald-900/40 uppercase tracking-wide shrink-0"
+              >
+                <ArrowUp size={14} strokeWidth={3} />
+                <span>
+                  {commonClass && nextTargetClass && nextTargetClass !== 'LULUS'
+                    ? `Naikkan ke ${nextTargetClass}`
+                    : 'Naikkan Kelas'}
+                </span>
+              </button>
+
+              {/* Spacer mendorong Batal ke ujung kanan */}
+              <div className="flex-1"></div>
+
+              {/* Batal — ujung kanan, terpisah jauh dari aksi transaksi */}
+              <button
+                onClick={clearSelection}
+                className="flex items-center gap-1.5 shrink-0 text-[11px] font-semibold text-emerald-300/70 hover:text-white hover:bg-white/10 px-3 py-2 rounded-lg transition-all border border-transparent hover:border-white/15"
+              >
+                <X size={13} />
+                <span>Batal</span>
+              </button>
             </div>
-            <span className="text-xs font-semibold text-slate-200 whitespace-nowrap">santri terpilih</span>
-          </div>
 
-          <div className="hidden md:block h-5 w-px bg-white/20 shrink-0"></div>
+            {/* Separator tipis antar baris */}
+            <div className="mx-4 h-px bg-white/8"></div>
 
-          {/* Action buttons */}
-          <div className="flex flex-wrap items-center gap-2 justify-center">
-            <button
-              onClick={() => handleBulkAction('PROMOTE')}
-              className="bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition-all uppercase shadow-sm whitespace-nowrap"
-            >
-              {commonClass && nextTargetClass && nextTargetClass !== 'LULUS'
-                ? `Naikkan ke ${nextTargetClass}`
-                : 'Naikkan Kelas'}
-            </button>
+            {/* ── Baris 2: Tombol Sekunder + Dropdown ── */}
+            <div className="flex items-center gap-2 px-4 pt-2 pb-3.5 flex-wrap">
 
-            <button
-              onClick={() => handleBulkAction('DEMOTE')}
-              className="bg-amber-600 hover:bg-amber-700 active:scale-95 disabled:opacity-40 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition-all uppercase shadow-sm whitespace-nowrap"
-            >
-              {commonClass && prevTargetClass
-                ? `Turunkan ke ${prevTargetClass}`
-                : 'Turun Kelas'}
-            </button>
+              {/* Turun Kelas — sekunder/outline */}
+              <button
+                onClick={() => handleBulkAction('DEMOTE')}
+                className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase transition-all border border-amber-500/50 text-amber-300 hover:bg-amber-600/30 hover:border-amber-400 active:scale-95"
+              >
+                <ArrowDown size={11} strokeWidth={2.5} />
+                <span>
+                  {commonClass && prevTargetClass
+                    ? `Turun ke ${prevTargetClass}`
+                    : 'Turun Kelas'}
+                </span>
+              </button>
 
-            <button
-              onClick={() => handleBulkAction('KEEP')}
-              className="bg-slate-500 hover:bg-slate-600 active:scale-95 text-white text-[10px] font-extrabold px-3 py-2 rounded-xl transition-all uppercase shadow-sm whitespace-nowrap"
-            >
-              Tetap di Kelas
-            </button>
+              {/* Tetap di Kelas — sekunder/outline */}
+              <button
+                onClick={() => handleBulkAction('KEEP')}
+                className="flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg uppercase transition-all border border-slate-500/50 text-slate-300 hover:bg-slate-500/30 hover:border-slate-400 active:scale-95"
+              >
+                <Minus size={11} strokeWidth={2.5} />
+                <span>Tetap di Kelas</span>
+              </button>
 
-            <select
-              onChange={(e) => { if (e.target.value) { handleBulkAction('MOVE', e.target.value); e.target.value = ''; } }}
-              className="bg-slate-800 border border-slate-600 text-slate-100 text-[10px] font-bold py-2 px-3 rounded-xl outline-none cursor-pointer"
-            >
-              <option value="">Pindahkan ke...</option>
-              {CLASS_ORDER.map(c => <option key={c} value={c}>{c}</option>)}
-              <option value="LULUS">Lulus / Alumni</option>
-            </select>
+              {/* Separator kecil */}
+              <div className="w-px h-5 bg-white/15 hidden sm:block"></div>
 
-            <button
-              onClick={clearSelection}
-              className="text-[10px] font-semibold text-slate-300 hover:text-white px-2 py-2 transition-colors underline underline-offset-2"
-            >
-              Batal
-            </button>
+              {/* Pindahkan ke — dropdown dark */}
+              <div className="relative flex items-center">
+                <ArrowLeftRight size={11} className="absolute left-2.5 text-slate-400 pointer-events-none z-10" />
+                <select
+                  onChange={(e) => { if (e.target.value) { handleBulkAction('MOVE', e.target.value); e.target.value = ''; } }}
+                  className="appearance-none bg-slate-800/90 border border-slate-600/70 text-slate-200 text-[10px] font-bold py-1.5 pl-7 pr-3 rounded-lg outline-none cursor-pointer hover:bg-slate-700/90 hover:border-slate-500 transition-colors"
+                >
+                  <option value="">Pindahkan ke...</option>
+                  {CLASS_ORDER.map(c => <option key={c} value={c}>{c}</option>)}
+                  <option value="LULUS">Lulus / Alumni</option>
+                </select>
+              </div>
+
+              <span className="text-[9px] text-white/30 hidden sm:inline ml-auto">Pilih santri lalu aksi — atau klik baris untuk seleksi cepat</span>
+            </div>
           </div>
         </div>
       )}
