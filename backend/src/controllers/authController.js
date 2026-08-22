@@ -128,13 +128,27 @@ const getMe = async (req, res) => {
 const changePassword = async (req, res) => {
   try {
     const { passwordLama, passwordBaru } = req.body;
-    const userId = req.user.id;
+    const userId = parseInt(req.user.id);
+    const role = req.user.role;
 
     if (!passwordLama || !passwordBaru) {
       return res.status(400).json({ message: 'Kata sandi lama dan kata sandi baru wajib diisi' });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
+    let user;
+    let isSantri = false;
+
+    if (role === 'SANTRI') {
+      user = await prisma.santri.findUnique({ where: { id: userId } });
+      isSantri = true;
+    } else {
+      user = await prisma.user.findUnique({ where: { id: userId } });
+      if (!user) {
+        user = await prisma.santri.findUnique({ where: { id: userId } });
+        if (user) isSantri = true;
+      }
+    }
+
     if (!user) {
       return res.status(404).json({ message: 'User tidak ditemukan' });
     }
@@ -148,11 +162,18 @@ const changePassword = async (req, res) => {
     // Hash kata sandi baru
     const newHashedPassword = await bcrypt.hash(passwordBaru, 10);
 
-    // Update password di database
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: newHashedPassword }
-    });
+    // Update password di database sesuai tabel (Santri atau User/Admin)
+    if (isSantri) {
+      await prisma.santri.update({
+        where: { id: userId },
+        data: { password: newHashedPassword }
+      });
+    } else {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { password: newHashedPassword }
+      });
+    }
 
     res.json({ message: 'Kata sandi berhasil diperbarui' });
   } catch (error) {
