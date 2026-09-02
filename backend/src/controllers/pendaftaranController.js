@@ -40,7 +40,7 @@ const findMatchingSantri = (pendaftar, santriList) => {
     const sNorm = normalizeName(s.nama);
     const sWords = sNorm.split(' ');
 
-    // Cek jika salah satu nama mengandung nama lainnya (misal: "Ahmad Rifki" vs "Ahmad Rifki Dzulfikri")
+    // Cek jika salah satu nama mengandung nama lainnya (misal: "Rifki Ahmad" vs "Rifki Ahmad Dzulfikri")
     if (sNorm.includes(normRegName) || normRegName.includes(sNorm)) {
       return s;
     }
@@ -57,10 +57,58 @@ const findMatchingSantri = (pendaftar, santriList) => {
   return null;
 };
 
+// PUBLIC: Cek Ketersediaan Email & Validasi Domain Real-time
+const checkEmailAvailability = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ validDomain: false, available: false, message: 'Alamat email wajib diisi' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Validasi domain @pesantren.com
+    if (!cleanEmail.endsWith('@pesantren.com')) {
+      return res.json({
+        validDomain: false,
+        available: false,
+        message: 'Email harus menggunakan domain @pesantren.com. Contoh: nama@pesantren.com'
+      });
+    }
+
+    // Cek duplikasi di User, Santri, dan Pendaftaran
+    const existingUser = await prisma.user.findFirst({ where: { email: cleanEmail } });
+    const existingSantri = await prisma.santri.findFirst({ where: { email: cleanEmail } });
+    const existingPending = await prisma.pendaftaran.findFirst({ 
+      where: { 
+        email: cleanEmail,
+        status: { in: ['PENDING', 'APPROVED'] }
+      } 
+    });
+
+    if (existingUser || existingSantri || existingPending) {
+      return res.json({
+        validDomain: true,
+        available: false,
+        message: 'Alamat email ini sudah digunakan oleh akun lain. Silakan gunakan alamat email yang berbeda.'
+      });
+    }
+
+    return res.json({
+      validDomain: true,
+      available: true,
+      message: 'Alamat email tersedia'
+    });
+  } catch (error) {
+    console.error('Check email availability error:', error);
+    res.status(500).json({ message: 'Terjadi kesalahan pada server saat mengecek ketersediaan email' });
+  }
+};
+
 // 1. PUBLIC: Pendaftaran Akun Mandiri
 const register = async (req, res) => {
   try {
-    const { nama, email, password, noHp, role, nis, namaWali } = req.body;
+    const { nama, email, password, noHp, alamat, namaWali } = req.body;
 
     if (!nama || !nama.trim()) {
       return res.status(400).json({ message: 'Nama lengkap wajib diisi' });
@@ -70,30 +118,37 @@ const register = async (req, res) => {
       return res.status(400).json({ message: 'Alamat email wajib diisi' });
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      return res.status(400).json({ message: 'Format alamat email tidak valid' });
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Validasi domain @pesantren.com
+    if (!cleanEmail.endsWith('@pesantren.com')) {
+      return res.status(400).json({ message: 'Email harus menggunakan domain @pesantren.com. Contoh: nama@pesantren.com' });
+    }
+
+    if (!noHp || !noHp.trim()) {
+      return res.status(400).json({ message: 'Nomor HP/WhatsApp wajib diisi' });
+    }
+
+    if (!alamat || !alamat.trim()) {
+      return res.status(400).json({ message: 'Alamat lengkap wajib diisi' });
     }
 
     if (!password || password.length < 6) {
       return res.status(400).json({ message: 'Kata sandi minimal 6 karakter' });
     }
 
-    const cleanEmail = email.trim().toLowerCase();
-
     // Cek keunikan email di User, Santri, dan Pendaftaran
     const existingUser = await prisma.user.findFirst({ where: { email: cleanEmail } });
     const existingSantri = await prisma.santri.findFirst({ where: { email: cleanEmail } });
-    const existingPending = await prisma.pendaftaran.findFirst({ where: { email: cleanEmail } });
+    const existingPending = await prisma.pendaftaran.findFirst({ 
+      where: { 
+        email: cleanEmail,
+        status: { in: ['PENDING', 'APPROVED'] }
+      } 
+    });
 
-    if (existingUser || existingSantri) {
-      return res.status(400).json({ message: 'Email sudah terdaftar dan aktif di sistem. Silakan login.' });
-    }
-
-    if (existingPending) {
-      if (existingPending.status === 'PENDING') {
-        return res.status(400).json({ message: 'Email ini sedang dalam proses menunggu persetujuan Admin.' });
-      }
+    if (existingUser || existingSantri || existingPending) {
+      return res.status(400).json({ message: 'Alamat email ini sudah digunakan oleh akun lain. Silakan gunakan alamat email yang berbeda.' });
     }
 
     // Hash kata sandi
@@ -105,9 +160,9 @@ const register = async (req, res) => {
         nama: nama.trim(),
         email: cleanEmail,
         password: hashedPassword,
-        noHp: noHp ? noHp.trim() : null,
-        role: role || 'SANTRI',
-        nis: nis ? nis.trim() : null,
+        noHp: noHp.trim(),
+        alamat: alamat.trim(),
+        role: 'SANTRI',
         namaWali: namaWali ? namaWali.trim() : null,
         status: 'PENDING'
       }
@@ -117,7 +172,7 @@ const register = async (req, res) => {
     await prisma.notification.create({
       data: {
         judul: 'Pendaftaran Akun Baru',
-        isi: `Pendaftaran akun baru dari ${nama.trim()} (${role || 'Santri'}). Mohon lakukan peninjauan pada menu Persetujuan Akun.`,
+        isi: `Pendaftaran akun baru dari ${nama.trim()} (${cleanEmail}). Mohon lakukan peninjauan pada menu Persetujuan Akun.`,
         kategori: 'UMUM',
         santriId: -1
       }
@@ -141,7 +196,7 @@ const getPendaftaranList = async (req, res) => {
     });
 
     const allSantri = await prisma.santri.findMany({
-      select: { id: true, nama: true, email: true, kelas: true, namaWali: true, status: true }
+      select: { id: true, nama: true, email: true, kelas: true, namaWali: true, alamat: true, status: true }
     });
 
     const enrichedList = list.map(item => {
@@ -153,7 +208,8 @@ const getPendaftaranList = async (req, res) => {
           nama: matchedSantri.nama,
           kelas: matchedSantri.kelas || '-',
           email: matchedSantri.email,
-          namaWali: matchedSantri.namaWali
+          namaWali: matchedSantri.namaWali,
+          alamat: matchedSantri.alamat
         } : null
       };
     });
@@ -184,7 +240,7 @@ const approvePendaftaran = async (req, res) => {
     const matchedSantri = findMatchingSantri(item, allSantri);
 
     // Jika tidak ada santri yang cocok dan admin belum mengonfirmasi 'force'
-    if (!matchedSantri && !force && (item.role === 'SANTRI' || item.role === 'WALI_SANTRI')) {
+    if (!matchedSantri && !force) {
       return res.status(200).json({
         warning: true,
         message: `Nama '${item.nama}' tidak ditemukan dalam data santri terdaftar. Pastikan data santri sudah diinput terlebih dahulu, atau lanjutkan approve sebagai akun tanpa tautan data santri.`,
@@ -202,6 +258,7 @@ const approvePendaftaran = async (req, res) => {
           email: item.email,
           password: item.password, // Password hashed dari pendaftaran
           noHp: item.noHp || matchedSantri.noHp,
+          alamat: item.alamat || matchedSantri.alamat,
           namaWali: item.namaWali || matchedSantri.namaWali,
           status: 'ACTIVE'
         }
@@ -218,34 +275,19 @@ const approvePendaftaran = async (req, res) => {
         }
       });
     } else {
-      // Tidak ada match atau dikonfirmasi 'force'
-      if (item.role === 'SANTRI') {
-        // Buat entri Santri baru
-        const newSantri = await prisma.santri.create({
-          data: {
-            nama: item.nama,
-            email: item.email,
-            password: item.password,
-            noHp: item.noHp,
-            namaWali: item.namaWali,
-            status: 'ACTIVE'
-          }
-        });
-        linkedSantriId = newSantri.id;
-      } else {
-        // Buat/Update User (Admin/Ustadz) jika bukan santri
-        const existingUser = await prisma.user.findFirst({ where: { email: item.email } });
-        if (!existingUser) {
-          await prisma.user.create({
-            data: {
-              nama: item.nama,
-              email: item.email,
-              password: item.password,
-              noHp: item.noHp
-            }
-          });
+      // Tidak ada match tetapi dikonfirmasi 'force' oleh admin
+      const newSantri = await prisma.santri.create({
+        data: {
+          nama: item.nama,
+          email: item.email,
+          password: item.password,
+          noHp: item.noHp,
+          alamat: item.alamat,
+          namaWali: item.namaWali,
+          status: 'ACTIVE'
         }
-      }
+      });
+      linkedSantriId = newSantri.id;
     }
 
     // Update status pendaftaran menjadi APPROVED
@@ -296,6 +338,7 @@ const rejectPendaftaran = async (req, res) => {
 };
 
 module.exports = {
+  checkEmailAvailability,
   register,
   getPendaftaranList,
   approvePendaftaran,

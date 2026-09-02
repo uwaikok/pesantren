@@ -315,8 +315,10 @@ function PersetujuanAkun() {
                           <Phone size={12} className="text-slate-400" />
                           <span>{item.noHp || '-'}</span>
                         </p>
-                        {item.nis && (
-                          <p className="text-slate-500 font-mono">NIS: <span className="font-bold text-slate-700">{item.nis}</span></p>
+                        {item.alamat && (
+                          <p className="text-slate-600 text-[10px] bg-slate-50 p-1.5 rounded-lg border border-slate-200 mt-1 max-w-xs leading-relaxed">
+                            <span className="font-bold text-slate-700">Alamat:</span> {item.alamat}
+                          </p>
                         )}
                         {item.namaWali && (
                           <p className="text-slate-500">Wali: <span className="font-semibold text-slate-700">{item.namaWali}</span></p>

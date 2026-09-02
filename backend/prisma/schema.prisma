@@ -109,6 +109,7 @@ model Pendaftaran {
   email           String    @unique
   password        String
   noHp            String?
+  alamat          String?   // Alamat lengkap pendaftar
   role            String    @default("SANTRI") // "SANTRI", "WALI_SANTRI", "USTADZ", "ADMIN"
   nis             String?   // Nomor Induk Santri (verifikasi opsional)
   namaWali        String?   // Nama Wali (verifikasi opsional)

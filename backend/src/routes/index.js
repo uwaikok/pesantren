@@ -17,6 +17,7 @@ const pendaftaranController = require('../controllers/pendaftaranController');
 // --- AUTENTIKASI ---
 router.post('/auth/login', loginRateLimiter, authController.login);
 router.post('/auth/register', pendaftaranController.register);
+router.get('/auth/check-email', pendaftaranController.checkEmailAvailability);
 router.post('/auth/logout', authController.logout);
 router.get('/auth/me', verifyToken, authController.getMe);
 router.post('/auth/change-password', verifyToken, authController.changePassword);

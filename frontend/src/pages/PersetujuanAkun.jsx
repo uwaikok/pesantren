@@ -104,7 +104,7 @@ function PersetujuanAkun() {
       item.nama.toLowerCase().includes(q) ||
       item.email.toLowerCase().includes(q) ||
       (item.noHp && item.noHp.toLowerCase().includes(q)) ||
-      (item.role && item.role.toLowerCase().includes(q))
+      (item.alamat && item.alamat.toLowerCase().includes(q))
     );
     return matchesTab && matchesQuery;
   });
@@ -304,7 +304,7 @@ function PersetujuanAkun() {
                           ? 'bg-amber-100 text-amber-800 border border-amber-200'
                           : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       }`}>
-                        {item.role === 'WALI_SANTRI' ? 'Wali Santri' : item.role === 'USTADZ' ? 'Pengurus/Ustadz' : item.role}
+                        {item.role === 'WALI_SANTRI' ? 'Wali Santri' : item.role === 'USTADZ' ? 'Pengurus/Ustadz' : item.role || 'Santri'}
                       </span>
                     </td>
 
@@ -315,8 +315,10 @@ function PersetujuanAkun() {
                           <Phone size={12} className="text-slate-400" />
                           <span>{item.noHp || '-'}</span>
                         </p>
-                        {item.nis && (
-                          <p className="text-slate-500 font-mono">NIS: <span className="font-bold text-slate-700">{item.nis}</span></p>
+                        {item.alamat && (
+                          <p className="text-slate-600 text-[10px] bg-slate-50 p-1.5 rounded-lg border border-slate-200 mt-1 max-w-xs leading-relaxed">
+                            <span className="font-bold text-slate-700">Alamat:</span> {item.alamat}
+                          </p>
                         )}
                         {item.namaWali && (
                           <p className="text-slate-500">Wali: <span className="font-semibold text-slate-700">{item.namaWali}</span></p>

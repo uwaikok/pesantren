@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, User, Phone, Shield, X, CheckCircle, UserPlus } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Phone, MapPin, X, CheckCircle, UserPlus, Loader2 } from 'lucide-react';
 import api from '../utils/api';
 import { alertDialog } from '../utils/dialog';
 
@@ -19,12 +19,15 @@ function Login({ onLoginSuccess }) {
   const [regSuccessMsg, setRegSuccessMsg] = useState('');
   const [showRegPwd, setShowRegPwd] = useState(false);
 
+  // State validasi real-time email
+  const [emailError, setEmailError] = useState('');
+  const [checkingEmail, setCheckingEmail] = useState(false);
+
   const [regForm, setRegForm] = useState({
     nama: '',
     email: '',
     noHp: '',
-    role: 'SANTRI',
-    nis: '',
+    alamat: '',
     namaWali: '',
     password: '',
     konfirmasiPassword: ''
@@ -59,19 +62,69 @@ function Login({ onLoginSuccess }) {
     }
   };
 
+  // Handler Perubahan Field Email & Validasi Real-Time
+  const handleEmailChange = (val) => {
+    setRegForm(prev => ({ ...prev, email: val }));
+    setEmailError('');
+
+    const clean = val.trim().toLowerCase();
+    if (!clean) return;
+
+    // 1. Validasi Domain @pesantren.com Real-time
+    if (!clean.endsWith('@pesantren.com')) {
+      setEmailError('Email harus menggunakan domain @pesantren.com. Contoh: nama@pesantren.com');
+      return;
+    }
+
+    // 2. Validasi Anti-Duplikat ke Database Real-time (Debounced 400ms)
+    setCheckingEmail(true);
+    clearTimeout(window.emailCheckTimer);
+    window.emailCheckTimer = setTimeout(async () => {
+      try {
+        const res = await api.get(`/auth/check-email?email=${encodeURIComponent(clean)}`);
+        if (!res.validDomain) {
+          setEmailError(res.message || 'Email harus menggunakan domain @pesantren.com. Contoh: nama@pesantren.com');
+        } else if (!res.available) {
+          setEmailError(res.message || 'Alamat email ini sudah digunakan oleh akun lain. Silakan gunakan alamat email yang berbeda.');
+        } else {
+          setEmailError('');
+        }
+      } catch (err) {
+        console.error('Error check email:', err);
+      } finally {
+        setCheckingEmail(false);
+      }
+    }, 400);
+  };
+
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setRegError('');
     setRegSuccessMsg('');
 
-    if (!regForm.nama.trim() || !regForm.email.trim()) {
-      setRegError('Nama Lengkap dan Alamat Email wajib diisi');
+    if (!regForm.nama.trim()) {
+      setRegError('Nama Lengkap wajib diisi');
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(regForm.email.trim())) {
-      setRegError('Format alamat email tidak valid');
+    const cleanEmail = regForm.email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.endsWith('@pesantren.com')) {
+      setRegError('Email harus menggunakan domain @pesantren.com. Contoh: nama@pesantren.com');
+      return;
+    }
+
+    if (emailError) {
+      setRegError(emailError);
+      return;
+    }
+
+    if (!regForm.noHp.trim()) {
+      setRegError('Nomor HP/WhatsApp wajib diisi');
+      return;
+    }
+
+    if (!regForm.alamat.trim()) {
+      setRegError('Alamat Lengkap wajib diisi');
       return;
     }
 
@@ -89,10 +142,9 @@ function Login({ onLoginSuccess }) {
     try {
       const response = await api.post('/auth/register', {
         nama: regForm.nama,
-        email: regForm.email,
+        email: cleanEmail,
         noHp: regForm.noHp,
-        role: regForm.role,
-        nis: regForm.nis,
+        alamat: regForm.alamat,
         namaWali: regForm.namaWali,
         password: regForm.password
       });
@@ -102,12 +154,12 @@ function Login({ onLoginSuccess }) {
         nama: '',
         email: '',
         noHp: '',
-        role: 'SANTRI',
-        nis: '',
+        alamat: '',
         namaWali: '',
         password: '',
         konfirmasiPassword: ''
       });
+      setEmailError('');
     } catch (err) {
       console.error(err);
       setRegError(err.message || 'Gagal mengirimkan pendaftaran');
@@ -252,6 +304,7 @@ function Login({ onLoginSuccess }) {
                 type="button"
                 onClick={() => {
                   setRegError('');
+                  setEmailError('');
                   setRegSuccessMsg('');
                   setIsRegisterOpen(true);
                 }}
@@ -319,7 +372,7 @@ function Login({ onLoginSuccess }) {
                     </div>
                   )}
 
-                  {/* Nama Lengkap */}
+                  {/* 1. Nama Lengkap (Wajib) */}
                   <div>
                     <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
                       Nama Lengkap <span className="text-rose-500">*</span>
@@ -332,7 +385,7 @@ function Login({ onLoginSuccess }) {
                         type="text"
                         value={regForm.nama}
                         onChange={(e) => setRegForm({ ...regForm, nama: e.target.value })}
-                        placeholder="Sesuai nama di data santri (Contoh: Ahmad Rifki)"
+                        placeholder="Sesuai nama di data santri (Contoh: Rifki Ahmad Dzulfikri)"
                         className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs outline-none"
                         required
                       />
@@ -340,96 +393,103 @@ function Login({ onLoginSuccess }) {
                     <p className="text-[10px] text-slate-400 mt-1 italic">Pastikan diisi sesuai nama santri agar otomatis terhubung.</p>
                   </div>
 
-                  {/* Email & Phone */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
-                        Alamat Email <span className="text-rose-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                          <Mail size={15} />
-                        </span>
-                        <input
-                          type="email"
-                          value={regForm.email}
-                          onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
-                          placeholder="nama@email.com"
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs outline-none"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
-                        Nomor HP / WhatsApp
-                      </label>
-                      <div className="relative">
-                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                          <Phone size={15} />
-                        </span>
-                        <input
-                          type="tel"
-                          value={regForm.noHp}
-                          onChange={(e) => setRegForm({ ...regForm, noHp: e.target.value })}
-                          placeholder="08123456789"
-                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs outline-none"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Peran / Status */}
+                  {/* 2. Alamat Email (Wajib, @pesantren.com, Real-time validation) */}
                   <div>
                     <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
-                      Peran / Status Pendaftar <span className="text-rose-500">*</span>
+                      Alamat Email <span className="text-rose-500">*</span>
                     </label>
                     <div className="relative">
                       <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
-                        <Shield size={15} />
+                        <Mail size={15} />
                       </span>
-                      <select
-                        value={regForm.role}
-                        onChange={(e) => setRegForm({ ...regForm, role: e.target.value })}
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs font-semibold outline-none"
-                      >
-                        <option value="SANTRI">Santri</option>
-                        <option value="WALI_SANTRI">Wali Santri</option>
-                        <option value="USTADZ">Pengurus / Ustadz</option>
-                      </select>
+                      <input
+                        type="email"
+                        value={regForm.email}
+                        onChange={(e) => handleEmailChange(e.target.value)}
+                        placeholder="nama@pesantren.com"
+                        className={`w-full bg-slate-50 border rounded-xl py-2.5 pl-9 pr-8 text-xs outline-none transition ${
+                          emailError 
+                            ? 'border-rose-400 focus:ring-2 focus:ring-rose-500/20 bg-rose-50/40' 
+                            : 'border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15'
+                        }`}
+                        required
+                      />
+                      {checkingEmail && (
+                        <span className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400">
+                          <Loader2 size={14} className="animate-spin text-[#0B4A3F]" />
+                        </span>
+                      )}
+                    </div>
+                    {emailError ? (
+                      <p className="text-[10px] text-rose-600 font-semibold mt-1.5 flex items-center space-x-1">
+                        <span>❌</span>
+                        <span>{emailError}</span>
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-slate-400 mt-1">Wajib menggunakan domain @pesantren.com (Contoh: rifki@pesantren.com)</p>
+                    )}
+                  </div>
+
+                  {/* 3. Nomor HP / WhatsApp (Wajib) */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
+                      Nomor HP / WhatsApp <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                        <Phone size={15} />
+                      </span>
+                      <input
+                        type="tel"
+                        value={regForm.noHp}
+                        onChange={(e) => setRegForm({ ...regForm, noHp: e.target.value })}
+                        placeholder="08123456789"
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs outline-none"
+                        required
+                      />
                     </div>
                   </div>
 
-                  {/* Verifikasi Tambahan Opsional */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                        No. Induk Santri (NIS) <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={regForm.nis}
-                        onChange={(e) => setRegForm({ ...regForm, nis: e.target.value })}
-                        placeholder="Contoh: 1045"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 px-3 text-xs outline-none"
+                  {/* 4. Alamat Lengkap (Wajib, Textarea) */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
+                      Alamat Lengkap <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute top-3 left-3 text-slate-400">
+                        <MapPin size={15} />
+                      </span>
+                      <textarea
+                        rows={3}
+                        value={regForm.alamat}
+                        onChange={(e) => setRegForm({ ...regForm, alamat: e.target.value })}
+                        placeholder="Contoh: Jl. Merdeka No. 10, RT 02/RW 05, Desa Sukamaju, Kec. ..."
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs outline-none resize-none"
+                        required
                       />
                     </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
-                        Nama Wali <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
-                      </label>
+                  </div>
+
+                  {/* 5. Nama Wali (Opsional) */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                      Nama Wali <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                        <User size={15} />
+                      </span>
                       <input
                         type="text"
                         value={regForm.namaWali}
                         onChange={(e) => setRegForm({ ...regForm, namaWali: e.target.value })}
                         placeholder="Nama Ayah / Ibu / Wali"
-                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 px-3 text-xs outline-none"
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs outline-none"
                       />
                     </div>
                   </div>
 
-                  {/* Password & Confirm */}
+                  {/* 6 & 7. Password & Confirm */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
                     <div>
                       <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
@@ -459,6 +519,7 @@ function Login({ onLoginSuccess }) {
                     </div>
                   </div>
 
+                  {/* 8. Checkbox Tampilkan kata sandi */}
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -470,12 +531,16 @@ function Login({ onLoginSuccess }) {
                     <label htmlFor="showRegPwdCheck" className="text-xs text-slate-600 cursor-pointer">Tampilkan kata sandi</label>
                   </div>
 
-                  {/* Submit Button */}
+                  {/* 9. Tombol Submit */}
                   <div className="pt-3">
                     <button
                       type="submit"
-                      disabled={regLoading}
-                      className="w-full bg-gradient-to-r from-[#0B4A3F] to-[#125E50] text-white py-3 rounded-xl font-bold text-xs shadow-md border border-[#D4AF37]/30 hover:brightness-110 transition flex items-center justify-center space-x-2"
+                      disabled={regLoading || !!emailError || checkingEmail}
+                      className={`w-full text-white py-3 rounded-xl font-bold text-xs shadow-md border border-[#D4AF37]/30 transition flex items-center justify-center space-x-2 ${
+                        regLoading || !!emailError || checkingEmail
+                          ? 'bg-slate-400 cursor-not-allowed opacity-70'
+                          : 'bg-gradient-to-r from-[#0B4A3F] to-[#125E50] hover:brightness-110'
+                      }`}
                     >
                       {regLoading ? (
                         <>
