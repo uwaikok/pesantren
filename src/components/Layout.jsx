@@ -69,13 +69,25 @@ function Layout({ children, user, onLogout }) {
     }
   };
 
+  // Auto-delete notifikasi admin setelah diklik (fire-and-forget agar tidak menumpuk)
+  const handleAutoDeleteAdminNotif = async (notifId) => {
+    if (typeof notifId !== 'number') return; // Jangan hapus notif dinamis (string id)
+    try {
+      await api.delete(`/notifications/${notifId}`);
+      // Refresh daftar notifikasi
+      fetchNotifications();
+    } catch (err) {
+      console.warn('Gagal auto-delete notif admin:', err);
+    }
+  };
+
   // Buka modal / navigasi saat notifikasi lonceng diklik
   const handleOpenNotifDetail = (notif) => {
     setIsNotifOpen(false); // Tutup dropdown lonceng dulu
 
     if (user.role === 'ADMIN') {
-      // Tandai notifikasi sebagai dibaca oleh admin
-      handleMarkAdminNotifRead(notif.id);
+      // Auto-delete notif admin setelah diklik agar tidak menumpuk
+      handleAutoDeleteAdminNotif(notif.id);
 
       const judul = notif.judul ? notif.judul.toLowerCase() : '';
       
@@ -87,12 +99,27 @@ function Layout({ children, user, onLogout }) {
 
       // 2. Notifikasi Perubahan Profil Santri ➔ Langsung ke Halaman Profil Santri yang bersangkutan
       if (judul.includes('perubahan profil') || judul.includes('profil santri')) {
-        const match = notif.isi ? notif.isi.match(/ID:\s*(\d+)/i) : null;
-        if (match && match[1]) {
-          navigate(`/profil/${match[1]}`);
-        } else {
-          navigate('/profil');
+        // Coba ekstrak ID dari isi notif format: "Santri [Nama] (ID: 123, Kelas: ...)"
+        const idMatch = notif.isi ? notif.isi.match(/\(ID:\s*(\d+)/i) : null;
+        if (idMatch && idMatch[1]) {
+          navigate(`/profil/${idMatch[1]}`);
+          return;
         }
+        // Fallback: ekstrak nama dari judul "Perubahan Profil Santri: [Nama]"
+        const namaMatch = notif.judul ? notif.judul.match(/^Perubahan Profil Santri:\s*(.+)$/i) : null;
+        if (namaMatch && namaMatch[1]) {
+          // Cari santri di semua santri yang sudah di-fetch sebelumnya
+          const namaCari = namaMatch[1].trim().toLowerCase();
+          const foundSantri = allSantri.find(s =>
+            s.nama && s.nama.toLowerCase().trim() === namaCari
+          );
+          if (foundSantri) {
+            navigate(`/profil/${foundSantri.id}`);
+            return;
+          }
+        }
+        // Fallback terakhir: beri tahu admin nama santri tidak ditemukan, arahkan ke beranda
+        navigate('/');
         return;
       }
 
