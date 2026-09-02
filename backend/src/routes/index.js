@@ -367,7 +367,7 @@ router.put('/users/:id/profile', verifyToken, async (req, res) => {
       await prisma.notification.create({
         data: {
           judul: `Perubahan Profil Santri: ${santri.nama}`,
-          isi: `Santri ${santri.nama} (Kelas: ${santri.kelas || '-'}) telah mengubah ${changedFields.join(', ')}.`,
+          isi: `Santri ${santri.nama} (ID: ${userId}, Kelas: ${santri.kelas || '-'}) telah mengubah ${changedFields.join(', ')}.`,
           kategori: 'UMUM',
           santriId: -1,
         }

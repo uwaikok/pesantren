@@ -69,15 +69,42 @@ function Layout({ children, user, onLogout }) {
     }
   };
 
-  // Buka modal detail pengumuman
+  // Buka modal / navigasi saat notifikasi lonceng diklik
   const handleOpenNotifDetail = (notif) => {
+    setIsNotifOpen(false); // Tutup dropdown lonceng dulu
+
+    if (user.role === 'ADMIN') {
+      // Tandai notifikasi sebagai dibaca oleh admin
+      handleMarkAdminNotifRead(notif.id);
+
+      const judul = notif.judul ? notif.judul.toLowerCase() : '';
+      
+      // 1. Notifikasi Pendaftaran Akun Baru ➔ Langsung ke Halaman Persetujuan Akun
+      if (judul.includes('pendaftaran akun') || judul.includes('pendaftaran baru')) {
+        navigate('/persetujuan-akun');
+        return;
+      }
+
+      // 2. Notifikasi Perubahan Profil Santri ➔ Langsung ke Halaman Profil Santri yang bersangkutan
+      if (judul.includes('perubahan profil') || judul.includes('profil santri')) {
+        const match = notif.isi ? notif.isi.match(/ID:\s*(\d+)/i) : null;
+        if (match && match[1]) {
+          navigate(`/profil/${match[1]}`);
+        } else {
+          navigate('/profil');
+        }
+        return;
+      }
+
+      // 3. Notifikasi yang bersifat pengumuman / global ➔ Langsung ke Halaman Kirim Pemberitahuan
+      navigate('/kirim-pemberitahuan');
+      return;
+    }
+
+    // Untuk SANTRI: Buka modal detail pengumuman
     setSelectedNotif(notif);
-    setIsNotifOpen(false); // Tutup dropdown dulu
-    // Auto mark as read
     if (user.role === 'SANTRI') {
       handleMarkSingleRead(notif.id);
-    } else if (user.role === 'ADMIN') {
-      handleMarkAdminNotifRead(notif.id);
     }
   };
 
@@ -570,7 +597,7 @@ function Layout({ children, user, onLogout }) {
                       <div
                         key={n.id}
                         onClick={() => handleOpenNotifDetail(n)}
-                        className={`p-3 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80 font-medium' : ''}`}
+                        className={`p-3 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 ${!isRead ? 'bg-emerald-50/40 font-medium' : ''}`}
                       >
                         <div className="flex justify-between items-start gap-2">
                           <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide inline-block ${iconBg}`}>
@@ -587,7 +614,15 @@ function Layout({ children, user, onLogout }) {
                         </div>
                         <h4 className="font-bold text-slate-800 mt-1 leading-tight text-[10px]">{n.judul}</h4>
                         <p className="text-slate-500 mt-0.5 text-[9px] leading-relaxed line-clamp-2">{n.isi}</p>
-                        <p className="text-[8px] text-emerald-600 font-bold mt-1">Tap untuk baca selengkapnya →</p>
+                        <p className="text-[8px] text-emerald-600 font-bold mt-1">
+                          {user.role === 'ADMIN'
+                            ? (n.judul && n.judul.toLowerCase().includes('pendaftaran')
+                                ? 'Tap untuk buka persetujuan akun →'
+                                : n.judul && n.judul.toLowerCase().includes('perubahan profil')
+                                ? 'Tap untuk buka profil santri →'
+                                : 'Tap untuk kelola pemberitahuan →')
+                            : 'Tap untuk baca selengkapnya →'}
+                        </p>
                       </div>
                     );
                   })
@@ -811,7 +846,7 @@ function Layout({ children, user, onLogout }) {
                           <div
                             key={n.id}
                             onClick={() => handleOpenNotifDetail(n)}
-                            className={`p-3.5 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 ${!isRead && user.role === 'SANTRI' ? 'bg-slate-50/80' : ''}`}
+                            className={`p-3.5 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 ${!isRead ? 'bg-emerald-50/40 font-medium' : ''}`}
                           >
                             <div className="flex justify-between items-start gap-2">
                               <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold tracking-wider uppercase inline-block ${iconBg}`}>
@@ -828,7 +863,15 @@ function Layout({ children, user, onLogout }) {
                             </div>
                             <h4 className="font-bold text-slate-800 mt-1 text-[11px] leading-tight">{n.judul}</h4>
                             <p className="text-slate-500 mt-1 text-[10px] leading-relaxed line-clamp-2">{n.isi}</p>
-                            <p className="text-[9px] text-emerald-600 font-bold mt-1">Klik untuk baca selengkapnya →</p>
+                            <p className="text-[9px] text-emerald-600 font-bold mt-1">
+                              {user.role === 'ADMIN'
+                                ? (n.judul && n.judul.toLowerCase().includes('pendaftaran')
+                                    ? 'Klik untuk buka persetujuan akun →'
+                                    : n.judul && n.judul.toLowerCase().includes('perubahan profil')
+                                    ? 'Klik untuk buka profil santri →'
+                                    : 'Klik untuk kelola pemberitahuan →')
+                                : 'Klik untuk baca selengkapnya →'}
+                            </p>
                           </div>
                         );
                       })

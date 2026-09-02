@@ -10,8 +10,15 @@ const getNotifications = async (req, res) => {
     const userRole = req.user.role;
 
     if (userRole === 'ADMIN') {
-      // Admin melihat semua notifikasi termasuk notifikasi admin-only (santriId: -1)
+      // Admin hanya melihat notifikasi global (santriId = null) dan notifikasi khusus admin (santriId = -1)
+      // Notifikasi khusus santri individual (santriId > 0) TIDAK dimunculkan di lonceng admin
       const notifications = await prisma.notification.findMany({
+        where: {
+          OR: [
+            { santriId: null },
+            { santriId: -1 }
+          ]
+        },
         orderBy: { createdAt: 'desc' }
       });
       return res.json(notifications);
