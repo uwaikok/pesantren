@@ -104,7 +104,7 @@ function PersetujuanAkun() {
       item.nama.toLowerCase().includes(q) ||
       item.email.toLowerCase().includes(q) ||
       (item.noHp && item.noHp.toLowerCase().includes(q)) ||
-      (item.alamat && item.alamat.toLowerCase().includes(q))
+      (item.role && item.role.toLowerCase().includes(q))
     );
     return matchesTab && matchesQuery;
   });
@@ -304,7 +304,7 @@ function PersetujuanAkun() {
                           ? 'bg-amber-100 text-amber-800 border border-amber-200'
                           : 'bg-emerald-100 text-emerald-800 border border-emerald-200'
                       }`}>
-                        {item.role === 'WALI_SANTRI' ? 'Wali Santri' : item.role === 'USTADZ' ? 'Pengurus/Ustadz' : item.role || 'Santri'}
+                        {item.role === 'WALI_SANTRI' ? 'Wali Santri' : item.role === 'USTADZ' ? 'Pengurus/Ustadz' : item.role}
                       </span>
                     </td>
 
