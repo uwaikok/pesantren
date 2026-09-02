@@ -25,6 +25,16 @@ const login = async (req, res) => {
     }
 
     if (!user) {
+      const pendingReg = await prisma.pendaftaran.findFirst({ where: { email: email.trim().toLowerCase() } });
+      if (pendingReg) {
+        if (pendingReg.status === 'PENDING') {
+          return res.status(401).json({ message: 'Akun Anda masih menunggu persetujuan Admin, silakan coba lagi nanti.' });
+        }
+        if (pendingReg.status === 'REJECTED') {
+          const reasonMsg = pendingReg.alasanPenolakan ? ` Alasan: ${pendingReg.alasanPenolakan}` : '';
+          return res.status(401).json({ message: `Pendaftaran akun Anda ditolak oleh Admin.${reasonMsg}` });
+        }
+      }
       return res.status(401).json({ message: 'Email atau password salah' });
     }
 

@@ -15,7 +15,8 @@ import {
   Users,
   Bell,
   Trash2,
-  Pencil
+  Pencil,
+  UserCheck
 } from 'lucide-react';
 import api from '../utils/api';
 import { alertDialog } from '../utils/dialog';
@@ -47,6 +48,26 @@ function Layout({ children, user, onLogout }) {
 
   // State untuk Modal Detail Pengumuman (saat notif diklik)
   const [selectedNotif, setSelectedNotif] = useState(null);
+
+  // State untuk Badge Pendaftaran Akun Pending (Admin)
+  const [pendingRegCount, setPendingRegCount] = useState(0);
+
+  useEffect(() => {
+    if (user && user.role === 'ADMIN') {
+      fetchPendingCount();
+    }
+  }, [user, location.pathname]);
+
+  const fetchPendingCount = async () => {
+    try {
+      const data = await api.get('/admin/pendaftaran');
+      if (Array.isArray(data)) {
+        setPendingRegCount(data.filter(i => i.status === 'PENDING').length);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat count pendaftaran:', err);
+    }
+  };
 
   // Buka modal detail pengumuman
   const handleOpenNotifDetail = (notif) => {
@@ -301,6 +322,8 @@ function Layout({ children, user, onLogout }) {
       crumbs.push({ label: 'Tambah Santri Baru', path: '/tambah-santri' });
     } else if (path === '/kirim-pemberitahuan') {
       crumbs.push({ label: 'Kirim Pemberitahuan', path: '/kirim-pemberitahuan' });
+    } else if (path === '/persetujuan-akun') {
+      crumbs.push({ label: 'Persetujuan Akun Baru', path: '/persetujuan-akun' });
     }
 
     return crumbs;
@@ -310,6 +333,7 @@ function Layout({ children, user, onLogout }) {
     { label: 'Beranda', path: '/', icon: LayoutDashboard, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Pendidikan', path: '/pendidikan', icon: BookOpen, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Kelas / Rombel', path: '/kelas', icon: Users, roles: ['ADMIN'] },
+    { label: 'Persetujuan Akun', path: '/persetujuan-akun', icon: UserCheck, roles: ['ADMIN'], badge: pendingRegCount },
     { label: 'Keamanan', path: '/keamanan', icon: ShieldAlert, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Bendahara', path: '/keuangan', icon: DollarSign, roles: ['ADMIN', 'SANTRI'] },
     { label: 'Kirim Pemberitahuan', path: '/kirim-pemberitahuan', icon: Bell, roles: ['ADMIN'] },
@@ -437,6 +461,11 @@ function Layout({ children, user, onLogout }) {
                   >
                     <Icon size={18} className={isActive ? 'text-[#E8C766]' : 'text-emerald-200/80 group-hover:text-[#E8C766] transition-colors duration-200'} />
                     <span>{item.label}</span>
+                    {item.badge > 0 && (
+                      <span className="ml-auto bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm animate-pulse">
+                        {item.badge}
+                      </span>
+                    )}
                   </Link>
                 );
               })}
@@ -624,7 +653,7 @@ function Layout({ children, user, onLogout }) {
                 </div>
               </Link>
             </div>
- 
+
             {/* Mobile Navigation Links Grouped */}
             <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto">
               {/* Group 1: Menu Utama */}
@@ -671,6 +700,11 @@ function Layout({ children, user, onLogout }) {
                       >
                         <Icon size={18} className={isActive ? 'text-[#E8C766]' : 'text-emerald-200/80'} />
                         <span>{item.label}</span>
+                        {item.badge > 0 && (
+                          <span className="ml-auto bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm animate-pulse">
+                            {item.badge}
+                          </span>
+                        )}
                       </Link>
                     );
                   })}
@@ -1112,4 +1146,3 @@ function Layout({ children, user, onLogout }) {
 }
 
 export default Layout;
-

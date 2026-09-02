@@ -102,3 +102,20 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+model Pendaftaran {
+  id              Int       @id @default(autoincrement())
+  nama            String
+  email           String    @unique
+  password        String
+  noHp            String?
+  role            String    @default("SANTRI") // "SANTRI", "WALI_SANTRI", "USTADZ", "ADMIN"
+  nis             String?   // Nomor Induk Santri (verifikasi opsional)
+  namaWali        String?   // Nama Wali (verifikasi opsional)
+  status          String    @default("PENDING") // "PENDING", "APPROVED", "REJECTED"
+  alasanPenolakan String?
+  matchedSantriId Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+}
+

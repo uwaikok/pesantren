@@ -13,6 +13,7 @@ import Profil from './pages/Profil';
 import TambahSantri from './pages/TambahSantri';
 import KelasRombel from './pages/KelasRombel';
 import KirimPemberitahuan from './pages/KirimPemberitahuan';
+import PersetujuanAkun from './pages/PersetujuanAkun';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -79,6 +80,7 @@ function App() {
           <Route path="/tambah-santri" element={user && user.role === 'ADMIN' ? <TambahSantri /> : <Navigate to="/" replace />} />
           <Route path="/kelas" element={user && user.role === 'ADMIN' ? <KelasRombel user={user} /> : <Navigate to="/" replace />} />
           <Route path="/kirim-pemberitahuan" element={user && user.role === 'ADMIN' ? <KirimPemberitahuan /> : <Navigate to="/" replace />} />
+          <Route path="/persetujuan-akun" element={user && user.role === 'ADMIN' ? <PersetujuanAkun /> : <Navigate to="/" replace />} />
         </Route>
 
         {/* Fallback Redirect */}

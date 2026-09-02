@@ -12,12 +12,20 @@ const akademikController = require('../controllers/akademikController');
 const keamananController = require('../controllers/keamananController');
 const keuanganController = require('../controllers/keuanganController');
 const notificationController = require('../controllers/notificationController');
+const pendaftaranController = require('../controllers/pendaftaranController');
 
 // --- AUTENTIKASI ---
 router.post('/auth/login', loginRateLimiter, authController.login);
+router.post('/auth/register', pendaftaranController.register);
 router.post('/auth/logout', authController.logout);
 router.get('/auth/me', verifyToken, authController.getMe);
 router.post('/auth/change-password', verifyToken, authController.changePassword);
+
+// --- PERSETUJUAN AKUN BARU (ADMIN ONLY) ---
+router.get('/admin/pendaftaran', verifyToken, isAdmin, pendaftaranController.getPendaftaranList);
+router.post('/admin/pendaftaran/:id/approve', verifyToken, isAdmin, pendaftaranController.approvePendaftaran);
+router.post('/admin/pendaftaran/:id/reject', verifyToken, isAdmin, pendaftaranController.rejectPendaftaran);
+
 
 // --- PROFIL ADMIN SENDIRI (bukan Santri) ---
 router.get('/auth/profile', verifyToken, async (req, res) => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Phone, Shield, X, CheckCircle, UserPlus } from 'lucide-react';
 import api from '../utils/api';
 import { alertDialog } from '../utils/dialog';
 
@@ -12,7 +12,25 @@ function Login({ onLoginSuccess }) {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  // State untuk Modal Pendaftaran Akun Mandiri
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [regLoading, setRegLoading] = useState(false);
+  const [regError, setRegError] = useState('');
+  const [regSuccessMsg, setRegSuccessMsg] = useState('');
+  const [showRegPwd, setShowRegPwd] = useState(false);
+
+  const [regForm, setRegForm] = useState({
+    nama: '',
+    email: '',
+    noHp: '',
+    role: 'SANTRI',
+    nis: '',
+    namaWali: '',
+    password: '',
+    konfirmasiPassword: ''
+  });
+
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
       setError('Email dan password wajib diisi');
@@ -38,6 +56,63 @@ function Login({ onLoginSuccess }) {
       setError(err.message || 'Koneksi ke server gagal');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    setRegError('');
+    setRegSuccessMsg('');
+
+    if (!regForm.nama.trim() || !regForm.email.trim()) {
+      setRegError('Nama Lengkap dan Alamat Email wajib diisi');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(regForm.email.trim())) {
+      setRegError('Format alamat email tidak valid');
+      return;
+    }
+
+    if (!regForm.password || regForm.password.length < 6) {
+      setRegError('Kata sandi minimal 6 karakter');
+      return;
+    }
+
+    if (regForm.password !== regForm.konfirmasiPassword) {
+      setRegError('Konfirmasi kata sandi tidak cocok');
+      return;
+    }
+
+    setRegLoading(true);
+    try {
+      const response = await api.post('/auth/register', {
+        nama: regForm.nama,
+        email: regForm.email,
+        noHp: regForm.noHp,
+        role: regForm.role,
+        nis: regForm.nis,
+        namaWali: regForm.namaWali,
+        password: regForm.password
+      });
+
+      setRegSuccessMsg(response.message || 'Pendaftaran berhasil dikirim. Akun Anda akan aktif setelah disetujui oleh Admin. Mohon tunggu konfirmasi.');
+      setRegForm({
+        nama: '',
+        email: '',
+        noHp: '',
+        role: 'SANTRI',
+        nis: '',
+        namaWali: '',
+        password: '',
+        konfirmasiPassword: ''
+      });
+    } catch (err) {
+      console.error(err);
+      setRegError(err.message || 'Gagal mengirimkan pendaftaran');
+    } finally {
+      setRegLoading(false);
     }
   };
 
@@ -99,7 +174,7 @@ function Login({ onLoginSuccess }) {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleLoginSubmit} className="space-y-4">
             {/* Email Field */}
             <div>
               <label className="block text-[11px] font-extrabold text-[#0B4A3F] uppercase tracking-wider mb-1.5">Alamat Email</label>
@@ -124,7 +199,7 @@ function Login({ onLoginSuccess }) {
                 <label className="block text-[11px] font-extrabold text-[#0B4A3F] uppercase tracking-wider">Kata Sandi</label>
                 <button
                   type="button"
-                  onClick={() => alertDialog('Lupa kata sandi? Silakan hubungi admin atau pengurus di kantor pesantren untuk mereset kata sandi Anda ke kata sandi default ("santri123").', 'Lupa Kata Sandi')}
+                  onClick={() => alertDialog('Lupa kata sandi? Silakan hubungi admin atau pengurus di kantor pesantren untuk mereset kata sandi Anda.', 'Lupa Kata Sandi')}
                   className="text-[10px] text-[#D4AF37] hover:text-[#B89327] hover:underline font-bold transition-colors duration-200"
                 >
                   Lupa Sandi?
@@ -168,6 +243,24 @@ function Login({ onLoginSuccess }) {
               )}
             </button>
           </form>
+
+          {/* Link Pendaftaran Akun Baru */}
+          <div className="mt-6 pt-5 border-t border-slate-100 text-center">
+            <p className="text-xs text-slate-600 font-medium">
+              Belum punya akun?{' '}
+              <button
+                type="button"
+                onClick={() => {
+                  setRegError('');
+                  setRegSuccessMsg('');
+                  setIsRegisterOpen(true);
+                }}
+                className="font-bold text-[#0B4A3F] hover:text-[#D4AF37] hover:underline transition-colors duration-200 inline-flex items-center space-x-1"
+              >
+                <span>Daftar di sini</span>
+              </button>
+            </p>
+          </div>
         </div>
       </div>
 
@@ -175,6 +268,231 @@ function Login({ onLoginSuccess }) {
       <div className="mt-8 text-center text-[10px] text-slate-400/80 font-medium tracking-wide z-10">
         © 2026 Pesantren Miftahul Huda As-Syadzili. All rights reserved.
       </div>
+
+      {/* MODAL PENDAFTARAN AKUN MANDIRI */}
+      {isRegisterOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-white/40">
+            {/* Header Modal */}
+            <div className="bg-gradient-to-r from-[#0B4A3F] to-[#125E50] p-6 text-white rounded-t-3xl relative">
+              <button
+                onClick={() => setIsRegisterOpen(false)}
+                className="absolute top-5 right-5 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded-full p-1.5 transition"
+              >
+                <X size={18} />
+              </button>
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-[#D4AF37]/20 border border-[#D4AF37]/40 flex items-center justify-center">
+                  <UserPlus className="text-[#D4AF37]" size={20} />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold font-serif">Daftar Akun Baru</h3>
+                  <p className="text-xs text-emerald-100/90">Lengkapi data untuk mengajukan pendaftaran akun SIM Pesantren</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Body Modal */}
+            <div className="p-6">
+              {regSuccessMsg ? (
+                <div className="text-center py-6 space-y-4">
+                  <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                    <CheckCircle size={36} />
+                  </div>
+                  <h4 className="text-base font-bold text-[#0B4A3F]">Pendaftaran Berhasil Dikirim!</h4>
+                  <p className="text-xs text-slate-600 leading-relaxed max-w-sm mx-auto bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                    {regSuccessMsg}
+                  </p>
+                  <button
+                    onClick={() => setIsRegisterOpen(false)}
+                    className="mt-4 px-6 py-2.5 bg-[#0B4A3F] text-white text-xs font-bold rounded-xl hover:bg-[#083831] transition shadow-md"
+                  >
+                    Kembali ke Halaman Login
+                  </button>
+                </div>
+              ) : (
+                <form onSubmit={handleRegisterSubmit} className="space-y-4">
+                  {regError && (
+                    <div className="bg-rose-50 border-l-4 border-rose-500 text-rose-700 p-3 rounded-xl text-xs font-semibold flex items-start space-x-2">
+                      <span>⚠️</span>
+                      <span className="leading-relaxed">{regError}</span>
+                    </div>
+                  )}
+
+                  {/* Nama Lengkap */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
+                      Nama Lengkap <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                        <User size={15} />
+                      </span>
+                      <input
+                        type="text"
+                        value={regForm.nama}
+                        onChange={(e) => setRegForm({ ...regForm, nama: e.target.value })}
+                        placeholder="Sesuai nama di data santri (Contoh: Ahmad Rifki)"
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs outline-none"
+                        required
+                      />
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-1 italic">Pastikan diisi sesuai nama santri agar otomatis terhubung.</p>
+                  </div>
+
+                  {/* Email & Phone */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
+                        Alamat Email <span className="text-rose-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                          <Mail size={15} />
+                        </span>
+                        <input
+                          type="email"
+                          value={regForm.email}
+                          onChange={(e) => setRegForm({ ...regForm, email: e.target.value })}
+                          placeholder="nama@email.com"
+                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs outline-none"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
+                        Nomor HP / WhatsApp
+                      </label>
+                      <div className="relative">
+                        <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                          <Phone size={15} />
+                        </span>
+                        <input
+                          type="tel"
+                          value={regForm.noHp}
+                          onChange={(e) => setRegForm({ ...regForm, noHp: e.target.value })}
+                          placeholder="08123456789"
+                          className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs outline-none"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Peran / Status */}
+                  <div>
+                    <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
+                      Peran / Status Pendaftar <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400">
+                        <Shield size={15} />
+                      </span>
+                      <select
+                        value={regForm.role}
+                        onChange={(e) => setRegForm({ ...regForm, role: e.target.value })}
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 pl-9 pr-3 text-xs font-semibold outline-none"
+                      >
+                        <option value="SANTRI">Santri</option>
+                        <option value="WALI_SANTRI">Wali Santri</option>
+                        <option value="USTADZ">Pengurus / Ustadz</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Verifikasi Tambahan Opsional */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        No. Induk Santri (NIS) <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={regForm.nis}
+                        onChange={(e) => setRegForm({ ...regForm, nis: e.target.value })}
+                        placeholder="Contoh: 1045"
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 px-3 text-xs outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-600 mb-1">
+                        Nama Wali <span className="text-[10px] text-slate-400 font-normal">(Opsional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={regForm.namaWali}
+                        onChange={(e) => setRegForm({ ...regForm, namaWali: e.target.value })}
+                        placeholder="Nama Ayah / Ibu / Wali"
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 px-3 text-xs outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password & Confirm */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
+                        Kata Sandi <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type={showRegPwd ? 'text' : 'password'}
+                        value={regForm.password}
+                        onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+                        placeholder="Min 6 karakter"
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 px-3 text-xs outline-none"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-[#0B4A3F] uppercase tracking-wider mb-1">
+                        Konfirmasi Sandi <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type={showRegPwd ? 'text' : 'password'}
+                        value={regForm.konfirmasiPassword}
+                        onChange={(e) => setRegForm({ ...regForm, konfirmasiPassword: e.target.value })}
+                        placeholder="Ulangi kata sandi"
+                        className="w-full bg-slate-50 border border-slate-200 focus:border-[#0B4A3F] focus:ring-2 focus:ring-[#0B4A3F]/15 rounded-xl py-2.5 px-3 text-xs outline-none"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="showRegPwdCheck"
+                      checked={showRegPwd}
+                      onChange={(e) => setShowRegPwd(e.target.checked)}
+                      className="rounded border-slate-300 text-[#0B4A3F] focus:ring-[#0B4A3F]"
+                    />
+                    <label htmlFor="showRegPwdCheck" className="text-xs text-slate-600 cursor-pointer">Tampilkan kata sandi</label>
+                  </div>
+
+                  {/* Submit Button */}
+                  <div className="pt-3">
+                    <button
+                      type="submit"
+                      disabled={regLoading}
+                      className="w-full bg-gradient-to-r from-[#0B4A3F] to-[#125E50] text-white py-3 rounded-xl font-bold text-xs shadow-md border border-[#D4AF37]/30 hover:brightness-110 transition flex items-center justify-center space-x-2"
+                    >
+                      {regLoading ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Mengirim Pendaftaran...</span>
+                        </>
+                      ) : (
+                        <span>Kirim Pendaftaran Akun</span>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
