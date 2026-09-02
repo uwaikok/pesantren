@@ -19,7 +19,7 @@ import {
   UserCheck
 } from 'lucide-react';
 import api from '../utils/api';
-import { alertDialog } from '../utils/dialog';
+import { alertDialog, confirmDialog } from '../utils/dialog';
 
 function Layout({ children, user, onLogout }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -69,20 +69,35 @@ function Layout({ children, user, onLogout }) {
     }
   };
 
-  // Auto-delete notifikasi admin setelah diklik (fire-and-forget agar tidak menumpuk)
+  // Auto-delete notifikasi admin setelah diklik (agar tidak menumpuk di lonceng)
   const handleAutoDeleteAdminNotif = async (notifId) => {
     if (typeof notifId !== 'number') return; // Jangan hapus notif dinamis (string id)
     try {
       await api.delete(`/notifications/${notifId}`);
-      // Refresh daftar notifikasi
-      fetchNotifications();
+      // Refresh daftar notifikasi di local state
+      setNotifications(prev => prev.filter(n => n.id !== notifId));
+      setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
       console.warn('Gagal auto-delete notif admin:', err);
     }
   };
 
+  // Bersihkan semua notifikasi admin sekaligus
+  const handleClearAllAdminNotifs = async () => {
+    if (!await confirmDialog('Apakah Anda yakin ingin menghapus semua notifikasi di lonceng ini?')) return;
+    try {
+      const adminNotifIds = notifications.map(n => n.id).filter(id => typeof id === 'number');
+      await Promise.all(adminNotifIds.map(id => api.delete(`/notifications/${id}`).catch(() => {})));
+      setNotifications([]);
+      setUnreadCount(0);
+      alertDialog('Semua notifikasi berhasil dibersihkan!', 'Berhasil');
+    } catch (err) {
+      console.error('Gagal membersihkan notifikasi:', err);
+    }
+  };
+
   // Buka modal / navigasi saat notifikasi lonceng diklik
-  const handleOpenNotifDetail = (notif) => {
+  const handleOpenNotifDetail = async (notif) => {
     setIsNotifOpen(false); // Tutup dropdown lonceng dulu
 
     if (user.role === 'ADMIN') {
@@ -97,28 +112,48 @@ function Layout({ children, user, onLogout }) {
         return;
       }
 
-      // 2. Notifikasi Perubahan Profil Santri ➔ Langsung ke Halaman Profil Santri yang bersangkutan
+      // 2. Notifikasi Perubahan Profil Santri ➔ Langsung ke Halaman Detail Profil Santri yang bersangkutan
       if (judul.includes('perubahan profil') || judul.includes('profil santri')) {
-        // Coba ekstrak ID dari isi notif format: "Santri [Nama] (ID: 123, Kelas: ...)"
-        const idMatch = notif.isi ? notif.isi.match(/\(ID:\s*(\d+)/i) : null;
+        // Coba ekstrak ID dari isi notif format: "(ID: 123)" atau "ID: 123"
+        const idMatch = notif.isi ? notif.isi.match(/ID:\s*(\d+)/i) : null;
         if (idMatch && idMatch[1]) {
           navigate(`/profil/${idMatch[1]}`);
           return;
         }
-        // Fallback: ekstrak nama dari judul "Perubahan Profil Santri: [Nama]"
-        const namaMatch = notif.judul ? notif.judul.match(/^Perubahan Profil Santri:\s*(.+)$/i) : null;
-        if (namaMatch && namaMatch[1]) {
-          // Cari santri di semua santri yang sudah di-fetch sebelumnya
-          const namaCari = namaMatch[1].trim().toLowerCase();
-          const foundSantri = allSantri.find(s =>
-            s.nama && s.nama.toLowerCase().trim() === namaCari
-          );
-          if (foundSantri) {
-            navigate(`/profil/${foundSantri.id}`);
+
+        // Ekstrak nama santri dari judul "Perubahan Profil Santri: [Nama]"
+        const namaFromJudul = notif.judul ? notif.judul.replace(/^perubahan profil santri:\s*/i, '').trim().toLowerCase() : '';
+
+        // Coba cari dari daftar allSantri yang sudah di-fetch
+        if (allSantri && allSantri.length > 0 && namaFromJudul) {
+          const found = allSantri.find(s => {
+            const sName = (s.nama || '').toLowerCase().trim();
+            return sName === namaFromJudul || sName.includes(namaFromJudul) || namaFromJudul.includes(sName);
+          });
+          if (found) {
+            navigate(`/profil/${found.id}`);
             return;
           }
         }
-        // Fallback terakhir: arahkan ke beranda
+
+        // Jika belum ada di memory, fetch langsung data santri terbaru dari server
+        try {
+          const freshSantriList = await api.get('/admin/santri');
+          if (Array.isArray(freshSantriList) && namaFromJudul) {
+            const match = freshSantriList.find(s => {
+              const sName = (s.nama || '').toLowerCase().trim();
+              return sName === namaFromJudul || sName.includes(namaFromJudul) || namaFromJudul.includes(sName);
+            });
+            if (match) {
+              navigate(`/profil/${match.id}`);
+              return;
+            }
+          }
+        } catch (fetchErr) {
+          console.warn('Gagal mencari detail profil santri:', fetchErr);
+        }
+
+        // Fallback jika tidak ditemukan: arahkan ke beranda
         navigate('/');
         return;
       }
@@ -590,13 +625,25 @@ function Layout({ children, user, onLogout }) {
                   <Bell size={12} />
                   <span>Notifikasi SIM</span>
                 </span>
-                {unreadCount > 0 && (
-                  <button 
-                    onClick={handleMarkAllRead} 
-                    className="text-[9px] text-emerald-250 hover:text-white font-medium underline"
-                  >
-                    Semua Dibaca
-                  </button>
+                {user.role === 'ADMIN' ? (
+                  notifications.length > 0 && (
+                    <button 
+                      onClick={handleClearAllAdminNotifs} 
+                      className="text-[9px] text-rose-200 hover:text-white font-medium underline flex items-center space-x-1"
+                    >
+                      <Trash2 size={10} />
+                      <span>Bersihkan Semua</span>
+                    </button>
+                  )
+                ) : (
+                  unreadCount > 0 && (
+                    <button 
+                      onClick={handleMarkAllRead} 
+                      className="text-[9px] text-emerald-250 hover:text-white font-medium underline"
+                    >
+                      Semua Dibaca
+                    </button>
+                  )
                 )}
               </div>
               <div className="max-h-60 overflow-y-auto divide-y divide-slate-100">
@@ -624,7 +671,7 @@ function Layout({ children, user, onLogout }) {
                       <div
                         key={n.id}
                         onClick={() => handleOpenNotifDetail(n)}
-                        className={`p-3 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 ${!isRead ? 'bg-emerald-50/40 font-medium' : ''}`}
+                        className={`p-3 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 relative group ${!isRead ? 'bg-emerald-50/40 font-medium' : ''}`}
                       >
                         <div className="flex justify-between items-start gap-2">
                           <span className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase tracking-wide inline-block ${iconBg}`}>
@@ -637,19 +684,44 @@ function Layout({ children, user, onLogout }) {
                             {!isRead && (
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-500 inline-block flex-shrink-0" />
                             )}
+                            {user.role === 'ADMIN' && typeof n.id === 'number' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteNotification(n.id);
+                                }}
+                                title="Hapus Notifikasi"
+                                className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition ml-0.5"
+                              >
+                                <Trash2 size={11} />
+                              </button>
+                            )}
                           </div>
                         </div>
                         <h4 className="font-bold text-slate-800 mt-1 leading-tight text-[10px]">{n.judul}</h4>
                         <p className="text-slate-500 mt-0.5 text-[9px] leading-relaxed line-clamp-2">{n.isi}</p>
-                        <p className="text-[8px] text-emerald-600 font-bold mt-1">
-                          {user.role === 'ADMIN'
-                            ? (n.judul && n.judul.toLowerCase().includes('pendaftaran')
-                                ? 'Tap untuk buka persetujuan akun →'
-                                : n.judul && n.judul.toLowerCase().includes('perubahan profil')
-                                ? 'Tap untuk buka profil santri →'
-                                : 'Tap untuk kelola pemberitahuan →')
-                            : 'Tap untuk baca selengkapnya →'}
-                        </p>
+                        <div className="flex items-center justify-between mt-1">
+                          <p className="text-[8px] text-emerald-600 font-bold">
+                            {user.role === 'ADMIN'
+                              ? (n.judul && n.judul.toLowerCase().includes('pendaftaran')
+                                  ? 'Tap untuk buka persetujuan akun →'
+                                  : n.judul && n.judul.toLowerCase().includes('perubahan profil')
+                                  ? 'Tap untuk buka profil santri →'
+                                  : 'Tap untuk kelola pemberitahuan →')
+                              : 'Tap untuk baca selengkapnya →'}
+                          </p>
+                          {user.role === 'ADMIN' && typeof n.id === 'number' && (
+                            <span
+                              className="text-[8px] text-rose-500 font-semibold hover:underline flex items-center gap-0.5"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteNotification(n.id);
+                              }}
+                            >
+                              <Trash2 size={9} /> Hapus
+                            </span>
+                          )}
+                        </div>
                       </div>
                     );
                   })
@@ -715,7 +787,7 @@ function Layout({ children, user, onLogout }) {
                 </div>
               </Link>
             </div>
-
+ 
             {/* Mobile Navigation Links Grouped */}
             <nav className="flex-1 px-4 py-2 space-y-4 overflow-y-auto">
               {/* Group 1: Menu Utama */}
@@ -762,11 +834,6 @@ function Layout({ children, user, onLogout }) {
                       >
                         <Icon size={18} className={isActive ? 'text-[#E8C766]' : 'text-emerald-200/80'} />
                         <span>{item.label}</span>
-                        {item.badge > 0 && (
-                          <span className="ml-auto bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm animate-pulse">
-                            {item.badge}
-                          </span>
-                        )}
                       </Link>
                     );
                   })}
@@ -843,13 +910,25 @@ function Layout({ children, user, onLogout }) {
                       <Bell size={14} className="text-[#D4AF37]" />
                       <span>Notifikasi SIM</span>
                     </span>
-                    {unreadCount > 0 && (
-                      <button 
-                        onClick={handleMarkAllRead} 
-                        className="text-[10px] text-emerald-250 hover:text-white font-sans font-semibold underline transition duration-150"
-                      >
-                        Tandai Semua Dibaca
-                      </button>
+                    {user.role === 'ADMIN' ? (
+                      notifications.length > 0 && (
+                        <button 
+                          onClick={handleClearAllAdminNotifs} 
+                          className="text-[10px] text-rose-200 hover:text-white font-sans font-bold hover:underline transition duration-150 flex items-center space-x-1"
+                        >
+                          <Trash2 size={11} />
+                          <span>Bersihkan Semua</span>
+                        </button>
+                      )
+                    ) : (
+                      unreadCount > 0 && (
+                        <button 
+                          onClick={handleMarkAllRead} 
+                          className="text-[10px] text-emerald-250 hover:text-white font-sans font-semibold underline transition duration-150"
+                        >
+                          Tandai Semua Dibaca
+                        </button>
+                      )
                     )}
                   </div>
                   
@@ -878,7 +957,7 @@ function Layout({ children, user, onLogout }) {
                           <div
                             key={n.id}
                             onClick={() => handleOpenNotifDetail(n)}
-                            className={`p-3.5 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 ${!isRead ? 'bg-emerald-50/40 font-medium' : ''}`}
+                            className={`p-3.5 cursor-pointer hover:bg-emerald-50/60 transition-colors duration-150 relative group ${!isRead ? 'bg-emerald-50/40 font-medium' : ''}`}
                           >
                             <div className="flex justify-between items-start gap-2">
                               <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold tracking-wider uppercase inline-block ${iconBg}`}>
@@ -891,19 +970,44 @@ function Layout({ children, user, onLogout }) {
                                 {!isRead && (
                                   <span className="w-2 h-2 rounded-full bg-rose-500 inline-block flex-shrink-0" />
                                 )}
+                                {user.role === 'ADMIN' && typeof n.id === 'number' && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteNotification(n.id);
+                                    }}
+                                    title="Hapus Notifikasi"
+                                    className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded transition opacity-60 group-hover:opacity-100"
+                                  >
+                                    <Trash2 size={12} />
+                                  </button>
+                                )}
                               </div>
                             </div>
                             <h4 className="font-bold text-slate-800 mt-1 text-[11px] leading-tight">{n.judul}</h4>
                             <p className="text-slate-500 mt-1 text-[10px] leading-relaxed line-clamp-2">{n.isi}</p>
-                            <p className="text-[9px] text-emerald-600 font-bold mt-1">
-                              {user.role === 'ADMIN'
-                                ? (n.judul && n.judul.toLowerCase().includes('pendaftaran')
-                                    ? 'Klik untuk buka persetujuan akun →'
-                                    : n.judul && n.judul.toLowerCase().includes('perubahan profil')
-                                    ? 'Klik untuk buka profil santri →'
-                                    : 'Klik untuk kelola pemberitahuan →')
-                                : 'Klik untuk baca selengkapnya →'}
-                            </p>
+                            <div className="flex items-center justify-between mt-1">
+                              <p className="text-[9px] text-emerald-600 font-bold">
+                                {user.role === 'ADMIN'
+                                  ? (n.judul && n.judul.toLowerCase().includes('pendaftaran')
+                                      ? 'Klik untuk buka persetujuan akun →'
+                                      : n.judul && n.judul.toLowerCase().includes('perubahan profil')
+                                      ? 'Klik untuk buka profil santri →'
+                                      : 'Klik untuk kelola pemberitahuan →')
+                                  : 'Klik untuk baca selengkapnya →'}
+                              </p>
+                              {user.role === 'ADMIN' && typeof n.id === 'number' && (
+                                <span
+                                  className="text-[9px] text-rose-500 font-semibold hover:underline flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteNotification(n.id);
+                                  }}
+                                >
+                                  <Trash2 size={10} /> Hapus
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })
@@ -925,11 +1029,11 @@ function Layout({ children, user, onLogout }) {
         </header>
 
         {/* BREADCRUMB (Mobile) */}
-        <div className="md:hidden bg-[#0B4A3F] text-white border-b border-slate-200 px-4 py-2 flex items-center text-xs no-print">
+        <div className="md:hidden bg-white border-b border-slate-200 px-4 py-2 flex items-center text-xs text-slate-500 no-print">
           {getBreadcrumbs().map((crumb, index, arr) => (
             <React.Fragment key={crumb.path}>
               {index > 0 && <ChevronRight size={10} className="mx-1 text-slate-300" />}
-              <span className={index === arr.length - 1 ? 'font-bold text-[#E8C766]' : ''}>
+              <span className={index === arr.length - 1 ? 'font-bold text-[#0B4A3F]' : ''}>
                 {crumb.label}
               </span>
             </React.Fragment>
@@ -1216,3 +1320,4 @@ function Layout({ children, user, onLogout }) {
 }
 
 export default Layout;
+
