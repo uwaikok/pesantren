@@ -114,7 +114,7 @@ function Layout({ children, user, onLogout }) {
 
       // 2. Notifikasi Perubahan Profil Santri ➔ Langsung ke Halaman Detail Profil Santri yang bersangkutan
       if (judul.includes('perubahan profil') || judul.includes('profil santri')) {
-        // Coba ekstrak ID dari isi notif format: "(ID: 123)" atau "ID: 123"
+        // Coba ekstrak ID dari isi notif format: "ID: 123" atau "(ID: 123)"
         const idMatch = notif.isi ? notif.isi.match(/ID:\s*(\d+)/i) : null;
         if (idMatch && idMatch[1]) {
           navigate(`/profil/${idMatch[1]}`);
@@ -122,13 +122,14 @@ function Layout({ children, user, onLogout }) {
         }
 
         // Ekstrak nama santri dari judul "Perubahan Profil Santri: [Nama]"
-        const namaFromJudul = notif.judul ? notif.judul.replace(/^perubahan profil santri:\s*/i, '').trim().toLowerCase() : '';
+        const rawName = notif.judul ? notif.judul.replace(/^perubahan profil santri:\s*/i, '').trim() : '';
+        const cleanName = rawName.toLowerCase().replace(/[^a-z0-9]/g, '');
 
         // Coba cari dari daftar allSantri yang sudah di-fetch
-        if (allSantri && allSantri.length > 0 && namaFromJudul) {
+        if (allSantri && allSantri.length > 0 && cleanName) {
           const found = allSantri.find(s => {
-            const sName = (s.nama || '').toLowerCase().trim();
-            return sName === namaFromJudul || sName.includes(namaFromJudul) || namaFromJudul.includes(sName);
+            const sClean = (s.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            return sClean === cleanName || sClean.includes(cleanName) || cleanName.includes(sClean);
           });
           if (found) {
             navigate(`/profil/${found.id}`);
@@ -139,10 +140,10 @@ function Layout({ children, user, onLogout }) {
         // Jika belum ada di memory, fetch langsung data santri terbaru dari server
         try {
           const freshSantriList = await api.get('/admin/santri');
-          if (Array.isArray(freshSantriList) && namaFromJudul) {
+          if (Array.isArray(freshSantriList) && cleanName) {
             const match = freshSantriList.find(s => {
-              const sName = (s.nama || '').toLowerCase().trim();
-              return sName === namaFromJudul || sName.includes(namaFromJudul) || namaFromJudul.includes(sName);
+              const sClean = (s.nama || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+              return sClean === cleanName || sClean.includes(cleanName) || cleanName.includes(sClean);
             });
             if (match) {
               navigate(`/profil/${match.id}`);
@@ -153,13 +154,13 @@ function Layout({ children, user, onLogout }) {
           console.warn('Gagal mencari detail profil santri:', fetchErr);
         }
 
-        // Fallback jika tidak ditemukan: arahkan ke beranda
-        navigate('/');
+        // Fallback jika ID santri tetap tidak ditemukan: Buka modal detail notifikasi (jangan ke dashboard)
+        setSelectedNotif(notif);
         return;
       }
 
-      // 3. Notifikasi yang bersifat pengumuman / global ➔ Langsung ke Halaman Kirim Pemberitahuan
-      navigate('/kirim-pemberitahuan');
+      // 3. Notifikasi yang bersifat pengumuman / global ➔ Buka modal detail notifikasi
+      setSelectedNotif(notif);
       return;
     }
 
