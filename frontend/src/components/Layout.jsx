@@ -101,8 +101,8 @@ function Layout({ children, user, onLogout }) {
     setIsNotifOpen(false); // Tutup dropdown lonceng dulu
 
     if (user.role === 'ADMIN') {
-      // Auto-delete notif admin setelah diklik agar tidak menumpuk
-      handleAutoDeleteAdminNotif(notif.id);
+      // Tandai notifikasi sebagai dibaca oleh admin (tidak langsung dihapus)
+      handleMarkAdminNotifRead(notif.id);
 
       const judul = notif.judul ? notif.judul.toLowerCase() : '';
       
